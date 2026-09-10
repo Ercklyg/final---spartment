@@ -1,0 +1,83 @@
+/* Shared, compact reading and interaction sizes for both admin billing tabs. */
+.admin-billing {
+  font-size: 16px;
+  line-height: 1.5;
+}
+
+.admin-billing .text-sm {
+  font-size: 15px;
+  line-height: 1.5;
+}
+
+.admin-billing .text-xs {
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.admin-billing .text-slate-500 {
+  color: #475569;
+}
+
+.admin-billing .text-rose-600 {
+  color: #be123c;
+}
+
+.admin-billing input {
+  min-height: 44px;
+  max-width: 100%;
+  font-size: 16px;
+  color: #0f172a;
+}
+
+.admin-billing input::placeholder {
+  color: #64748b;
+  opacity: 1;
+}
+
+.admin-billing button {
+  min-height: 44px;
+  min-width: 44px;
+  font-weight: 500;
+}
+
+.admin-billing select {
+  min-height: 36px;
+  font-size: 14px;
+}
+
+.admin-billing :is(button, input, select):focus-visible {
+  outline: 3px solid #2563eb;
+  outline-offset: 3px;
+}
+
+.admin-billing button:disabled {
+  opacity: 1;
+  color: #64748b;
+  background-color: #f1f5f9;
+  cursor: not-allowed;
+}
+
+.admin-billing table {
+  font-variant-numeric: tabular-nums;
+}
+
+.admin-billing thead {
+  background-color: #f1f5f9;
+  color: #334155;
+}
+
+.admin-billing :is(th, td) {
+  padding: 14px 12px;
+}
+
+.admin-billing tbody tr {
+  border-color: #e2e8f0;
+}
+
+.admin-billing tbody tr:nth-child(even) {
+  background-color: #f8fafc;
+}
+
+.admin-billing tbody tr:focus-within {
+  background-color: #eff6ff;
+}

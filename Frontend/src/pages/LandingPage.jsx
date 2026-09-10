@@ -9,11 +9,11 @@ function LandingPage({ onContinueAsGuest, onSignIn, onAdminSignIn }) {
   const [isChatOpen, setIsChatOpen] = useState(false);
 
   return (
-    <main className="h-screen w-full overflow-hidden bg-slate-50">
-      <div className="flex h-full w-full flex-col lg:flex-row">
+    <main className="min-h-screen w-full overflow-x-hidden bg-slate-50">
+      <div className="flex min-h-screen w-full flex-col lg:flex-row">
         <BrandPanel />
 
-        <section className="relative flex h-screen w-full items-center justify-center overflow-hidden bg-[#f6f9fd] px-5 py-6 sm:px-8 lg:w-[42%] lg:px-8 xl:px-10">
+        <section id="sign-in" className="relative flex w-full items-center justify-center overflow-hidden bg-[#f6f9fd] px-5 py-10 sm:px-8 sm:py-12 lg:h-screen lg:w-[42%] lg:px-8 lg:py-6 xl:px-10">
           <div className="pointer-events-none absolute -right-32 -top-32 h-[420px] w-[420px] rounded-full bg-blue-100/50 blur-3xl" />
 
           <div className="pointer-events-none absolute -bottom-40 -left-40 h-[420px] w-[420px] rounded-full bg-blue-100/30 blur-3xl" />
@@ -23,6 +23,16 @@ function LandingPage({ onContinueAsGuest, onSignIn, onAdminSignIn }) {
           </div>
         </section>
       </div>
+
+      <section id="about" className="border-t border-slate-200 bg-white px-5 py-14 sm:px-8 sm:py-16">
+        <div className="mx-auto max-w-[1080px]">
+          <p className="text-center text-xs font-bold uppercase tracking-[0.24em] text-blue-600">How it works</p>
+          <h2 className="mt-2 text-center text-2xl font-extrabold tracking-tight text-slate-950 sm:text-3xl">Apartment management, made simple.</h2>
+          <div className="mt-8 grid gap-4 md:grid-cols-3">
+            {[['1', 'Sign in securely', 'Access the right dashboard for your role.'], ['2', 'Stay up to date', 'Check bills, rooms, and requests in one place.'], ['3', 'Take action', 'Manage payments and maintenance without the back-and-forth.']].map(([number, title, description]) => <article key={number} className="rounded-2xl border border-slate-200 bg-slate-50 p-5"><span className="flex h-9 w-9 items-center justify-center rounded-full bg-blue-600 text-sm font-bold text-white">{number}</span><h3 className="mt-4 font-bold text-slate-900">{title}</h3><p className="mt-1.5 text-sm leading-6 text-slate-500">{description}</p></article>)}
+          </div>
+        </div>
+      </section>
 
       {isChatOpen && (
         <Chatbox

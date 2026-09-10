@@ -4,6 +4,7 @@ import {
   Eye,
   EyeOff,
   LockKeyhole,
+  LoaderCircle,
   Mail,
   UserRound,
 } from "lucide-react";
@@ -13,18 +14,23 @@ function LoginCard({ onContinueAsGuest, onSignIn, onAdminSignIn }) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loginError, setLoginError] = useState("");
+  const [isSigningIn, setIsSigningIn] = useState(false);
 
   const handleSignIn = (event) => {
     event.preventDefault();
 
+    if (isSigningIn) return;
+
     setLoginError("");
     if (email.trim().toLowerCase() === "tenant1@gmail.com" && password === "Tenant@123") {
-      onSignIn?.();
+      setIsSigningIn(true);
+      window.setTimeout(() => onSignIn?.(), 700);
       return;
     }
 
     if (email.trim().toLowerCase() === "admin1@gmail.com" && password === "Admin@123") {
-      onAdminSignIn?.();
+      setIsSigningIn(true);
+      window.setTimeout(() => onAdminSignIn?.(), 700);
       return;
     }
 
@@ -78,6 +84,7 @@ function LoginCard({ onContinueAsGuest, onSignIn, onAdminSignIn }) {
                 }}
                 autoComplete="email"
                 required
+                disabled={isSigningIn}
                 placeholder="Enter your email address"
                 className="h-14 w-full rounded-xl border border-slate-200 bg-slate-50 pl-12 pr-4 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-500/10"
               />
@@ -110,6 +117,7 @@ function LoginCard({ onContinueAsGuest, onSignIn, onAdminSignIn }) {
                 }}
                 autoComplete="current-password"
                 required
+                disabled={isSigningIn}
                 placeholder="Enter your password"
                 className="h-14 w-full rounded-xl border border-slate-200 bg-slate-50 pl-12 pr-12 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-500/10"
               />
@@ -117,6 +125,7 @@ function LoginCard({ onContinueAsGuest, onSignIn, onAdminSignIn }) {
               <button
                 type="button"
                 onClick={() => setShowPassword((value) => !value)}
+                disabled={isSigningIn}
                 className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 transition hover:text-slate-700"
                 aria-label={
                   showPassword
@@ -159,14 +168,10 @@ function LoginCard({ onContinueAsGuest, onSignIn, onAdminSignIn }) {
 
           <button
             type="submit"
-            className="flex h-14 w-full items-center justify-center gap-3 rounded-xl bg-blue-600 text-sm font-semibold text-white shadow-[0_10px_25px_rgba(37,99,235,0.22)] transition duration-200 hover:bg-blue-700 hover:shadow-[0_12px_30px_rgba(37,99,235,0.3)] active:scale-[0.99]"
+            disabled={isSigningIn}
+            className="flex h-14 w-full items-center justify-center gap-3 rounded-xl bg-blue-600 text-sm font-semibold text-white shadow-[0_10px_25px_rgba(37,99,235,0.22)] transition duration-200 hover:bg-blue-700 hover:shadow-[0_12px_30px_rgba(37,99,235,0.3)] active:scale-[0.99] disabled:cursor-wait disabled:opacity-80"
           >
-            Sign in
-
-            <ArrowRight
-              size={19}
-              strokeWidth={1.9}
-            />
+            {isSigningIn ? <><LoaderCircle size={19} className="animate-spin" />Signing in...</> : <>Sign in<ArrowRight size={19} strokeWidth={1.9} /></>}
           </button>
         </form>
 
@@ -194,23 +199,7 @@ function LoginCard({ onContinueAsGuest, onSignIn, onAdminSignIn }) {
           Continue as Guest
         </button>
 
-        <p className="mt-5 text-center text-[11px] leading-5 text-slate-400 sm:text-xs">
-          By continuing, you agree to our{" "}
-          <button
-            type="button"
-            className="font-medium text-blue-600 hover:underline"
-          >
-            Terms of Service
-          </button>{" "}
-          and{" "}
-          <button
-            type="button"
-            className="font-medium text-blue-600 hover:underline"
-          >
-            Privacy Policy
-          </button>
-          .
-        </p>
+        <p className="mt-5 text-center text-[11px] leading-5 text-slate-400 sm:text-xs">By continuing, you agree to our{" "}<button type="button" className="font-medium text-blue-600 hover:underline">Terms of Service</button>{" "}and{" "}<button type="button" className="font-medium text-blue-600 hover:underline">Privacy Policy</button>.</p>
       </div>
     </div>
   );

@@ -1,122 +1,27 @@
+
 import { useMemo, useState } from "react";
 import RoomCard from "./RoomCard.jsx";
 
-const rooms = [
-  {
-    id: 101,
-    name: "Room 101",
-    floor: 1,
-    size: "20 sqm",
-    price: 6500,
-    status: "Occupied",
-  },
-  {
-    id: 102,
-    name: "Room 102",
-    floor: 1,
-    size: "20 sqm",
-    price: 6500,
-    status: "Vacant",
-  },
-  {
-    id: 103,
-    name: "Room 103",
-    floor: 1,
-    size: "20 sqm",
-    price: 6500,
-    status: "Occupied",
-  },
-  {
-    id: 104,
-    name: "Room 104",
-    floor: 1,
-    size: "20 sqm",
-    price: 6500,
-    status: "Reserved",
-  },
-  {
-    id: 105,
-    name: "Room 105",
-    floor: 1,
-    size: "20 sqm",
-    price: 6500,
-    status: "Vacant",
-  },
-  {
-    id: 106,
-    name: "Room 106",
-    floor: 1,
-    size: "20 sqm",
-    price: 6500,
-    status: "Vacant",
-  },
-  {
-    id: 107,
-    name: "Room 107",
-    floor: 1,
-    size: "20 sqm",
-    price: 6500,
-    status: "Occupied",
-  },
-  {
-    id: 108,
-    name: "Room 108",
-    floor: 1,
-    size: "20 sqm",
-    price: 6500,
-    status: "Vacant",
-  },
-  {
-    id: 201,
-    name: "Room 201",
-    floor: 2,
-    size: "20 sqm",
-    price: 6500,
-    status: "Vacant",
-  },
-  {
-    id: 202,
-    name: "Room 202",
-    floor: 2,
-    size: "20 sqm",
-    price: 6500,
-    status: "Occupied",
-  },
-  {
-    id: 203,
-    name: "Room 203",
-    floor: 2,
-    size: "20 sqm",
-    price: 6500,
-    status: "Vacant",
-  },
-  {
-    id: 204,
-    name: "Room 204",
-    floor: 2,
-    size: "20 sqm",
-    price: 6500,
-    status: "Reserved",
-  },
-];
 
+
+const rooms = [
+[101,1,"Occupied"],[102,1,"Available"],[103,1,"Occupied"],[104,1,"Reserved"],[105,1,"Available"],[106,1,"Available"],[107,1,"Occupied"],[108,1,"Available"],[201,2,"Available"],[202,2,"Occupied"],[203,2,"Available"],[204,2,"Reserved"]
+].map(([id,floor,status])=>({id,name:`Room ${id}`,floor,status,size:"20 sqm",price:6500}));
 function RoomGrid({ onInquire }) {
   const [selectedFloor, setSelectedFloor] = useState("1");
+  const [selectedStatus, setSelectedStatus] = useState("Available");
 
   const floors = [...new Set(rooms.map((room) => room.floor))];
 
   const filteredRooms = useMemo(() => {
-    if (selectedFloor === "all") {
-      return rooms;
-    }
-
-    return rooms.filter(
-      (room) => room.floor === Number(selectedFloor)
+    return rooms.filter((room) =>
+      (selectedFloor === "all" || room.floor === Number(selectedFloor)) &&
+      (selectedStatus === "all" || room.status === selectedStatus)
     );
-  }, [selectedFloor]);
+  }, [selectedFloor, selectedStatus]);
 
   const vacantCount = filteredRooms.filter(
-    (room) => room.status === "Vacant"
+      (room) => room.status === "Available"
   ).length;
 
   return (
@@ -133,11 +38,11 @@ function RoomGrid({ onInquire }) {
             </h2>
 
             <p className="mt-1 text-sm text-slate-500">
-              {vacantCount} unit{vacantCount !== 1 ? "s" : ""} currently available
+              {selectedStatus === "Available" ? `${vacantCount} unit${vacantCount !== 1 ? "s" : ""} currently available` : `${filteredRooms.length} matching unit${filteredRooms.length !== 1 ? "s" : ""}`}
             </p>
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex flex-wrap items-center gap-3">
             <span className="rounded-full bg-blue-50 px-3 py-2 text-xs font-bold text-blue-600">
               {filteredRooms.length} Units
             </span>
@@ -161,6 +66,18 @@ function RoomGrid({ onInquire }) {
                   Floor {floor}
                 </option>
               ))}
+            </select>
+
+            <select
+              value={selectedStatus}
+              onChange={(event) => setSelectedStatus(event.target.value)}
+              className="h-10 rounded-xl border border-slate-200 bg-white px-4 text-sm font-medium text-slate-700 outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10"
+              aria-label="Filter by availability"
+            >
+              <option value="all">All availability</option>
+              <option value="Available">Available</option>
+              <option value="Reserved">Reserved</option>
+              <option value="Occupied">Occupied</option>
             </select>
           </div>
         </div>

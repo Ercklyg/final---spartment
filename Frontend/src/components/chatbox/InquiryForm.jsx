@@ -1,3 +1,4 @@
+
 import { ArrowLeft, Send } from "lucide-react";
 import { useEffect, useState } from "react";
 
@@ -10,6 +11,7 @@ const todayString = new Date().toLocaleDateString("en-CA");
 
 function InquiryForm({ onBack, prefilledRoom = "" }) {
   const isPreferredRoomLocked = Boolean(prefilledRoom);
+
   const [formData, setFormData] = useState({
     fullName: "",
     email: "",
@@ -19,13 +21,10 @@ function InquiryForm({ onBack, prefilledRoom = "" }) {
     message: "",
   });
 
+
   useEffect(() => {
     if (!prefilledRoom) return;
-    setFormData((previous) =>
-      previous.preferredRoom === prefilledRoom
-        ? previous
-        : { ...previous, preferredRoom: prefilledRoom }
-    );
+    setFormData(previous => previous.preferredRoom === prefilledRoom ? previous : { ...previous, preferredRoom: prefilledRoom });
   }, [prefilledRoom]);
 
   const [dateError, setDateError] = useState("");

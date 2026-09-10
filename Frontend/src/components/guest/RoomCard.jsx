@@ -6,10 +6,11 @@ import {
 import apartmentBuilding from "../../assets/apartment-building.jpg";
 
 function RoomCard({ room, onInquire }) {
-  const isVacant = room.status === "Vacant";
+  const isAvailable = room.status === "Available";
 
   const statusStyles = {
-    Vacant: "bg-emerald-50 text-emerald-700 border-emerald-100",
+
+    Available: "bg-emerald-50 text-emerald-700 border-emerald-100",
     Occupied: "bg-red-50 text-red-600 border-red-100",
     Reserved: "bg-amber-50 text-amber-700 border-amber-100",
   };
@@ -75,17 +76,17 @@ function RoomCard({ room, onInquire }) {
 
         <button
           type="button"
-          disabled={!isVacant}
-          onClick={() => isVacant && onInquire(room)}
+          disabled={!isAvailable}
+          onClick={() => isAvailable && onInquire(room)}
           className={`mt-4 flex h-11 w-full items-center justify-center gap-2 rounded-xl text-sm font-semibold transition ${
-            isVacant
+            isAvailable
               ? "bg-blue-600 text-white shadow-[0_8px_20px_rgba(37,99,235,0.2)] hover:bg-blue-700"
               : "cursor-not-allowed bg-slate-200 text-slate-500"
           }`}
         >
           <MessageCircle size={17} strokeWidth={1.8} />
 
-          {isVacant ? "Inquire" : "Unavailable"}
+          {isAvailable ? "Inquire" : room.status}
         </button>
       </div>
     </article>

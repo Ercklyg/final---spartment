@@ -10,6 +10,12 @@
   -moz-osx-font-smoothing: grayscale;
 }
 
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
 html {
   min-width: 320px;
   min-height: 100%;
@@ -21,11 +27,17 @@ body {
   min-width: 320px;
   min-height: 100vh;
   background: #f8fafc;
+  overflow-x: hidden;
 }
 
 #root {
   width: 100%;
   min-height: 100vh;
+}
+
+img,
+svg {
+  max-width: 100%;
 }
 
 button,
@@ -76,8 +88,23 @@ a {
 }
 
 @media (max-width: 640px) {
-  body {
-    overflow-x: hidden;
+  input,
+  select,
+  textarea {
+    font-size: 16px;
+  }
+
+  .chatbox-enter {
+    bottom: 12px;
+    right: 12px;
+    height: min(620px, calc(100dvh - 24px));
+    border-radius: 18px;
+  }
+}
+
+@media (max-width: 1023px) {
+  main:has(> aside) {
+    padding-bottom: 64px;
   }
 }
 
@@ -110,3 +137,22 @@ a {
   animation: chatbox-in 0.22s cubic-bezier(0.21, 1.02, 0.73, 1) both;
   transform-origin: bottom right;
 }
+/* Tenant room assignments are displayed as read-only details. */
+[role="dialog"] select {
+  pointer-events: none;
+  background-color: #f8fafc;
+  color: #64748b;
+}
+
+/* Analytics revenue bars: give each flex column a real drawing area. */
+.h-48 > div > span:first-child {
+  display: block;
+  min-height: 24px;
+}
+.h-48 > div:nth-child(1) > span:first-child { height: 40px !important; }
+.h-48 > div:nth-child(2) > span:first-child { height: 56px !important; }
+.h-48 > div:nth-child(3) > span:first-child { height: 76px !important; }
+.h-48 > div:nth-child(4) > span:first-child { height: 94px !important; }
+.h-48 > div:nth-child(5) > span:first-child { height: 112px !important; }
+.h-48 > div:nth-child(6) > span:first-child { height: 132px !important; }
+

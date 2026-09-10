@@ -6,12 +6,11 @@ import InquiryForm from "./InquiryForm";
 import MaintenanceForm from "./MaintenanceForm";
 import OtherForm from "./OtherForm";
 
-function Chatbox({ onClose, initialView = "menu", prefilledRoom = "" }) {
+function Chatbox({ onClose, initialView = "menu", prefilledRoom = "", hideInquiry = false }) {
   const [currentView, setCurrentView] = useState(initialView);
 
-  useEffect(() => {
-    setCurrentView(initialView);
-  }, [initialView]);
+
+  useEffect(() => { setCurrentView(initialView); }, [initialView]);
 
   function handleSelect(type) {
     setCurrentView(type);
@@ -27,7 +26,7 @@ function Chatbox({ onClose, initialView = "menu", prefilledRoom = "" }) {
 
       <div className="min-h-0 flex-1 overflow-y-auto bg-[#f7f9fc]">
         {currentView === "menu" && (
-          <ChatboxMenu onSelect={handleSelect} />
+          <ChatboxMenu onSelect={handleSelect} hideInquiry={hideInquiry} />
         )}
 
         {currentView === "inquiry" && (
@@ -39,7 +38,7 @@ function Chatbox({ onClose, initialView = "menu", prefilledRoom = "" }) {
         )}
 
         {currentView === "maintenance" && (
-          <MaintenanceForm onBack={handleBack} />
+          <MaintenanceForm onBack={handleBack} prefilledRoom={prefilledRoom} />
         )}
 
         {currentView === "other" && (
@@ -52,11 +51,6 @@ function Chatbox({ onClose, initialView = "menu", prefilledRoom = "" }) {
         <p className="text-[11px] font-medium tracking-wide text-slate-400">
           Secured by Spartment
         </p>
-        <span className="h-0.5 w-0.5 rounded-full bg-slate-300" />
-        <span className="flex items-center gap-1 text-[11px] text-slate-400">
-          <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
-          Typically replies in minutes
-        </span>
       </div>
     </div>
   );

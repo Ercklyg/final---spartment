@@ -1,3 +1,4 @@
+
 import { ArrowLeft, Send } from "lucide-react";
 import { useState } from "react";
 
@@ -6,6 +7,7 @@ const inputClass =
 const labelClass = "mb-1.5 block text-xs font-semibold text-slate-700";
 
 function OtherForm({ onBack }) {
+
   const [formData, setFormData] = useState({
     subject: "",
     message: "",

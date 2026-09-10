@@ -1,4 +1,21 @@
-import { AlertTriangle, Clock3, CreditCard, WalletCards } from "lucide-react";
-const cards = [["Total Billed (May)", "₱65,000", "10 payments", "+12%", CreditCard, "blue"], ["Total Collected", "₱39,000", "6 payments", "+8%", WalletCards, "emerald"], ["Pending", "₱13,000", "2 payments", "", Clock3, "amber"], ["Late", "₱13,000", "2 payments", "", AlertTriangle, "rose"]]; const colors = { blue: "bg-blue-50 text-blue-600", emerald: "bg-emerald-50 text-emerald-600", amber: "bg-amber-50 text-amber-600", rose: "bg-rose-50 text-rose-500" };
-function BillingSummaryCards() { return <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">{cards.map(([label, value, detail, trend, Icon, color]) => <article key={label} className="flex items-center gap-4 rounded-2xl bg-white p-5 shadow-sm"><span className={`flex h-12 w-12 items-center justify-center rounded-xl ${colors[color]}`}><Icon size={23} /></span><div><p className="text-sm text-slate-500">{label}</p><h2 className="text-2xl font-extrabold">{value}</h2><p className="text-xs text-slate-500">{detail}</p></div>{trend && <span className="ml-auto self-start rounded-full bg-emerald-50 px-2 py-1 text-xs font-semibold text-emerald-600">↑ {trend}</span>}</article>)}</section>; }
+const cards = [
+  ["Total Billed (May)", "₱65,000"],
+  ["Total Collected", "₱39,000"],
+  ["Pending", "₱13,000"],
+  ["Late", "₱13,000"],
+];
+
+function BillingSummaryCards() {
+  return (
+    <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+      {cards.map(([label, value]) => (
+        <article key={label} className="rounded-xl border border-slate-200 bg-white p-5">
+          <p className="text-sm text-slate-600">{label}</p>
+          <h2 className="mt-2 text-2xl font-bold">{value}</h2>
+        </article>
+      ))}
+    </section>
+  );
+}
+
 export default BillingSummaryCards;
