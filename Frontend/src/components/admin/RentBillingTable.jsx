@@ -1,2 +1,2 @@
-import BillingLedger from "./BillingLedger.jsx";
-export default function RentBillingTable() { return <BillingLedger kind="Rent" />; }
+import LiveAdminBilling from "./LiveAdminBilling.jsx";
+export default function RentBillingTable() { return <LiveAdminBilling type="rent" />; }

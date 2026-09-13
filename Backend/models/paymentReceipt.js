@@ -1,0 +1,12 @@
+import { money } from './billing.js';
+export async function loadPaymentReceipt(client,id) {
+  const {data,error}=await client.from('payments').select('id,amount,payment_date,reference_note,bills(id,bill_type,billing_period,due_date,rent_amount,electricity_amount,water_amount,leases(profiles(full_name),rooms(room_number,buildings(name))))').eq('id',id).single();
+  if(error||!data?.bills)throw new Error('Unable to load this payment receipt. Refresh your bills and try again.');
+  return data;
+}
+export const escapeReceiptText = value => String(value??'').replace(/[&<>"']/g,char=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]));
+export function receiptHtml(payment) {
+  const bill=payment.bills,lease=bill.leases,room=lease?.rooms;
+  const rows=[['Payment ID',payment.id],['Tenant',lease?.profiles?.full_name || 'Not available'],['Building',room?.buildings?.name || 'Not available'],['Room',room?.room_number || 'Not available'],['Bill ID',bill.id],['Bill type',bill.bill_type],['Billing period',bill.billing_period.slice(0,7)],['Bill due date',bill.due_date],['Payment date',payment.payment_date],['Reference note',payment.reference_note || 'Not provided']];
+  return `<!doctype html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Spartment payment receipt ${escapeReceiptText(payment.id)}</title><style>body{font:15px/1.5 Arial,sans-serif;color:#172033;margin:0;padding:32px;background:white}main{max-width:700px;margin:auto}h1{font-size:26px;margin:0}h2{font-size:20px}header{border-bottom:2px solid #2563eb;padding-bottom:18px}.amount{padding:20px 0;font-size:24px;font-weight:bold}dl{display:grid;grid-template-columns:140px 1fr;gap:10px}dt{color:#475569}dd{margin:0;overflow-wrap:anywhere;white-space:pre-wrap}footer{border-top:1px solid #cbd5e1;margin-top:24px;padding-top:14px;color:#475569;font-size:12px}@page{size:A4;margin:18mm}@media print{body{padding:0}main{max-width:none}dl{break-inside:avoid}}</style></head><body><main><header><h1>Spartment</h1><h2>Payment receipt</h2></header><div class="amount">Amount received: ${escapeReceiptText(money(payment.amount))}</div><dl>${rows.map(([label,value])=>`<dt>${escapeReceiptText(label)}</dt><dd>${escapeReceiptText(value)}</dd>`).join('')}</dl><footer>This receipt acknowledges the individual payment shown above. It does not indicate that the entire bill is fully paid. Tenant and room details reflect the currently linked records.</footer></main></body></html>`;
+}

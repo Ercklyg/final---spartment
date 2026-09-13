@@ -1,0 +1,39 @@
+{
+  "name": "spartment-backend",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Spartment Supabase backend: authentication functions, database migrations, access policies and operational tooling.",
+  "engines": {
+    "node": ">=22.0.0"
+  },
+  "scripts": {
+    "supabase": "supabase",
+    "login": "supabase login",
+    "link": "supabase link --project-ref nbuwnbcnhzgkvjteggfb",
+    "db:status": "supabase migration list --linked",
+    "db:preview": "supabase db push --linked --skip-vault --dry-run",
+    "db:push": "supabase db push --linked --skip-vault",
+    "db:schema": "node supabase/export-schema.mjs",
+    "functions:deploy": "supabase functions deploy create-tenant --project-ref nbuwnbcnhzgkvjteggfb --use-api",
+    "local:start": "supabase start",
+    "local:stop": "supabase stop",
+    "functions:serve": "supabase functions serve create-tenant",
+    "verify:integration": "node supabase/verify-tenants.mjs",
+    "verify:password": "node supabase/verify-password-change.mjs",
+    "start": "node server.js",
+    "dev": "node --watch server.js"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "2.116.0",
+    "cors": "^2.8.6",
+    "dotenv": "^17.4.2",
+    "express": "^5.2.1",
+    "express-rate-limit": "^8.7.0",
+    "helmet": "^8.3.0"
+  },
+  "devDependencies": {
+    "playwright": "1.63.0",
+    "supabase": "2.117.0"
+  }
+}

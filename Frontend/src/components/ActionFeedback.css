@@ -1,0 +1,30 @@
+.action-feedback-panel {
+  position: fixed;
+  inset: max(1rem, env(safe-area-inset-top)) 1rem auto auto;
+  margin: 0;
+  padding: 0;
+  width: min(420px, calc(100vw - 2rem));
+  max-height: calc(100dvh - 2rem);
+  overflow-y: auto;
+  border: 0;
+  background: transparent;
+  color: #0f172a;
+  pointer-events: none;
+  z-index: 1000;
+}
+.action-feedback-panel::backdrop { background: transparent; pointer-events: none; }
+.action-feedback-message {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 16px;
+  margin-bottom: 10px;
+  border: 1px solid;
+  border-radius: 14px;
+  box-shadow: 0 8px 28px #0f172a26;
+  pointer-events: auto;
+  overflow-wrap: anywhere;
+}
+.action-feedback-success { background: #f0fdf4; border-color: #86efac; color: #166534; }
+.action-feedback-error { background: #fff1f2; border-color: #fda4af; color: #9f1239; }
+.action-feedback-info { background: #eff6ff; border-color: #93c5fd; color: #1e40af; }

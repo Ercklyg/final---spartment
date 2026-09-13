@@ -1,0 +1,17 @@
+[functions.create-tenant]
+# The handler verifies the access token with Auth.getUser (supports signing keys).
+verify_jwt = false
+
+[functions.recovery-state]
+# Private server-to-server secret checked by the handler; never a browser API.
+verify_jwt = false
+
+[auth]
+minimum_password_length = 8
+password_requirements = "lower_upper_letters_digits_symbols"
+site_url = "http://localhost:5173"
+additional_redirect_urls = ["http://localhost:5173/reset-password", "http://127.0.0.1:5173/reset-password"]
+
+[auth.email.template.recovery]
+subject = "Reset your Spartment password"
+content_path = "./supabase/templates/recovery.html"

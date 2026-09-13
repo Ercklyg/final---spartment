@@ -1,4 +1,5 @@
 import { useState } from "react";
+import ForgotPasswordForm from "./ForgotPasswordForm.jsx";
 import {
   ArrowRight,
   Eye,
@@ -9,33 +10,29 @@ import {
   UserRound,
 } from "lucide-react";
 
-function LoginCard({ onContinueAsGuest, onSignIn, onAdminSignIn }) {
+function LoginCard({ onContinueAsGuest, onSignIn }) {
   const [showPassword, setShowPassword] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loginError, setLoginError] = useState("");
   const [isSigningIn, setIsSigningIn] = useState(false);
+  const [isRecovering, setIsRecovering] = useState(false);
 
-  const handleSignIn = (event) => {
+  const handleSignIn = async (event) => {
     event.preventDefault();
-
     if (isSigningIn) return;
-
     setLoginError("");
-    if (email.trim().toLowerCase() === "tenant1@gmail.com" && password === "Tenant@123") {
-      setIsSigningIn(true);
-      window.setTimeout(() => onSignIn?.(), 700);
-      return;
+    setIsSigningIn(true);
+    try {
+      await onSignIn(email.trim(), password);
+    } catch (error) {
+      setLoginError(error.code === "invalid_credentials" ? "The email or password is incorrect." : error.message || "Unable to sign in. Please try again.");
+    } finally {
+      setIsSigningIn(false);
     }
-
-    if (email.trim().toLowerCase() === "admin1@gmail.com" && password === "Admin@123") {
-      setIsSigningIn(true);
-      window.setTimeout(() => onAdminSignIn?.(), 700);
-      return;
-    }
-
-    setLoginError("The email or password is incorrect.");
   };
+
+  if (isRecovering) return <ForgotPasswordForm initialEmail={email} onBack={() => setIsRecovering(false)} />;
 
   return (
     <div className="w-full max-w-[570px]">
@@ -149,17 +146,12 @@ function LoginCard({ onContinueAsGuest, onSignIn, onAdminSignIn }) {
           )}
 
           <div className="flex items-center justify-between">
-            <label className="flex items-center gap-2 text-sm text-slate-600">
-              <input
-                type="checkbox"
-                className="h-4 w-4 rounded border-slate-300 accent-blue-600"
-              />
-
-              Remember me
-            </label>
+            <span className="text-xs text-slate-500">Sign out when using a shared device.</span>
 
             <button
               type="button"
+              onClick={()=>setIsRecovering(true)}
+              disabled={isSigningIn}
               className="text-sm font-medium text-blue-600 transition hover:text-blue-700 hover:underline"
             >
               Forgot password?

@@ -5,7 +5,7 @@ import BrandPanel from "../components/landing/BrandPanel.jsx";
 import LoginCard from "../components/landing/LoginCard.jsx";
 import Chatbox from "../components/chatbox/Chatbox.jsx";
 
-function LandingPage({ onContinueAsGuest, onSignIn, onAdminSignIn }) {
+function LandingPage({ onContinueAsGuest, onSignIn }) {
   const [isChatOpen, setIsChatOpen] = useState(false);
 
   return (
@@ -19,7 +19,7 @@ function LandingPage({ onContinueAsGuest, onSignIn, onAdminSignIn }) {
           <div className="pointer-events-none absolute -bottom-40 -left-40 h-[420px] w-[420px] rounded-full bg-blue-100/30 blur-3xl" />
 
           <div className="relative z-10 flex w-full max-w-md items-center justify-center">
-            <LoginCard onContinueAsGuest={onContinueAsGuest} onSignIn={onSignIn} onAdminSignIn={onAdminSignIn} />
+            <LoginCard onContinueAsGuest={onContinueAsGuest} onSignIn={onSignIn} />
           </div>
         </section>
       </div>

@@ -43,7 +43,7 @@ function RoomCard({ room, onInquire }) {
               <span className="mx-1.5">•</span>
               {room.size}
               <span className="mx-1.5">•</span>
-              Good for 1–2
+              Good for {room.capacity || "2–3 persons"}
             </p>
           </div>
 
@@ -56,6 +56,10 @@ function RoomCard({ room, onInquire }) {
             {room.status}
           </span>
         </div>
+
+        <p className="mt-3 min-h-10 text-sm leading-5 text-slate-600">
+          {room.description}
+        </p>
 
         <div className="mt-5 flex items-end justify-between">
           <div>

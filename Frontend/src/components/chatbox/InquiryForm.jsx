@@ -1,6 +1,8 @@
+import { api } from "../../lib/api.js";
+import { submitInquiry } from "../../lib/requests.js";
 
 import { ArrowLeft, Send } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useRef, useState } from "react";
 
 const inputClass =
   "h-11 w-full rounded-xl border border-slate-200 bg-white px-3.5 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-blue-600 focus:ring-4 focus:ring-blue-600/10";
@@ -12,6 +14,7 @@ const todayString = new Date().toLocaleDateString("en-CA");
 function InquiryForm({ onBack, prefilledRoom = "" }) {
   const isPreferredRoomLocked = Boolean(prefilledRoom);
 
+  const busy=useRef(false); const attempt=useRef(null); const [saving,setSaving]=useState(false); const [submitError,setSubmitError]=useState(""); const [sent,setSent]=useState(false);
   const [formData, setFormData] = useState({
     fullName: "",
     email: "",
@@ -22,10 +25,7 @@ function InquiryForm({ onBack, prefilledRoom = "" }) {
   });
 
 
-  useEffect(() => {
-    if (!prefilledRoom) return;
-    setFormData(previous => previous.preferredRoom === prefilledRoom ? previous : { ...previous, preferredRoom: prefilledRoom });
-  }, [prefilledRoom]);
+
 
   const [dateError, setDateError] = useState("");
 
@@ -37,16 +37,20 @@ function InquiryForm({ onBack, prefilledRoom = "" }) {
     }
   }
 
-  function handleSubmit(event) {
+  async function handleSubmit(event) {
     event.preventDefault();
     if (formData.moveInDate && formData.moveInDate < todayString) {
       setDateError("Please choose today or a future date.");
       return;
     }
     setDateError("");
-    console.log("Inquiry submitted:", formData);
+    if(busy.current)return;
+    busy.current=true;setSaving(true);setSubmitError("");
+    const signature=JSON.stringify(formData);if(attempt.current?.signature!==signature)attempt.current={signature,id:crypto.randomUUID()};
+    try{await submitInquiry(api,formData,attempt.current.id);setSent(true);}catch(error){setSubmitError(error.message);}finally{busy.current=false;setSaving(false);}
   }
 
+  if(sent)return <div role="status" className="p-5"><h3 className="font-bold">Inquiry submitted</h3><p className="mt-2 text-sm">Your message has been saved for the administrator.</p><button type="button" onClick={onBack} className="mt-4 text-blue-600 underline">Back to menu</button></div>;
   return (
     <div className="flex flex-col p-4">
       <div className="mb-3 flex items-center gap-2.5">
@@ -66,7 +70,7 @@ function InquiryForm({ onBack, prefilledRoom = "" }) {
         </div>
       </div>
 
-      <form onSubmit={handleSubmit} className="flex flex-col gap-3.5">
+      <form onSubmit={handleSubmit}><fieldset disabled={saving} className="flex flex-col gap-3.5">
         <div>
           <label htmlFor="fullName" className={labelClass}>
             Full name
@@ -184,7 +188,7 @@ function InquiryForm({ onBack, prefilledRoom = "" }) {
           <Send size={16} />
           Send inquiry
         </button>
-      </form>
+      {submitError&&<p role="alert" className="text-sm text-rose-700">{submitError}</p>}{saving&&<p role="status" className="text-sm">Submitting...</p>}</fieldset></form>
     </div>
   );
 }

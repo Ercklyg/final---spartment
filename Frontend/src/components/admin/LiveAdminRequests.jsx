@@ -1,0 +1,17 @@
+import PageSkeleton from "../PageSkeleton.jsx";
+import { useRef, useState } from 'react';
+import { api } from '../../lib/api.js';
+import { useRemoteData } from '../../lib/useRemoteData.js';
+const loadWorkspace=client=>client.get('/requests/workspace');
+function RequestEditor({request,onSaved,inquiry=false}) {
+  const [status,setStatus]=useState(request.status);const [note,setNote]=useState(request.admin_note || '');
+  const [error,setError]=useState('');const [saving,setSaving]=useState(false);const busy=useRef(false);
+  const save=async event=>{event.preventDefault();if(busy.current)return;busy.current=true;setSaving(true);setError('');try{
+    await api.patch('/'+(inquiry?'inquiries':'requests')+'/'+request.id,inquiry?{status}:{status,admin_note:note.trim()});onSaved();
+  }catch(e){setError(e.message);}finally{busy.current=false;setSaving(false);}};
+  return <article className="rounded-xl border bg-white p-5"><h3 className="font-bold">{inquiry?'Room inquiry':request.subject}</h3><p className="text-sm text-slate-500">{inquiry?request.full_name:request.profiles?.full_name} · {new Date(request.created_at).toLocaleString('en-PH')}</p>{inquiry?<p className="mt-2 text-sm">{request.email} · {request.phone} · Preferred room: {request.preferred_room || 'Any'} · Move-in: {request.move_in_date || 'Not specified'}</p>:<p className="mt-2 text-sm">{request.kind} · {request.priority} · {request.rooms?.buildings?.name} / Room {request.rooms?.room_number || 'Unassigned'}</p>}<p className="mt-2 whitespace-pre-wrap">{request.message || 'No message provided.'}</p><form onSubmit={save} className="mt-4"><fieldset disabled={saving} className="space-y-3"><label className="block text-sm">Status<select value={status} onChange={e=>setStatus(e.target.value)} className="ml-3 rounded-lg border p-2">{(inquiry?['Open','Resolved']:['Open','Scheduled','In progress','Resolved']).map(s=><option key={s}>{s}</option>)}</select></label>{!inquiry&&<label className="block text-sm">Update visible to tenant<textarea maxLength={4000} value={note} onChange={e=>setNote(e.target.value)} className="mt-1 w-full rounded-lg border p-2"/></label>}<button className="rounded-lg bg-blue-600 px-4 py-2 text-white">{saving?'Saving...':'Save update'}</button>{error&&<p role="alert" className="text-rose-700">{error}</p>}</fieldset></form></article>;
+}
+export default function LiveAdminRequests() {
+  const {data,error,loading,reload}=useRemoteData(loadWorkspace);const [filter,setFilter]=useState('All');
+  return <section className="space-y-4 py-8"><h1 className="text-3xl font-bold">Customer requests</h1><div className="flex flex-wrap gap-2">{['All','Maintenance','Other','Inquiry'].map(s=><button key={s} onClick={()=>setFilter(s)} className={'rounded-lg border px-3 py-2 '+(filter===s?'bg-blue-600 text-white':'bg-white')}>{s}</button>)}<button onClick={reload} className="ml-auto underline">Refresh</button></div>{loading?<PageSkeleton variant="list" label="Loading requests..."/>:error?<p role="alert" className="text-rose-700">{error}</p>:<>{data.requests.filter(r=>filter==='All'||r.kind===filter.toLowerCase()).map(r=><RequestEditor key={r.id+ r.updated_at} request={r} onSaved={reload}/>)}{(filter==='All'||filter==='Inquiry')&&data.inquiries.map(r=><RequestEditor key={r.id+r.status} inquiry request={r} onSaved={reload}/>)}{!data.requests.some(r=>filter==='All'||r.kind===filter.toLowerCase())&&(!(filter==='All'||filter==='Inquiry')||!data.inquiries.length)&&<p className="text-slate-500">No matching requests.</p>}</>}</section>;
+}

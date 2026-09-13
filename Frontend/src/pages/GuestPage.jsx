@@ -19,11 +19,7 @@ function GuestPage({ onExit }) {
   };
 
   const handleInquire = (room) => {
-    const roomLabel =
-      room?.id !== undefined && room?.id !== null
-        ? String(room.id)
-        : String(room?.name ?? "").replace(/\D/g, "") ||
-          String(room?.name ?? "");
+    const roomLabel = room ? `${room.building || "Building"} / ${room.name || "Room"}` : "";
     setInquiryRoom(roomLabel);
     setChatView("inquiry");
     setIsChatOpen(true);
@@ -48,28 +44,7 @@ function GuestPage({ onExit }) {
             © 2026 Spartment. All rights reserved.
           </p>
 
-          <div className="flex items-center gap-5">
-            <button
-              type="button"
-              className="transition hover:text-slate-700"
-            >
-              Privacy
-            </button>
-
-            <button
-              type="button"
-              className="transition hover:text-slate-700"
-            >
-              Terms
-            </button>
-
-            <button
-              type="button"
-              className="transition hover:text-slate-700"
-            >
-              Support
-            </button>
-          </div>
+          <div className="flex items-center gap-5"><span>Ask management about privacy and tenancy policies.</span><button type="button" onClick={handleOpenChat} className="underline">Support</button></div>
         </div>
       </footer>
 
@@ -90,9 +65,7 @@ function GuestPage({ onExit }) {
           className="fixed bottom-5 right-5 z-50 flex h-14 w-14 items-center justify-center rounded-full border border-white/10 bg-[#0a2250] text-white shadow-[0_16px_40px_-10px_rgba(7,27,67,0.55),0_6px_16px_-6px_rgba(15,23,42,0.4)] ring-1 ring-inset ring-white/15 transition duration-200 hover:-translate-y-0.5 hover:bg-[#0e2c66] active:translate-y-0 active:scale-95 sm:bottom-6 sm:right-6"
         >
           <MessagesSquare size={24} strokeWidth={1.9} />
-          <span className="absolute -right-0.5 -top-0.5 flex h-5 min-w-5 items-center justify-center rounded-full border-2 border-white bg-red-500 px-1 text-[10px] font-bold text-white">
-            1
-          </span>
+
         </button>
       )}
     </main>

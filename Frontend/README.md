@@ -1,16 +1,14 @@
-# React + Vite
+﻿# Spartment frontend
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Run npm install, then npm run dev in this folder. Also run npm run dev in Backend.
+Set VITE_API_URL=/api in .env.local (see .env.example). Vite proxies /api to
+http://127.0.0.1:5000 while keeping browser cookies on the frontend's own site.
+Sessions use HttpOnly cookies and are restored through the backend. Sign in
+again once after upgrading from the previous localStorage session. Production
+requires HTTPS and a same-site API proxy; see Backend/SECURITY.md.
 
-Currently, two official plugins are available:
+This folder contains React UI, API request/session handling and display helpers.
+All Supabase database access, server operations and configuration are in Backend.
+There is no browser Supabase dependency or database credential configuration.
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
-
-## React Compiler
-
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
-
-## Expanding the ESLint configuration
-
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+Use npm run build for a production bundle.
