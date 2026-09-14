@@ -4,6 +4,7 @@ import { MessagesSquare } from "lucide-react";
 import BrandPanel from "../components/landing/BrandPanel.jsx";
 import LoginCard from "../components/landing/LoginCard.jsx";
 import Chatbox from "../components/chatbox/Chatbox.jsx";
+import BuildingViewer from "../components/guest/BuildingViewer.jsx";
 
 function LandingPage({ onContinueAsGuest, onSignIn }) {
   const [isChatOpen, setIsChatOpen] = useState(false);
@@ -24,8 +25,21 @@ function LandingPage({ onContinueAsGuest, onSignIn }) {
         </section>
       </div>
 
-      <section id="about" className="border-t border-slate-200 bg-white px-5 py-14 sm:px-8 sm:py-16">
-        <div className="mx-auto max-w-[1080px]">
+      <section id="about" className="border-t border-slate-200 bg-white pb-14 sm:pb-16">
+        <div className="mx-auto max-w-[1240px] px-5 pt-10 sm:px-8 sm:pt-12">
+          <div className="mb-6 text-center">
+            <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-blue-600">Explore before you visit</p>
+            <h2 className="mt-2 text-2xl font-bold tracking-tight text-slate-950 sm:text-3xl">Explore our buildings.</h2>
+            <p className="mt-2 text-sm text-slate-500">Take a closer look in 3D. Rotate a building or expand it for a larger view.</p>
+          </div>
+          <div className="building-gallery grid grid-cols-1 items-start gap-5 sm:grid-cols-2 lg:grid-cols-3">
+            <BuildingViewer compact />
+            <BuildingViewer compact building="building2" />
+            <BuildingViewer compact building="building3" />
+          </div>
+        </div>
+
+        <div className="mx-auto mt-14 max-w-[1080px] px-5 sm:px-8">
           <p className="text-center text-xs font-bold uppercase tracking-[0.24em] text-blue-600">How it works</p>
           <h2 className="mt-2 text-center text-2xl font-extrabold tracking-tight text-slate-950 sm:text-3xl">Apartment management, made simple.</h2>
           <div className="mt-8 grid gap-4 md:grid-cols-3">

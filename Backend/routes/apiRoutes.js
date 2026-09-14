@@ -20,6 +20,8 @@ router.get('/account',app.account);
 router.get('/rooms',app.rooms);
 router.post('/rooms',requireAdmin,app.roomCreate);
 router.patch('/rooms/:id/status',requireAdmin,app.roomStatus);
+router.patch('/rooms/:id',requireAdmin,app.roomUpdate);
+router.delete('/rooms/:id',requireAdmin,app.roomDelete);
 router.get('/tenants',requireAdmin,app.tenants);
 router.post('/tenants/:id/move-out',requireAdmin,tenancy.moveOut);
 router.post('/tenants/:id/transfer',requireAdmin,tenancy.transfer);

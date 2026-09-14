@@ -2,7 +2,7 @@ import { api } from "../../lib/api.js";
 import { submitInquiry } from "../../lib/requests.js";
 
 import { ArrowLeft, Send } from "lucide-react";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 const inputClass =
   "h-11 w-full rounded-xl border border-slate-200 bg-white px-3.5 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-blue-600 focus:ring-4 focus:ring-blue-600/10";
@@ -10,9 +10,13 @@ const labelClass = "mb-1.5 block text-xs font-semibold text-slate-700";
 
 // Local YYYY-MM-DD so the native date picker disables already-passed days.
 const todayString = new Date().toLocaleDateString("en-CA");
+const roomLabel = (room) => `${room.buildings?.name || "Building"} / Room ${room.room_number}`;
 
 function InquiryForm({ onBack, prefilledRoom = "" }) {
-  const isPreferredRoomLocked = Boolean(prefilledRoom);
+  const [rooms, setRooms] = useState([]);
+  const [roomsLoading, setRoomsLoading] = useState(true);
+  const [roomsError, setRoomsError] = useState("");
+  const [roomsRevision, setRoomsRevision] = useState(0);
 
   const busy=useRef(false); const attempt=useRef(null); const [saving,setSaving]=useState(false); const [submitError,setSubmitError]=useState(""); const [sent,setSent]=useState(false);
   const [formData, setFormData] = useState({
@@ -23,9 +27,30 @@ function InquiryForm({ onBack, prefilledRoom = "" }) {
     moveInDate: "",
     message: "",
   });
+  useEffect(() => {
+    let active = true;
+    api.get("/public/rooms").then((data) => {
+      if (!active) return;
+      const availableRooms = data.filter((room) => room.status === "available");
+      setRooms(availableRooms);
+      setFormData((previous) => ({
+        ...previous,
+        preferredRoom: availableRooms.some((room) => roomLabel(room) === previous.preferredRoom)
+          ? previous.preferredRoom : "",
+      }));
+    }).catch(() => {
+      if (active) setRoomsError("Unable to load available rooms. Please try again.");
+    }).finally(() => {
+      if (active) setRoomsLoading(false);
+    });
+    return () => { active = false; };
+  }, [roomsRevision]);
 
-
-
+  function retryRooms() {
+    setRoomsLoading(true);
+    setRoomsError("");
+    setRoomsRevision((previous) => previous + 1);
+  }
 
   const [dateError, setDateError] = useState("");
 
@@ -44,10 +69,26 @@ function InquiryForm({ onBack, prefilledRoom = "" }) {
       return;
     }
     setDateError("");
-    if(busy.current)return;
+    if(busy.current || roomsLoading || roomsError)return;
     busy.current=true;setSaving(true);setSubmitError("");
     const signature=JSON.stringify(formData);if(attempt.current?.signature!==signature)attempt.current={signature,id:crypto.randomUUID()};
-    try{await submitInquiry(api,formData,attempt.current.id);setSent(true);}catch(error){setSubmitError(error.message);}finally{busy.current=false;setSaving(false);}
+    try {
+      if (formData.preferredRoom) {
+        const availableRooms = (await api.get("/public/rooms")).filter((room) => room.status === "available");
+        setRooms(availableRooms);
+        if (!availableRooms.some((room) => roomLabel(room) === formData.preferredRoom)) {
+          setFormData((previous) => ({ ...previous, preferredRoom: "" }));
+          throw new Error("That room is no longer available. Please choose another room.");
+        }
+      }
+      await submitInquiry(api,formData,attempt.current.id);
+      setSent(true);
+    } catch(error) {
+      setSubmitError(error.message);
+    } finally {
+      busy.current=false;
+      setSaving(false);
+    }
   }
 
   if(sent)return <div role="status" className="p-5"><h3 className="font-bold">Inquiry submitted</h3><p className="mt-2 text-sm">Your message has been saved for the administrator.</p><button type="button" onClick={onBack} className="mt-4 text-blue-600 underline">Back to menu</button></div>;
@@ -119,31 +160,35 @@ function InquiryForm({ onBack, prefilledRoom = "" }) {
           </div>
         </div>
 
-        <div className="grid grid-cols-2 gap-3.5">
+        <div className="grid grid-cols-1 gap-3.5">
           <div>
             <label htmlFor="preferredRoom" className={labelClass}>
               Preferred room
             </label>
-            <input
+            <select
               id="preferredRoom"
               name="preferredRoom"
-              type="text"
-              placeholder="e.g. 102"
-              value={formData.preferredRoom}
-              onChange={isPreferredRoomLocked ? undefined : handleChange}
-              readOnly={isPreferredRoomLocked}
-              aria-readonly={isPreferredRoomLocked}
-              title={
-                isPreferredRoomLocked
-                  ? "This room was selected from the listing and cannot be changed."
-                  : undefined
-              }
-              className={`${inputClass} ${
-                isPreferredRoomLocked
-                  ? "cursor-not-allowed bg-slate-100 text-slate-600"
-                  : ""
-              }`}
-            />
+              value={roomsLoading || roomsError ? "" : formData.preferredRoom}
+              onChange={handleChange}
+              disabled={roomsLoading || Boolean(roomsError) || rooms.length === 0}
+              aria-describedby={roomsError ? "roomsError" : undefined}
+              className={`${inputClass} min-w-0 disabled:bg-slate-100 disabled:text-slate-500`}
+            >
+              <option value="">
+                {roomsLoading ? "Loading available rooms..." : roomsError ? "Rooms unavailable" : rooms.length === 0 ? "No rooms currently available" : "Any available room"}
+              </option>
+              {rooms.map((room) => (
+                <option key={room.id} value={roomLabel(room)}>
+                  {roomLabel(room)}
+                </option>
+              ))}
+            </select>
+            {roomsError && (
+              <p id="roomsError" role="alert" className="mt-1.5 text-xs text-red-600">
+                {roomsError}{" "}
+                <button type="button" onClick={retryRooms} className="font-semibold underline">Retry</button>
+              </p>
+            )}
           </div>
           <div>
             <label htmlFor="moveInDate" className={labelClass}>
@@ -183,7 +228,8 @@ function InquiryForm({ onBack, prefilledRoom = "" }) {
 
         <button
           type="submit"
-          className="mt-1 flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-blue-600 text-sm font-semibold text-white shadow-[0_8px_20px_-6px_rgba(37,99,235,0.5)] transition hover:bg-blue-700 active:scale-[0.99]"
+          disabled={roomsLoading || Boolean(roomsError)}
+          className="mt-1 flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-blue-600 text-sm font-semibold text-white shadow-[0_8px_20px_-6px_rgba(37,99,235,0.5)] transition hover:bg-blue-700 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-50"
         >
           <Send size={16} />
           Send inquiry

@@ -1,5 +1,5 @@
 -- Fresh Supabase projects only. Do not run over an existing application schema.
--- Snapshot includes migrations 202609130001 through 202609130009; no user data.
+-- Snapshot includes migrations 202609130001 through 202609130009 and 202609140001 through 202609140003; no user data.
 BEGIN;
 SET LOCAL search_path = public, extensions;
 SET LOCAL check_function_bodies = false;
@@ -200,7 +200,7 @@ ALTER TABLE public.rooms ADD CONSTRAINT rooms_monthly_rate_check CHECK ((monthly
 
 ALTER TABLE public.rooms ADD CONSTRAINT rooms_pkey PRIMARY KEY (id);
 
-ALTER TABLE public.rooms ADD CONSTRAINT rooms_size_sqm_check CHECK (((size_sqm >= (8)::numeric) AND (size_sqm <= (10)::numeric)));
+ALTER TABLE public.rooms ADD CONSTRAINT rooms_size_sqm_check CHECK (((size_sqm >= (8)::numeric) AND (size_sqm <= (14)::numeric)));
 
 ALTER TABLE public.tenant_assignments ADD CONSTRAINT assignment_status_room CHECK ((((status = 'active'::text) AND (room_id IS NOT NULL)) OR ((status = 'ended'::text) AND (room_id IS NULL))));
 
@@ -1071,6 +1071,10 @@ GRANT UPDATE ON public.profiles TO service_role;
 GRANT SELECT ON public.rooms TO anon;
 
 GRANT INSERT ON public.rooms TO authenticated;
+
+GRANT DELETE ON public.rooms TO authenticated;
+
+GRANT UPDATE (building_id, room_number, floor, size_sqm, monthly_rate, capacity, description) ON public.rooms TO authenticated;
 
 GRANT SELECT ON public.rooms TO authenticated;
 

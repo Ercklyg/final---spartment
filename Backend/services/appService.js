@@ -11,6 +11,7 @@ import { changePassword } from '../models/changePassword.js';
 import { signInWithPassword } from '../models/authentication.js';
 import { authFailure } from '../models/authErrors.js';
 import { readAll } from '../models/readAll.js';
+import { roomColumns, createRoom, updateRoom, deleteRoom } from '../models/rooms.js';
 import * as validate from './validation.js';
 import { readSessionCookie } from './sessionCookies.js';
 import { createHash } from 'node:crypto';
@@ -99,17 +100,11 @@ export const readNotifications=async(req)=>{
   else await markNotificationsRead(req.db,validate.ids(req.body?.ids),req.user.id);
   return {ok:true};
 };
-const roomColumns='id,room_number,floor,status,monthly_rate,description,size_sqm,capacity,buildings(name),tenant_assignments(full_name)';
 export const rooms=async(req)=>readAll(()=>req.db.from('rooms').select(roomColumns).order('floor').order('room_number').order('id'));
 export const publicRooms=async()=>{const db=createUserClient();return readAll(()=>db.from('rooms').select('id,room_number,floor,status,size_sqm,capacity,monthly_rate,description,buildings(name)').eq('status','available').order('floor').order('room_number').order('id'));};
-export const roomCreate=async(req)=>{
-  const body=validate.object(req.body);
-  const room={building:validate.text(body.building,'building name',160),room:validate.text(body.room,'room number',40),floor:validate.number(body.floor,'floor',1,1000,true),size:validate.number(body.size,'room size',8,10),rate:validate.amount(body.rate,'monthly rate'),capacity:validate.choice(String(body.capacity),['2','3','2-3'],'capacity'),notes:validate.text(body.notes,'description',4000,true)};
-  if(!/^\d{3,}$/.test(room.room))throw new HttpError(400,'Enter a room number with at least 3 digits.');
-  let building=checked(await req.db.from('buildings').select('id').eq('name',room.building.trim()).maybeSingle());
-  if(!building)building=checked(await req.db.from('buildings').insert({name:room.building.trim()}).select('id').single());
-  return (checked(await req.db.from('rooms').insert({building_id:building.id,room_number:room.room.trim(),floor:room.floor,status:'available',size_sqm:room.size,capacity:room.capacity+' persons',monthly_rate:room.rate,description:(room.notes||'').trim()}).select(roomColumns).single()));
-};
+export const roomCreate=async(req)=>createRoom(req.db,req.body);
+export const roomUpdate=async(req)=>updateRoom(req.db,req.params.id,req.body);
+export const roomDelete=async(req)=>deleteRoom(req.db,req.params.id);
 export const roomStatus=async(req)=>{validate.uuid(req.params.id,'room ID');validate.choice(req.body?.status,['available','occupied','reserved','maintenance'],'room status');return (checked(await req.db.from('rooms').update({status:req.body.status}).eq('id',req.params.id).select(roomColumns).single()));};
 export const tenants=async(req)=>report(req.db,'tenant_directory_page',validate.page(req.query));
 export const billingLeases=async(req)=>loadBillingLeases(req.db);

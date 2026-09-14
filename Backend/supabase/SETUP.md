@@ -13,7 +13,7 @@ npm run db:preview
 npm run db:push
 ```
 
-Migrations 001 through 009 are already applied to Spartment-Final. Never run
+Migrations 202609130001 through 202609130009 and 202609140001 through 202609140003 are applied to Spartment-Final. Never run
 `schema.sql` over that database: it creates the full application schema.
 
 ## Fresh Supabase project
@@ -27,7 +27,7 @@ Migrations 001 through 009 are already applied to Spartment-Final. Never run
 
    ```powershell
    npx supabase link --project-ref YOUR_PROJECT_REFERENCE
-   npx supabase migration repair --linked --status applied 202609130001 202609130002 202609130003 202609130004 202609130005 202609130006 202609130007 202609130008 202609130009
+   npx supabase migration repair --linked --status applied 202609130001 202609130002 202609130003 202609130004 202609130005 202609130006 202609130007 202609130008 202609130009 202609140001 202609140002 202609140003
    ```
 
 3. Set the new URL and public API key in `Backend/.env`. Keep the frontend's

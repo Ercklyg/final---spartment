@@ -23,9 +23,10 @@ const confirmations={
   '/notifications/read':'Notifications marked as read.',
   '/auth/password':'Your password was changed successfully.',
 };
-export function actionConfirmation(path){
+export function actionConfirmation(path,method){
   if(confirmations[path])return confirmations[path];
   if(/^\/rooms\/[^/]+\/status$/.test(path))return 'Room status updated successfully.';
+  if(/^\/rooms\/[^/]+$/.test(path))return method==='DELETE'?'Room deleted successfully.':'Room updated successfully.';
   if(/^\/requests\/[^/]+$/.test(path))return 'Request update saved and the tenant notified.';
   if(/^\/inquiries\/[^/]+$/.test(path))return 'Inquiry status updated successfully.';
   return 'Changes saved successfully.';

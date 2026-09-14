@@ -67,10 +67,19 @@ Administrator: GET/POST /api/tenants, GET/POST /api/rooms,
 POST /api/tenants/:id/move-out, POST /api/tenants/:id/transfer,
 GET /api/tenants/:id/leases,
 PATCH /api/rooms/:id/status, GET /api/billing/workspace,
+PATCH /api/rooms/:id, DELETE /api/rooms/:id,
 POST /api/billing/bills, POST /api/billing/payments,
 POST /api/payments/corrections, GET /api/payments/:id/corrections,
 GET /api/requests/workspace, PATCH /api/requests/:id,
 PATCH /api/inquiries/:id, GET /api/analytics?month=YYYY-MM&period=Monthly.
+
+Room listing edits cover building, room number, floor, size, monthly rate,
+capacity and description; they do not change existing lease rents or occupancy.
+Deletion is blocked for rooms referenced by tenant assignments, leases or requests.
+Existing databases need migration `202609140001_room_management.sql` for the room
+edit/delete permissions (run `npm run db:preview`, then `npm run db:push`).
+Migration `202609140003_room_size_14.sql` expands supported room sizes to 8–14 sqm,
+matching the add/edit form and backend validation.
 
 The browser sends HttpOnly session cookies; access and refresh tokens are never
 returned in login JSON or stored by frontend JavaScript. Requests include a custom

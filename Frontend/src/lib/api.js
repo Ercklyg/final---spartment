@@ -51,7 +51,7 @@ export async function api(path,options={}){
     if(!unchanged())throw new Error('Your session changed. Please retry after signing in.');
     if(announce){
       if(path==='/billing/bills'&&data.bulk)showFeedback(data.message,data.failures.length?'error':data.created?'success':'info');
-      else showFeedback(actionConfirmation(path));
+      else showFeedback(actionConfirmation(path,options.method));
     }
     return data;
   }catch(error){
@@ -63,6 +63,7 @@ export async function api(path,options={}){
 api.get=path=>api(path);
 api.post=(path,body)=>api(path,{method:'POST',body:JSON.stringify(body)});
 api.patch=(path,body)=>api(path,{method:'PATCH',body:JSON.stringify(body)});
+api.delete=path=>api(path,{method:'DELETE',body:'{}'});
 export const auth={
   clearLocalSession,
   restore:restoreSession,
