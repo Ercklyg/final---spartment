@@ -9,7 +9,8 @@ const inputClass =
 const labelClass = "mb-1.5 block text-xs font-semibold text-slate-700";
 
 // Local YYYY-MM-DD so the native date picker disables already-passed days.
-const todayString = new Date().toLocaleDateString("en-CA");
+const now = new Date();
+const todayString = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
 const roomLabel = (room) => `${room.buildings?.name || "Building"} / Room ${room.room_number}`;
 
 function InquiryForm({ onBack, prefilledRoom = "" }) {
@@ -56,8 +57,12 @@ function InquiryForm({ onBack, prefilledRoom = "" }) {
 
   function handleChange(event) {
     const { name, value } = event.target;
+    if (name === "moveInDate" && value && value < todayString) {
+      setDateError("Please choose today or a future date.");
+      return;
+    }
     setFormData((previous) => ({ ...previous, [name]: value }));
-    if (name === "moveInDate" && value >= todayString) {
+    if (name === "moveInDate") {
       setDateError("");
     }
   }
@@ -192,7 +197,7 @@ function InquiryForm({ onBack, prefilledRoom = "" }) {
           </div>
           <div>
             <label htmlFor="moveInDate" className={labelClass}>
-              Move-in date
+              Preferred move-in date (optional)
             </label>
             <input
               id="moveInDate"

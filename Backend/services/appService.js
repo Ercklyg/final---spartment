@@ -119,12 +119,14 @@ export const billingWorkspace=async(req)=>{
   return ({bills,summary:billingOverview(bills),leases});
 };
 export const requestWorkspace=async(req)=>({requests:await loadRequests(req.db),inquiries:await readAll(()=>req.db.from('inquiries').select('*').order('created_at',{ascending:false}).order('id'))});
-export const inquiryUpdate=async(req)=>{validate.uuid(req.params.id,'inquiry ID');validate.choice(req.body?.status,['Open','Resolved'],'status');return (checked(await req.db.from('inquiries').update({status:req.body.status}).eq('id',req.params.id).select('id').single()));};
+export const inquiryUpdate=async(req)=>{validate.uuid(req.params.id,'inquiry ID');validate.choice(req.body?.status,['New','Contacted','Resolved'],'status');return (checked(await req.db.from('inquiries').update({status:req.body.status}).eq('id',req.params.id).select('id').single()));};
 export const correctionHistory=async(req)=>{validate.uuid(req.params.id,'payment ID');return readAll(()=>req.db.from('payment_corrections').select('id,reason,previous_values,corrected_values,created_at,corrected_by').eq('payment_id',req.params.id).order('created_at',{ascending:false}).order('id'));};
 export const analytics=async(req)=>{
   const {month,period='Monthly'}=req.query;
   if(!/^\d{4}-(0[1-9]|1[0-2])$/.test(month||'')||!['Monthly','Quarterly','Yearly'].includes(period))throw new HttpError(400,'Invalid report period.');
-  const data=await report(req.db,'analytics_report',{p_month:month+'-01',p_period:period,p_export:req.query.export==='csv'});
+  const exportType=req.query.export;
+  if(exportType && !['csv','pdf'].includes(exportType))throw new HttpError(400,'Invalid report export format.');
+  const data=await report(req.db,'analytics_report',{p_month:month+'-01',p_period:period,p_export:exportType==='csv'||exportType==='pdf'});
   const {snapshot,series,forecastMonths}=data;
   if(req.query.export==='csv')return {csv:analyticsCsv(snapshot,series,month)};
   const currentMonth=today().slice(0,7);

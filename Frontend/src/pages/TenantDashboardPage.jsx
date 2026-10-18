@@ -20,7 +20,7 @@ function DashboardContent({ account, onNavigate, onOpenChat, requestRevision }) 
   return <>
     <NotificationTable key={requestRevision} onNavigate={onNavigate} />
     <div className="mt-3 space-y-3">
-      <SummaryCards account={account} nextBill={nextBill} billingLoading={loading} billingError={error} />
+      <SummaryCards account={account} />
       <CurrentBill bill={currentBill} loading={loading} error={error} onRetry={reload} onViewBilling={() => onNavigate?.("billing")} />
       <MaintenanceRequestStatus key={requestRevision} onOpenChat={onOpenChat} />
       <PaymentHistory bills={bills || []} loading={loading} error={error} onRetry={reload} onViewAll={() => onNavigate?.("billing")} />

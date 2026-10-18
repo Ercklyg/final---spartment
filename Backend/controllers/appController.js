@@ -35,3 +35,4 @@ export const requestWorkspace=async(req,res)=>res.status(200).json(await service
 export const inquiryUpdate=async(req,res)=>res.status(200).json(await service.inquiryUpdate(req));
 export const correctionHistory=async(req,res)=>res.status(200).json(await service.correctionHistory(req));
 export const analytics=async(req,res)=>res.status(200).json(await service.analytics(req));
+export const aiRecommendations=async(req,res)=>{const {recommendations}=await import('../services/aiRecommendations.js');res.status(200).json(await recommendations(req));};

@@ -18,6 +18,7 @@ export default function AdminRoomsPage({ onNavigate, onLogout }) {
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [editingRoom, setEditingRoom] = useState(null);
   const [deletingRoom, setDeletingRoom] = useState(null);
+  const [pendingStatus, setPendingStatus] = useState(null);
   const [sort, setSort] = useState("number");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -61,7 +62,7 @@ export default function AdminRoomsPage({ onNavigate, onLogout }) {
       <div className="mx-auto max-w-[1280px] px-4 pb-24 sm:px-6 lg:pb-10 xl:px-8">
         <RoomsToolbar filter={filter} onFilter={setFilter} query={query} onQuery={setQuery} onAdd={() => setIsAddOpen(true)} sort={sort} onSort={setSort} rooms={rooms} loading={loading} error={error} />
         {error && <div role="alert" className="mt-4 text-rose-700">{error} <button onClick={() => { setLoading(true); setError(""); setReload(n => n + 1); }} className="underline">Reload rooms</button></div>}
-        {loading ? <PageSkeleton variant="rooms" label="Loading rooms..." /> : <FloorRoomGrid filter={filter} query={query} rooms={rooms} sort={sort} saving={saving} onStatusChange={updateRoomStatus} onEdit={setEditingRoom} onDelete={setDeletingRoom} />}
+        {loading ? <PageSkeleton variant="rooms" label="Loading rooms..." /> : <FloorRoomGrid filter={filter} query={query} rooms={rooms} sort={sort} saving={saving} onStatusChange={(id, status) => { const room = rooms.find(item => item[5] === id); if (room && status !== room[2]) setPendingStatus({ id, status, room }); }} onEdit={setEditingRoom} onDelete={setDeletingRoom} />}
       </div>
     </div>
     {isAddOpen && <AddRoomModal onClose={() => setIsAddOpen(false)} onAdd={addRoom} />}
@@ -71,5 +72,15 @@ export default function AdminRoomsPage({ onNavigate, onLogout }) {
       capacity: String(editingRoom[9] || "2-3").replace(/\s*persons?\s*$/i, ""), notes: editingRoom[7] || "",
     }} />}
     {deletingRoom && <DeleteRoomModal room={deletingRoom} onClose={() => setDeletingRoom(null)} onDelete={deleteRoom} />}
+    {pendingStatus && <div role="presentation" className="fixed inset-0 z-[80] flex items-center justify-center bg-slate-950/40 p-4">
+      <section role="alertdialog" aria-modal="true" aria-labelledby="room-status-title" aria-describedby="room-status-description" className="w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl">
+        <h2 id="room-status-title" className="text-lg font-bold text-slate-900">Confirm availability change</h2>
+        <p id="room-status-description" className="mt-2 text-sm text-slate-600">Change room {pendingStatus.room[0]} in {pendingStatus.room[4]} from {pendingStatus.room[2].toLowerCase()} to {pendingStatus.status.toLowerCase()}?</p>
+        <div className="mt-6 flex justify-end gap-3">
+          <button type="button" onClick={() => setPendingStatus(null)} className="rounded-xl border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700">Cancel</button>
+          <button type="button" onClick={() => { const change = pendingStatus; setPendingStatus(null); updateRoomStatus(change.id, change.status); }} className="rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white">Confirm change</button>
+        </div>
+      </section>
+    </div>}
   </main>;
 }

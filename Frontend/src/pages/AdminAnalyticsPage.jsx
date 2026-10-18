@@ -6,36 +6,86 @@ import { ArrowUpRight, Download } from "lucide-react";
 import AdminHeader from "../components/admin/AdminHeader.jsx";
 import AdminSidebar from "../components/admin/AdminSidebar.jsx";
 import { loadAdminAnalytics } from "../lib/adminAnalytics.js";
+import { generateAnalyticsPdf } from "../lib/analyticsPdf.js";
 import { money, today } from "../lib/billing.js";
 import { useRemoteData } from "../lib/useRemoteData.js";
 import "./AdminAnalyticsPage.css";
 
 const roomColors = { occupied: "#2563eb", available: "#10b981", reserved: "#f59e0b", maintenance: "#94a3b8" };
-const paymentColors = { Paid: "#10b981", Pending: "#f59e0b", "Partially paid": "#f97316", Late: "#f43f5e" };
 const periodLabel = value => /^\d{4}-\d{2}$/.test(value)
   ? new Date(value + "-01T12:00:00").toLocaleDateString("en-PH", { month: "short", year: "2-digit" }) : value;
+const buildingNames = room => (room || "Unassigned").split(", ").map(value => value === "Unassigned" ? value : value.split(" / ")[0]);
 
 function PaymentStatus({ status }) {
   const tone = status === "Late" ? "overdue" : status === "Paid" ? "paid" : "partially-paid";
   return <span className={"analytics-payment-status " + tone}>{status}</span>;
 }
 
+const TABLE_PAGE_SIZE = 5;
+function TablePagination({ count, page, pageCount, onPageChange, label }) {
+  if (count <= TABLE_PAGE_SIZE) return null;
+  const first = (page - 1) * TABLE_PAGE_SIZE + 1;
+  const last = Math.min(page * TABLE_PAGE_SIZE, count);
+  return <nav className="analytics-table-pagination" aria-label={label}>
+    <span>Showing {first}–{last} of {count}</span>
+    <div>
+      <button type="button" onClick={() => onPageChange(page - 1)} disabled={page <= 1}>Previous</button>
+      <span aria-live="polite">Page {page} of {pageCount}</span>
+      <button type="button" onClick={() => onPageChange(page + 1)} disabled={page >= pageCount}>Next</button>
+    </div>
+  </nav>;
+}
+
 function AnalyticsReport({ data, month, period, onNavigate }) {
   const { snapshot, series, forecast, forecastMonths, comparison } = data;
+  const collectionHealth = snapshot.collectionHealth || { aging: [], dueBillCount: 0, onTimeBillCount: 0, onTimeRate: 0, collectionRate: 0, repeatLatePayers: [] };
   const ceiling = Math.max(1, ...series.map(point => point.value));
   const comparisonCeiling = Math.max(1, ...series.flatMap(point => [point.billed, point.value]));
   const [year, selectedMonth] = month.split("-").map(Number);
   const forecastLabel = new Date(year, selectedMonth, 1).toLocaleDateString("en-PH", { month: "long", year: "numeric" });
-  const distribution = Object.entries(paymentColors).map(([status, color]) => ({
-    status, color, count: snapshot.selected.filter(bill => bill.status === status).length,
-  }));
+  const billStatusTotals = [
+    { label: "Paid", status: "Paid" },
+    { label: "Partially paid", status: "Partially paid" },
+    { label: "Outstanding", status: "Pending" },
+    { label: "Overdue", status: "Late" },
+  ].map(group => {
+    const bills = snapshot.selected.filter(bill => bill.status === group.status);
+    return {
+      ...group,
+      count: bills.length,
+      billed: bills.reduce((sum, bill) => sum + Number(bill.total || 0), 0),
+      collected: bills.reduce((sum, bill) => sum + Number(bill.paid || 0), 0),
+      balance: bills.reduce((sum, bill) => sum + Number(bill.balance || 0), 0),
+    };
+  });
+  const billStatusTotal = billStatusTotals.reduce((total, row) => ({
+    count: total.count + row.count,
+    billed: total.billed + row.billed,
+    collected: total.collected + row.collected,
+    balance: total.balance + row.balance,
+  }), { count: 0, billed: 0, collected: 0, balance: 0 });
   const roomCount = data.roomCount;
+  const [outstandingPage, setOutstandingPage] = useState(1);
+  const [riskPage, setRiskPage] = useState(1);
+  const [outstandingBuilding, setOutstandingBuilding] = useState("All");
+  const [riskBuilding, setRiskBuilding] = useState("All");
   // Angles and widths are presentation values; balances and totals come from the backend.
   const donut = snapshot.inventory.map((item, index, inventory) => {
     const start = inventory.slice(0, index).reduce((sum, row) => sum + row.count, 0);
     return roomColors[item.status] + " " + (start / roomCount * 100) + "% " + ((start + item.count) / roomCount * 100) + "%";
   }).join(", ");
   const outstanding = snapshot.rows.filter(bill => bill.balance > 0);
+  const repeatLatePayers = collectionHealth.repeatLatePayers || [];
+  const allRoomValues = [...snapshot.rows, ...snapshot.selected, ...repeatLatePayers].map(item => item.room);
+  const buildingOptions = [...new Set(allRoomValues.flatMap(buildingNames))].sort((a, b) => a.localeCompare(b));
+  const filteredOutstanding = outstanding.filter(bill => outstandingBuilding === "All" || buildingNames(bill.room).includes(outstandingBuilding));
+  const filteredRiskTenants = repeatLatePayers.filter(tenant => riskBuilding === "All" || buildingNames(tenant.room).includes(riskBuilding));
+  const outstandingPageCount = Math.max(1, Math.ceil(filteredOutstanding.length / TABLE_PAGE_SIZE));
+  const riskPageCount = Math.max(1, Math.ceil(filteredRiskTenants.length / TABLE_PAGE_SIZE));
+  const currentOutstandingPage = Math.min(outstandingPage, outstandingPageCount);
+  const currentRiskPage = Math.min(riskPage, riskPageCount);
+  const visibleOutstanding = filteredOutstanding.slice((currentOutstandingPage - 1) * TABLE_PAGE_SIZE, currentOutstandingPage * TABLE_PAGE_SIZE);
+  const visibleRiskTenants = filteredRiskTenants.slice((currentRiskPage - 1) * TABLE_PAGE_SIZE, currentRiskPage * TABLE_PAGE_SIZE);
 
   return <>
     <section className="analytics-panel analytics-revenue">
@@ -78,22 +128,33 @@ function AnalyticsReport({ data, month, period, onNavigate }) {
     </section>
 
     <section className="analytics-panel analytics-tenant-analysis" aria-labelledby="payment-followup-heading">
-      <div className="analytics-panel-heading"><div><h2 id="payment-followup-heading">Outstanding balances and payment follow-up</h2><p>Saved bills and payments through {snapshot.cutoff}</p></div><button type="button" onClick={() => onNavigate?.("Billing")}>View billing</button></div>
+      <div className="analytics-panel-heading"><div><h2 id="payment-followup-heading">Outstanding balances &amp; follow-up</h2><p>{filteredOutstanding.length} bills · saved through {snapshot.cutoff}</p></div><div className="analytics-table-actions"><label>Building<select aria-label="Filter outstanding balances by building" value={outstandingBuilding} onChange={event => setOutstandingBuilding(event.target.value)}><option value="All">All buildings</option>{buildingOptions.map(building => <option key={building} value={building}>{building}</option>)}</select></label><button type="button" onClick={() => onNavigate?.("Billing")}>View billing</button></div></div>
       <div className="analytics-income-summary">
         <div><span>Outstanding balance</span><strong>{money(snapshot.outstanding)}</strong><p className="analytics-muted">Unpaid rent and utility balances.</p></div>
         <div><span>Overdue balance</span><strong>{money(snapshot.overdue)}</strong><p className="analytics-muted">Included in the outstanding balance.</p></div>
         <div><span>Potential monthly vacancy gap</span><strong>{money(snapshot.vacancyGap)}</strong><p className="analytics-muted">Monthly rates for {snapshot.available} currently available rooms.</p></div>
       </div>
-      <div className="analytics-table-scroll"><table><caption className="sr-only">Outstanding bills and payment follow-up</caption><thead><tr><th>Tenant / Room</th><th>Bill</th><th>Balance</th><th>Status</th><th>Follow-up</th></tr></thead>
-        <tbody>{outstanding.map(bill => <tr key={bill.id}><td>{bill.name}<p className="analytics-muted">{bill.room}</p></td><td>{bill.bill_type} / {bill.billing_period.slice(0, 7)}</td><td className="analytics-balance">{money(bill.balance)}</td><td><PaymentStatus status={bill.status} /></td><td>{bill.status === "Late" ? "Follow up on overdue balance" : "Monitor the due date"}</td></tr>)}
-          {!outstanding.length && <tr><td colSpan={5}>No outstanding balances in this snapshot.</td></tr>}
+      <div className="analytics-table-scroll analytics-table-compact" role="region" aria-label="Outstanding bills table" tabIndex={0}><table><caption className="sr-only">Outstanding bills and payment follow-up</caption><thead><tr><th>Tenant / Room</th><th>Bill</th><th>Balance</th><th>Status</th><th>Follow-up</th></tr></thead>
+        <tbody>{visibleOutstanding.map(bill => <tr key={bill.id}><td>{bill.name}<p className="analytics-muted">{bill.room}</p></td><td>{bill.bill_type} / {bill.billing_period.slice(0, 7)}</td><td className="analytics-balance">{money(bill.balance)}</td><td><PaymentStatus status={bill.status} /></td><td>{bill.status === "Late" ? "Follow up on overdue balance" : "Monitor the due date"}</td></tr>)}
+          {!filteredOutstanding.length && <tr><td colSpan={5}>{outstandingBuilding === "All" ? "No outstanding balances in this snapshot." : "No outstanding bills for this building."}</td></tr>}
         </tbody>
       </table></div>
+      <TablePagination count={filteredOutstanding.length} page={currentOutstandingPage} pageCount={outstandingPageCount} onPageChange={setOutstandingPage} label="Outstanding bills pages" />
       <p className="analytics-footnote">Overdue balances may still be collected. The vacancy figure is potential monthly rent from currently available rooms; reserved and maintenance rooms are excluded.</p>
     </section>
 
-    <div className="analytics-breakdowns">
-      <section className="analytics-panel">
+    <section className="analytics-panel analytics-collection-health" aria-labelledby="collection-health-heading">
+      <div className="analytics-panel-heading"><div><h2 id="collection-health-heading">Collections aging and payment punctuality</h2><p>Balances and payment timing through {snapshot.cutoff}</p></div></div>
+      <div className="analytics-income-summary">
+        <div><span>Collection rate</span><strong>{Number(collectionHealth.collectionRate || 0).toFixed(1)}%</strong><p className="analytics-muted">Recorded payments ÷ bills issued through the report date.</p></div>
+        <div><span>On-time payment rate</span><strong>{Number(collectionHealth.onTimeRate || 0).toFixed(1)}%</strong><p className="analytics-muted">{collectionHealth.onTimeBillCount} of {collectionHealth.dueBillCount} due bills were fully paid by their due date.</p></div>
+        <div><span>Over 30 days overdue</span><strong>{money(collectionHealth.aging.filter(bucket => /^(31-60|61\+)/.test(bucket.label)).reduce((sum, bucket) => sum + Number(bucket.balance || 0), 0))}</strong><p className="analytics-muted">Prioritize these balances for follow-up.</p></div>
+      </div>
+      <div className="analytics-aging-grid">{collectionHealth.aging.map(bucket => <div key={bucket.label}><span>{bucket.label}</span><strong>{money(bucket.balance)}</strong><small>{bucket.billCount} {bucket.billCount === 1 ? "bill" : "bills"}</small></div>)}</div>
+      <p className="analytics-footnote">A bill is on time only when its full amount was recorded by its due date. The tenant risk list below counts bills paid late as well as unpaid late bills.</p>
+    </section>
+
+    <section className="analytics-panel">
         <div className="analytics-panel-heading"><div><h2>Room availability</h2><p>Current inventory · all buildings</p></div></div>
         <div className="analytics-occupancy-visual">
           <div className="analytics-donut" style={{ background: roomCount ? "conic-gradient(" + donut + ")" : "#e2e8f0" }} role="img" aria-label={roomCount ? snapshot.inventory.map(item => item.count + " " + item.status + " rooms").join(", ") : "No rooms recorded"}>
@@ -103,26 +164,43 @@ function AnalyticsReport({ data, month, period, onNavigate }) {
         </div>
         <div className="analytics-rows">{snapshot.inventory.map(item => <div key={item.status}><span className="capitalize"><i style={{ background: roomColors[item.status] }} />{item.status}</span><strong>{item.count} <small>rooms</small></strong><span className="analytics-percent">{roomCount ? (item.count / roomCount * 100).toFixed(1) : "0"}%</span></div>)}</div>
         <p className="analytics-footnote">Current room availability is independent of the selected report month.</p>
-      </section>
-      <section className="analytics-panel">
-        <div className="analytics-panel-heading"><div><h2>Payment distribution</h2><p>{periodLabel(month)} · {snapshot.selected.length} rent and utility bills</p></div></div>
-        <div className="analytics-payment-bars">{distribution.map(item => <div key={item.status}><span>{item.status}</span><div><i style={{ width: (snapshot.selected.length ? item.count / snapshot.selected.length * 100 : 0) + "%", background: item.color }} /></div><strong>{item.count}</strong></div>)}</div>
-        <p className="analytics-footnote">{snapshot.selected.length ? "Status as of " + snapshot.cutoff + ". Review individual balances in Billing." : "No bills were issued for this month."} Rent and utilities are counted separately.</p>
-      </section>
-    </div>
+    </section>
 
-    <section className="analytics-panel analytics-tenant-analysis">
-      <div className="analytics-panel-heading"><div><h2>Tenant payment analysis</h2><p>Bills for {periodLabel(month)} · payments through {snapshot.cutoff}</p></div><button type="button" onClick={() => onNavigate?.("Billing")}>View billing</button></div>
-      <div className="analytics-table-scroll"><table><thead><tr><th>Tenant / Room</th><th>Type</th><th>Billed</th><th>Paid</th><th>Balance</th><th>Status</th></tr></thead>
-        <tbody>{snapshot.selected.map(bill => <tr key={bill.id}><td>{bill.name}<p className="analytics-muted">{bill.room}</p></td><td>{bill.bill_type}</td><td>{money(bill.total)}</td><td>{money(bill.paid)}</td><td className={bill.balance ? "analytics-balance" : ""}>{money(bill.balance)}</td><td><PaymentStatus status={bill.status} /></td></tr>)}
-          {!snapshot.selected.length && <tr><td colSpan={6}>No saved bills for this month.</td></tr>}
+    <section className="analytics-panel" aria-labelledby="bill-status-heading">
+      <div className="analytics-panel-heading"><div><h2 id="bill-status-heading">Bill status totals</h2><p>{periodLabel(month)} · {snapshot.selected.length} rent and utility bills · status as of {snapshot.cutoff}</p></div></div>
+      <div className="analytics-table-scroll analytics-table-compact" role="region" aria-label="Bill status totals table" tabIndex={0}>
+        <table>
+          <caption className="sr-only">Billed, collected, and remaining amounts for each bill status in {periodLabel(month)}</caption>
+          <thead><tr><th>Status</th><th>Bill count</th><th>Billed</th><th>Collected</th><th>Remaining balance</th></tr></thead>
+          <tbody>{billStatusTotals.map(row => <tr key={row.label}>
+            <td>{row.label === "Outstanding" ? "Outstanding (not overdue)" : row.label}</td>
+            <td>{row.count}</td>
+            <td>{money(row.billed)}</td>
+            <td>{money(row.collected)}</td>
+            <td className={row.balance ? "analytics-balance" : ""}>{money(row.balance)}</td>
+          </tr>)}</tbody>
+          <tfoot><tr><th>Total</th><th>{billStatusTotal.count}</th><th>{money(billStatusTotal.billed)}</th><th>{money(billStatusTotal.collected)}</th><th>{money(billStatusTotal.balance)}</th></tr></tfoot>
+        </table>
+      </div>
+      <p className="analytics-footnote">Outstanding here means unpaid bills that are not yet overdue; overdue is shown separately. Partially paid bills show both the amount collected and the remaining balance.</p>
+    </section>
+
+    <section className="analytics-panel analytics-tenant-analysis analytics-risk-analysis" aria-labelledby="tenant-risk-heading">
+      <div className="analytics-panel-heading">
+        <div><h2 id="tenant-risk-heading">Tenant payment risk</h2><p>Top 10 · 2+ late bills in the last 6 months · {filteredRiskTenants.length} shown</p></div>
+        <div className="analytics-table-actions"><label>Building<select aria-label="Filter tenant payment risk by building" value={riskBuilding} onChange={event => setRiskBuilding(event.target.value)}><option value="All">All buildings</option>{buildingOptions.map(building => <option key={building} value={building}>{building}</option>)}</select></label></div>
+      </div>
+      <div className="analytics-table-scroll analytics-table-compact" role="region" aria-label="Tenant payment risk table" tabIndex={0}><table><caption className="sr-only">Tenants with at least two late bills in the last six months</caption><thead><tr><th>Tenant / Room</th><th>Late bills (6 months)</th><th>Current overdue balance</th><th>Risk status</th><th>Suggested follow-up</th></tr></thead>
+        <tbody>{visibleRiskTenants.map(tenant => <tr key={tenant.tenantId}><td>{tenant.name}<p className="analytics-muted">{tenant.room}</p></td><td>{tenant.lateBillCount}</td><td className={Number(tenant.overdueBalance) ? "analytics-balance" : ""}>{money(tenant.overdueBalance)}</td><td><span className="analytics-risk-badge">At risk</span></td><td>{Number(tenant.overdueBalance) ? "Discuss overdue balance" : "Monitor next due date"}</td></tr>)}
+          {!filteredRiskTenants.length && <tr><td colSpan={5}>{riskBuilding === "All" ? "No tenants meet the repeated late-payment rule for this period." : "No matching tenant appears in the top 10 for this building."}</td></tr>}
         </tbody>
       </table></div>
+      <TablePagination count={filteredRiskTenants.length} page={currentRiskPage} pageCount={riskPageCount} onPageChange={setRiskPage} label="Tenant payment risk pages" />
+      <p className="analytics-footnote">At risk means at least two bills were paid after their due date or remain overdue in the six-month window.</p>
     </section>
 
     <section className="analytics-panel analytics-followup">
-      <div><p className="analytics-eyebrow">FOLLOW-UP</p><h2>From insight to action</h2><p className="analytics-muted">Review bills and available rooms.</p></div>
-      <button type="button" onClick={() => onNavigate?.("Billing")}><span><strong>Review unpaid bills</strong><small>{outstanding.length} outstanding · {snapshot.late.length} overdue</small></span><ArrowUpRight size={20} /></button>
+      <div><p className="analytics-eyebrow">FOLLOW-UP</p><h2>From insight to action</h2><p className="analytics-muted">Review available rooms.</p></div>
       <button type="button" onClick={() => onNavigate?.("Rooms")}><span><strong>Review available rooms</strong><small>{snapshot.available} rooms ready for assignment</small></span><ArrowUpRight size={20} /></button>
     </section>
     <p className="analytics-footnote">Loaded {new Date(data.loadedAt).toLocaleString("en-PH")}. Refresh to include new changes.</p>
@@ -133,21 +211,30 @@ export default function AdminAnalyticsPage({ onNavigate, onLogout }) {
   const [month, setMonth] = useState(today().slice(0, 7));
   const [period, setPeriod] = useState("Monthly");
   const [exporting,setExporting]=useState(false);
+  const [confirmExport,setConfirmExport]=useState(false);
   const loader = useCallback(client => loadAdminAnalytics(client, month, period), [month, period]);
   const { data, error, loading, reload } = useRemoteData(loader);
   const exportReport = async () => {
     if (!data||exporting) return;
+    setConfirmExport(false);
     setExporting(true);
     try {
-    const report=await api.get('/analytics?'+new URLSearchParams({month,period,export:'csv'}));
-    const url = URL.createObjectURL(new Blob([report.csv], { type: "text/csv;charset=utf-8" }));
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = "collections-" + period.toLowerCase() + "-" + month + ".csv";
-    link.click();
-    showFeedback("Report export requested. Check your browser downloads.", "info");
-    setTimeout(() => URL.revokeObjectURL(url), 1000);
-    }catch(error){showFeedback(error.message,'error');}finally{setExporting(false);}
+      const report = await api.get("/analytics?" + new URLSearchParams({ month, period, export: "pdf" }));
+      const pdf = generateAnalyticsPdf(report, month, period);
+      const url = URL.createObjectURL(new Blob([pdf], { type: "application/pdf" }));
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `collections-${period.toLowerCase()}-${month}.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+      showFeedback("PDF report downloaded.", "success");
+    } catch (error) {
+      showFeedback(error.message, "error");
+    } finally {
+      setExporting(false);
+    }
   };
 
   return <main className="flex min-h-screen bg-[#f6f9fd]">
@@ -160,11 +247,18 @@ export default function AdminAnalyticsPage({ onNavigate, onLogout }) {
           <div className="analytics-controls">
             <label>Through <input type="month" aria-label="Report ending month" value={month} max={today().slice(0, 7)} onChange={event => { if (event.target.value) setMonth(event.target.value); }} /></label>
             <button type="button" className="analytics-refresh" disabled={loading} onClick={reload}>Refresh</button>
-            <button type="button" disabled={!data||exporting} className="analytics-export disabled:opacity-50" onClick={exportReport}><Download size={16} />{exporting?'Exporting...':'Export CSV'}</button>
+            <button type="button" disabled={!data||exporting} className="analytics-export disabled:opacity-50" onClick={() => setConfirmExport(true)}><Download size={16} />{exporting?'Preparing PDF...':'Export PDF'}</button>
           </div>
         </div>
         {loading ? <PageSkeleton variant="analytics" label="Loading analytics..."/> : error ? <p role="alert" className="text-rose-700">{error} <button onClick={reload} className="underline">Retry</button></p> : <AnalyticsReport data={data} month={month} period={period} onNavigate={onNavigate} />}
       </div>
     </div>
+    {confirmExport && <div className="fixed inset-0 z-[90] flex items-center justify-center bg-slate-950/45 p-4">
+      <section role="alertdialog" aria-modal="true" aria-labelledby="confirm-pdf-title" aria-describedby="confirm-pdf-description" className="w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl">
+        <h2 id="confirm-pdf-title" className="text-lg font-bold text-slate-900">Download analytics PDF?</h2>
+        <p id="confirm-pdf-description" className="mt-2 text-sm leading-6 text-slate-600">A formatted A4 report for the {period.toLowerCase()} period ending {month} will be generated and downloaded to your device.</p>
+        <div className="mt-6 flex justify-end gap-3"><button type="button" onClick={() => setConfirmExport(false)} className="rounded-xl border border-slate-200 px-4 py-2.5 text-sm font-semibold text-slate-700">Cancel</button><button type="button" onClick={exportReport} className="rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white">Download PDF</button></div>
+      </section>
+    </div>}
   </main>;
 }

@@ -4,14 +4,14 @@ import { Copy, Eye, EyeOff, Plus, X } from "lucide-react";
 
 
 const inputClass = "mt-1.5 h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm";
-const makePassword = () => "Aa1!" + Array.from(crypto.getRandomValues(new Uint8Array(16)), n => n.toString(16).padStart(2, "0")).join("");
+const makePassword = () => "SpartmentPass@123";
 
 export default function AddTenantModal({ onClose, onAdd, existingTenants = [], rooms = [] }) {
   const availableRooms = rooms.filter(room => room.status === "available" && !existingTenants.some(tenant => tenant.roomId === room.id));
   const [saving, setSaving] = useState(false);
   const dialog = useRef(null);
   const [form, setForm] = useState(() => ({
-    name: "", email: "", phone: "", room: "", moveIn: "", rent: "6500",
+    name: "", email: "", phone: "", room: "", moveIn: "", rent: "",
     emergencyName: "", emergencyPhone: "", relationship: "",
     leaseEnd: "", password: makePassword(),
   }));
@@ -54,14 +54,14 @@ export default function AddTenantModal({ onClose, onAdd, existingTenants = [], r
       <h3 className="mt-5 font-semibold">Personal information</h3>
       <div className="mt-3 grid gap-4 sm:grid-cols-2">{fields([["name","Full name","text"],["email","Email / sign-in address","email"],["phone","Phone number","tel"]])}</div>
       <h3 className="mt-5 font-semibold">Tenancy information</h3>
-      <div className="mt-3 grid gap-4 sm:grid-cols-2"><label className="text-sm font-medium text-slate-700">Assigned room<select required value={form.room} onChange={e => change("room", e.target.value)} className={inputClass}><option value="">{availableRooms.length ? "Select an available room" : "No available rooms"}</option>{availableRooms.map(room => <option key={room.id} value={room.id}>{room.buildings?.name || "Building"} / Floor {room.floor} / Room {room.room_number}</option>)}</select></label>{fields([["rent","Monthly rent (PHP)","number"],["moveIn","Move-in date","date"],["leaseEnd","Lease end date","date",true]])}</div>
+      <div className="mt-3 grid gap-4 sm:grid-cols-2"><label className="text-sm font-medium text-slate-700">Assigned room<select required value={form.room} onChange={e => { const roomId = e.target.value; const room = availableRooms.find(item => item.id === roomId); setForm(old => ({ ...old, room: roomId, rent: room ? String(room.monthly_rate ?? "") : "" })); setError(""); setNotice(""); }} className={inputClass}><option value="">{availableRooms.length ? "Select an available room" : "No available rooms"}</option>{availableRooms.map(room => <option key={room.id} value={room.id}>{room.buildings?.name || "Building"} / Floor {room.floor} / Room {room.room_number}</option>)}</select></label>{fields([["rent","Monthly rent (PHP)","number"],["moveIn","Move-in date","date"],["leaseEnd","Lease end date","date",true]])}</div>
       <h3 className="mt-5 font-semibold">Emergency contact</h3>
       <div className="mt-3 grid gap-4 sm:grid-cols-2">{fields([["emergencyName","Contact full name","text"],["emergencyPhone","Contact phone number","tel"],["relationship","Relationship to tenant","text"]])}</div>
       <section className="mt-5 rounded-xl border border-blue-100 bg-blue-50/50 p-4">
         <h3 className="font-semibold">Account access</h3><p className="mt-1 text-sm text-slate-600">Role: Tenant · Account status: Active</p>
         <label className="mt-3 block text-sm font-medium" htmlFor="temporary-password">Temporary password</label>
         <div className="flex items-center gap-2"><input id="temporary-password" required minLength={8} autoComplete="new-password" type={visible ? "text" : "password"} value={form.password} readOnly className={inputClass}/><button type="button" onClick={()=>setVisible(!visible)} aria-label={visible ? "Hide password" : "Show password"} className="mt-1.5 rounded-lg border border-slate-200 bg-white p-3">{visible ? <EyeOff size={18}/> : <Eye size={18}/>}</button><button type="button" aria-label="Copy password" onClick={async()=>{try {await navigator.clipboard.writeText(form.password);setNotice("Password copied.");showFeedback("Temporary password copied to clipboard.");} catch {setError("Could not copy. Reveal the password to copy it manually.");}}} className="mt-1.5 rounded-lg border border-slate-200 bg-white p-3"><Copy size={18}/></button></div>
-        <p className="mt-2 text-sm text-slate-600">A unique temporary password is filled in automatically. Share it privately with the tenant and ask them to change it after their first sign-in.</p>
+        <p className="mt-2 text-sm text-slate-600">A temporary password is filled in automatically. Share it privately with the tenant and ask them to change it after their first sign-in.</p>
       </section>
       {error&&<p role="alert" className="mt-3 text-sm text-rose-600">{error}</p>}{notice&&<p role="status" className="mt-3 text-sm text-emerald-700">{notice}</p>}
       <button className="mt-5 flex min-h-11 w-full items-center justify-center gap-2 rounded-xl bg-blue-600 py-3 font-semibold text-white"><Plus size={17}/>{saving ? "Creating account..." : "Create tenant account"}</button>

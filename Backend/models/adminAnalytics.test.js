@@ -22,3 +22,10 @@ test('Empty database is zero, no forecast, safe CSV encoding',()=>{
   const csv=analyticsCsv(analyticsSnapshot(data,'2026-01','2026-03-01'),periodSeries(data,'2026-01'),'2026-01');
   assert.ok(csv.includes('"\'=SUM(1,2)"'));
 });
+test('CSV includes collection-health measures when the report provides them',()=>{
+  const snapshot=analyticsSnapshot(data,'2026-01','2026-03-01');
+  snapshot.collectionHealth={collectionRate:20.04,onTimeRate:0,dueBillCount:1,onTimeBillCount:0,aging:[{label:'1-7 days',balance:80.20,billCount:1}]};
+  const csv=analyticsCsv(snapshot,periodSeries(data,'2026-01'),'2026-01');
+  assert.ok(csv.includes('"Collection health"'));
+  assert.ok(csv.includes('"Balance aging","Outstanding PHP","Bills"'));
+});

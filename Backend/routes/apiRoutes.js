@@ -40,6 +40,7 @@ router.patch('/inquiries/:id',requireAdmin,app.inquiryUpdate);
 router.get('/notifications',app.notifications);
 router.post('/notifications/read',app.readNotifications);
 router.get('/analytics',requireAdmin,app.analytics);
+router.post('/analytics/recommendations',requireAdmin,app.aiRecommendations);
 router.get('/auth/me',controller.me);
 router.post('/tenants',requireAdmin,controller.createTenant);
 router.post('/bills',requireAdmin,controller.action('createBill'));

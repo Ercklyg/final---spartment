@@ -41,7 +41,7 @@ export default function AdminTenantsPage({ onNavigate, onLogout }) {
         <TenantsToolbar count={data?.total ?? null} onAdd={() => setIsAddOpen(true)} onRefresh={reload} loading={loading} />
         {loading ? <PageSkeleton variant="tenants" label="Loading tenants and billing balances..."/>
           : error ? <p role="alert" className="mb-4 text-rose-700">{error} <button onClick={reload} className="underline">Retry</button></p>
-            : <><p className="mb-4 text-sm text-slate-500">Balances include all issued rent and utility bills.</p><TenantCardGrid addedTenants={data.tenants} /><PageControls offset={offset} limit={25} total={data.total} onChange={setOffset}/></>}
+            : <><p className="mb-4 text-sm text-slate-500">Balances include all issued rent and utility bills.</p><TenantCardGrid addedTenants={data.tenants} onChanged={reload} /><PageControls offset={offset} limit={25} total={data.total} onChange={setOffset}/></>}
       </div>
     </div>
     {isAddOpen && <TenantModal tenants={data?.tenants || []} onAdd={addTenant} onClose={() => setIsAddOpen(false)} />}

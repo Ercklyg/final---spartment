@@ -40,7 +40,7 @@ CREATE TABLE public.inquiries (id uuid DEFAULT gen_random_uuid() NOT NULL,
   created_at timestamp with time zone DEFAULT now() NOT NULL,
   preferred_room text,
   move_in_date date,
-  status text DEFAULT 'Open'::text NOT NULL);
+  status text DEFAULT 'New'::text NOT NULL);
 
 CREATE TABLE public.leases (id uuid DEFAULT gen_random_uuid() NOT NULL,
   tenant_id uuid NOT NULL,
@@ -135,7 +135,7 @@ CREATE TABLE public.tenant_requests (id uuid NOT NULL,
   subject text NOT NULL,
   message text NOT NULL,
   priority text DEFAULT 'Normal'::text NOT NULL,
-  status text DEFAULT 'Open'::text NOT NULL,
+  status text DEFAULT 'New'::text NOT NULL,
   admin_note text DEFAULT ''::text NOT NULL,
   created_at timestamp with time zone DEFAULT now() NOT NULL,
   updated_at timestamp with time zone DEFAULT now() NOT NULL);
@@ -160,7 +160,7 @@ ALTER TABLE public.inquiries ADD CONSTRAINT inquiries_pkey PRIMARY KEY (id);
 
 ALTER TABLE public.inquiries ADD CONSTRAINT inquiries_preferred_room_check CHECK ((length(preferred_room) <= 160));
 
-ALTER TABLE public.inquiries ADD CONSTRAINT inquiries_status_check CHECK ((status = ANY (ARRAY['Open'::text, 'Resolved'::text])));
+ALTER TABLE public.inquiries ADD CONSTRAINT inquiries_status_check CHECK ((status = ANY (ARRAY['New'::text, 'Contacted'::text, 'Resolved'::text])));
 
 ALTER TABLE public.leases ADD CONSTRAINT leases_check CHECK (((lease_end_date IS NULL) OR (lease_end_date >= move_in_date)));
 
@@ -226,7 +226,7 @@ ALTER TABLE public.tenant_requests ADD CONSTRAINT tenant_requests_pkey PRIMARY K
 
 ALTER TABLE public.tenant_requests ADD CONSTRAINT tenant_requests_priority_check CHECK ((priority = ANY (ARRAY['Normal'::text, 'High'::text, 'Urgent'::text])));
 
-ALTER TABLE public.tenant_requests ADD CONSTRAINT tenant_requests_status_check CHECK ((status = ANY (ARRAY['Open'::text, 'Scheduled'::text, 'In progress'::text, 'Resolved'::text])));
+ALTER TABLE public.tenant_requests ADD CONSTRAINT tenant_requests_status_check CHECK ((status = ANY (ARRAY['New'::text, 'Scheduled'::text, 'In progress'::text, 'Resolved'::text])));
 
 ALTER TABLE public.tenant_requests ADD CONSTRAINT tenant_requests_subject_check CHECK (((length(TRIM(BOTH FROM subject)) >= 1) AND (length(TRIM(BOTH FROM subject)) <= 160)));
 
@@ -845,7 +845,7 @@ CREATE POLICY "Admins update inquiries" ON public.inquiries AS PERMISSIVE FOR UP
 
 CREATE POLICY "Admins view and manage inquiries" ON public.inquiries AS PERMISSIVE FOR SELECT TO public USING (is_admin());
 
-CREATE POLICY "Anyone can submit an inquiry" ON public.inquiries AS PERMISSIVE FOR INSERT TO anon,authenticated WITH CHECK (((status = 'Open'::text) AND ((length(TRIM(BOTH FROM full_name)) >= 1) AND (length(TRIM(BOTH FROM full_name)) <= 160)) AND ((length(email) >= 3) AND (length(email) <= 254)) AND (email ~ '^[^[:space:]@]+@[^[:space:]@]+\.[^[:space:]@]+$'::text) AND (length(COALESCE(phone, ''::text)) <= 40) AND (length(COALESCE(message, ''::text)) <= 4000) AND ((move_in_date IS NULL) OR (move_in_date >= ((now() AT TIME ZONE 'Asia/Manila'::text))::date))));
+CREATE POLICY "Anyone can submit an inquiry" ON public.inquiries AS PERMISSIVE FOR INSERT TO anon,authenticated WITH CHECK (((status = 'New'::text) AND ((length(TRIM(BOTH FROM full_name)) >= 1) AND (length(TRIM(BOTH FROM full_name)) <= 160)) AND ((length(email) >= 3) AND (length(email) <= 254)) AND (email ~ '^[^[:space:]@]+@[^[:space:]@]+\.[^[:space:]@]+$'::text) AND (length(COALESCE(phone, ''::text)) <= 40) AND (length(COALESCE(message, ''::text)) <= 4000) AND ((move_in_date IS NULL) OR (move_in_date >= ((now() AT TIME ZONE 'Asia/Manila'::text))::date))));
 
 CREATE POLICY "Admins manage leases" ON public.leases AS PERMISSIVE FOR ALL TO public USING (is_admin()) WITH CHECK (is_admin());
 

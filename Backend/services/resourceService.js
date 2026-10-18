@@ -38,7 +38,7 @@ export async function perform(db,action,body){
   return model.executeFunction(db,name,args);
 }
 export async function changeRequest(db,id,body){
-  if(!uuid.test(id)||!['Open','Scheduled','In progress','Resolved'].includes(body?.status)||typeof body?.admin_note!=='string'||body.admin_note.length>4000)throw new HttpError(400,'Invalid request update.');
+  if(!uuid.test(id)||!['New','Scheduled','In progress','Resolved'].includes(body?.status)||typeof body?.admin_note!=='string'||body.admin_note.length>4000)throw new HttpError(400,'Invalid request update.');
   return model.updateRequest(db,id,body.status,body.admin_note.trim());
 }
 export async function readNotifications(db,userId,body){

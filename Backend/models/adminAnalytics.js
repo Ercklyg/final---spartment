@@ -71,6 +71,9 @@ export function csvCell(value) {
   return '"'+text.replaceAll('"','""')+'"';
 }
 export function analyticsCsv(snapshot,series,month) {
-  const rows=[['Report through',snapshot.cutoff],['Selected month',month],[],['Period','Billed PHP (billing period)','Collected PHP (payment date)'],...series.map(p=>[p.label,p.billed,p.value]),[],['Bill ID','Tenant','Room','Type','Period','Due date','Billed PHP','Paid through cutoff PHP','Balance PHP','Status'],...snapshot.rows.map(b=>[b.id,b.name,b.room,b.bill_type,b.billing_period,b.due_date,b.total,b.paid,b.balance,b.status]),[],['Current inventory (not historical)','Rooms'],...snapshot.inventory.map(r=>[r.status,r.count]),['Current available-room monthly rate total PHP',snapshot.vacancyGap]];
+  const health=snapshot.collectionHealth;
+  const rows=[['Report through',snapshot.cutoff],['Selected month',month],[],['Period','Billed PHP (billing period)','Collected PHP (payment date)'],...series.map(p=>[p.label,p.billed,p.value]),
+    ...(health ? [[],['Collection health'],['Collection rate (%)',health.collectionRate],['On-time payment rate (%)',health.onTimeRate],['Bills due through report date',health.dueBillCount],['Bills paid in full by due date',health.onTimeBillCount],[],['Balance aging','Outstanding PHP','Bills'],...health.aging.map(bucket=>[bucket.label,bucket.balance,bucket.billCount])] : []),
+    [],['Bill ID','Tenant','Room','Type','Period','Due date','Billed PHP','Paid through cutoff PHP','Balance PHP','Status'],...snapshot.rows.map(b=>[b.id,b.name,b.room,b.bill_type,b.billing_period,b.due_date,b.total,b.paid,b.balance,b.status]),[],['Current inventory (not historical)','Rooms'],...snapshot.inventory.map(r=>[r.status,r.count]),['Current available-room monthly rate total PHP',snapshot.vacancyGap]];
   return '\ufeff'+rows.map(row=>row.map(csvCell).join(',')).join('\r\n');
 }

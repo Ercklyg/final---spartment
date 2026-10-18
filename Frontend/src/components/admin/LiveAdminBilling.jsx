@@ -2,11 +2,41 @@ import PageSkeleton from "../PageSkeleton.jsx";
 import PaymentCorrectionDialog from "./PaymentCorrectionDialog.jsx";
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { api } from '../../lib/api.js';
-import { createBill, money, recordPayment, today } from '../../lib/billing.js';
+import { createBill, money, monthEnd, recordPayment, today } from '../../lib/billing.js';
 import { useRemoteData } from '../../lib/useRemoteData.js';
 import BillingLedger from './BillingLedger.jsx';
+import { ChevronDown, Search } from 'lucide-react';
 const field='mt-1 w-full rounded-lg border border-slate-300 bg-white p-2.5';
 const loadLeases=client=>client.get('/billing/leases');
+function LeasePicker({ leases, value, includeAll, disabled, onChange }) {
+  const [open, setOpen] = useState(false);
+  const [query, setQuery] = useState('');
+  const root = useRef(null);
+  const searchInput = useRef(null);
+  useEffect(() => {
+    if (!open) return;
+    searchInput.current?.focus();
+    const closeOutside = event => { if (!root.current?.contains(event.target)) setOpen(false); };
+    document.addEventListener('pointerdown', closeOutside);
+    return () => document.removeEventListener('pointerdown', closeOutside);
+  }, [open]);
+  const label = lease => `${lease.profiles?.full_name || 'Tenant'} / ${lease.rooms?.buildings?.name || 'Building'} / ${lease.rooms?.room_number || 'Room'}`;
+  const filtered = leases.filter(lease => label(lease).toLowerCase().includes(query.trim().toLowerCase()));
+  const selected = value === 'all' ? `All tenants / rooms (${leases.length})` : label(leases.find(lease => lease.id === value) || {});
+  return <div ref={root} className="relative mt-1">
+    <button type="button" disabled={disabled} aria-haspopup="listbox" aria-expanded={open} onClick={() => { setOpen(current => !current); setQuery(''); }} className={`${field} flex h-[52px] items-center justify-between text-left disabled:cursor-not-allowed disabled:opacity-60`}>
+      <span className={value ? 'truncate text-slate-900' : 'text-slate-500'}>{value ? selected : 'Select active lease'}</span><ChevronDown size={18} className="shrink-0 text-slate-600" />
+    </button>
+    {open && <div className="absolute inset-x-0 top-full z-50 mt-1 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-xl">
+      <div className="border-b border-slate-100 p-2.5"><div className="flex h-10 items-center gap-2 rounded-lg border border-slate-200 px-3 focus-within:border-blue-500 focus-within:ring-2 focus-within:ring-blue-100"><Search size={16} className="shrink-0 text-slate-400" /><input ref={searchInput} type="search" value={query} onChange={event => setQuery(event.target.value)} onKeyDown={event => { if (event.key === 'Escape') setOpen(false); }} placeholder="Search tenant or room..." aria-label="Search active tenants and rooms" className="lease-picker-search min-w-0 flex-1 border-0 bg-transparent p-0 text-sm outline-none focus:ring-0" /></div></div>
+      <div role="listbox" aria-label="Active leases" className="max-h-60 overflow-y-auto p-1.5">
+        {includeAll && <button type="button" role="option" aria-selected={value === 'all'} onClick={() => { onChange('all'); setOpen(false); setQuery(''); }} className="w-full rounded-lg px-3 py-2.5 text-left text-sm hover:bg-blue-50">All tenants / rooms ({leases.length})</button>}
+        {filtered.map(lease => <button key={lease.id} type="button" role="option" aria-selected={value === lease.id} onClick={() => { onChange(lease.id); setOpen(false); setQuery(''); }} className="w-full rounded-lg px-3 py-2.5 text-left text-sm hover:bg-blue-50"><span className="block truncate font-medium">{lease.profiles?.full_name || 'Tenant'}</span><span className="mt-0.5 block truncate text-xs text-slate-500">{lease.rooms?.buildings?.name || 'Building'} / Room {lease.rooms?.room_number || '—'}</span></button>)}
+        {!filtered.length && <p className="px-3 py-4 text-center text-sm text-slate-500">No matching tenant or room.</p>}
+      </div>
+    </div>}
+  </div>;
+}
 function PaymentForm({bill,onClose,onSaved}) {
   const [form,setForm]=useState({amount:String(bill.balance),date:today(),reference:''});
   const [error,setError]=useState('');const [saving,setSaving]=useState(false);
@@ -28,7 +58,7 @@ export default function LiveAdminBilling({ type }) {
   const error=page.error||leases.error,loading=page.loading||leases.loading;
   const reload=()=>{page.reload();leases.reload();};
   const changeMonth=value=>{setMonth(value);setFilters(f=>({...f,offset:0}));};
-  const [form, setForm] = useState({ lease: '', period: today().slice(0, 7), due: today(), rent: '', electricity: '', water: '' });
+  const [form, setForm] = useState({ lease: '', period: today().slice(0, 7), due: monthEnd(today().slice(0, 7)), rent: '', electricity: '', water: '' });
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState('');
   const [result, setResult] = useState(null);
@@ -47,6 +77,10 @@ export default function LiveAdminBilling({ type }) {
     try {
       const response = await createBill(api, { ...form, type });
       if (response.bulk) setResult(response);
+      if (!response.bulk || !response.failures?.length) setForm(current => ({
+        lease: '', period: current.period, due: current.due,
+        rent: '', electricity: '', water: '',
+      }));
       changeMonth(form.period);
       reload();
     } catch (e) { setMessage(e.message); }
@@ -60,14 +94,10 @@ export default function LiveAdminBilling({ type }) {
     <h2 className="font-bold">Create {type} bill</h2>
     <fieldset disabled={saving} className="mt-3 grid gap-3 sm:grid-cols-3">
       <label className="text-sm">Tenant / room
-        <select required value={form.lease} onChange={event => {
-          const lease = data.leases.find(item => item.id === event.target.value);
-          setForm({ ...form, lease: event.target.value, rent: lease?.rent == null ? '' : String(lease.rent) });
-        }} className={field}>
-          <option value="">Select active lease</option>
-          {type === 'rent' && <option value="all" disabled={!data.leases.length}>All tenants / rooms ({data.leases.length})</option>}
-          {data.leases.map(lease => <option key={lease.id} value={lease.id}>{lease.profiles?.full_name} / {lease.rooms?.buildings?.name} / {lease.rooms?.room_number}</option>)}
-        </select>
+        <LeasePicker leases={data.leases} value={form.lease} disabled={saving || !data.leases.length} includeAll={type === 'rent'} onChange={leaseId => {
+          const lease = data.leases.find(item => item.id === leaseId);
+          setForm({ ...form, lease: leaseId, rent: lease?.rent == null ? '' : String(lease.rent) });
+        }} />
       </label>
       {[['period', 'Billing month', 'month'], ['due', 'Due date', 'date'],
         ...(type === 'rent' ? (all ? [] : [['rent', 'Rent amount', 'number']])

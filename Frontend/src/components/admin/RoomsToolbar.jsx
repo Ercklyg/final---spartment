@@ -1,16 +1,10 @@
-import { ArrowDownWideNarrow, Building2, CircleCheck, DoorOpen, Plus, Search, UsersRound } from "lucide-react";
+import { ArrowDownWideNarrow, CircleCheck, Plus, Search } from "lucide-react";
 
 const filters = ["All Rooms", "Available", "Occupied", "Reserved", "Maintenance"];
 const filterDots = { Available: "bg-emerald-500", Occupied: "bg-blue-500", Reserved: "bg-amber-500", Maintenance: "bg-slate-400" };
 
 function RoomsToolbar({ filter, onFilter, query, onQuery, onAdd, sort, onSort, rooms = [], loading = false, error = "" }) {
   const countFor = status => status === "All Rooms" ? rooms.length : rooms.filter(room => room[2] === status).length;
-  const summary = [
-    { label: "Total rooms", count: rooms.length, icon: Building2, style: "bg-blue-50 text-blue-600", detail: "Across your buildings" },
-    { label: "Available", count: countFor("Available"), icon: DoorOpen, style: "bg-emerald-50 text-emerald-600", detail: "Ready for new tenants" },
-    { label: "Occupied", count: countFor("Occupied"), icon: UsersRound, style: "bg-indigo-50 text-indigo-600", detail: "Currently in use" },
-  ];
-
   return <>
     <section className="flex flex-wrap items-center justify-between gap-4 pb-6 pt-8">
       <div>
@@ -19,17 +13,6 @@ function RoomsToolbar({ filter, onFilter, query, onQuery, onAdd, sort, onSort, r
         <p className="mt-2 text-sm text-slate-500">A clear view of every room, all in one place.</p>
       </div>
       <button type="button" onClick={onAdd} className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-blue-600 px-5 text-sm font-semibold text-white shadow-[0_4px_12px_-3px_rgba(37,99,235,0.4)] transition hover:bg-blue-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 active:scale-[0.98] motion-reduce:transition-none"><Plus size={18} aria-hidden="true" />Add Room</button>
-    </section>
-
-    <section aria-label="Room overview" className="mb-6 grid grid-cols-1 gap-3 sm:grid-cols-3">
-      {summary.map(({ label, count, icon: Icon, style, detail }) => <div key={label} className="flex items-center gap-4 rounded-2xl border border-slate-200/80 bg-white px-4 py-4 shadow-sm sm:items-start sm:gap-3 xl:px-5">
-        <span className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl ${style}`}><Icon size={21} strokeWidth={1.7} aria-hidden="true" /></span>
-        <div>
-          <p className="text-xs font-medium text-slate-500">{label}</p>
-          <p className="mt-1 text-2xl font-bold tracking-tight text-slate-900">{loading || error ? "—" : count}</p>
-          <p className="mt-1 hidden text-[11px] text-slate-400 xl:block">{detail}</p>
-        </div>
-      </div>)}
     </section>
 
     <section aria-label="Room filters" className="rounded-2xl border border-slate-200/80 bg-white p-3 shadow-sm sm:p-4">

@@ -158,7 +158,7 @@ try {
   const request=requests.find(r=>r.id===requestId);
   assert.equal(request.room_id,roomIds[0]);
   assert.equal(request.tenant_id,created.body.id);
-  assert.equal(request.status,'Open');
+  assert.equal(request.status,'New');
   assert.ok((await loadRequests(adminClient)).some(r=>r.id===requestId));
   assert.ok(!(await loadRequests(otherClient)).some(r=>r.id===requestId));
   checked(await adminClient.from('tenant_requests').update({status:'Scheduled',admin_note:'Temporary test appointment'}).eq('id',requestId),'Admin status update');
@@ -172,7 +172,7 @@ try {
   await submitTenantRequest(unassignedClient,'other',{subject:'Temporary general message',message:'Testing without a lease'},crypto.randomUUID());
   const inquiryId=crypto.randomUUID();inquiryIds.push(inquiryId);
   await submitInquiry(client(),{fullName:'Temporary guest test',email:`${prefix}-guest@example.com`,contact:'09123456789',preferredRoom:'T1',moveInDate:today(),message:'Temporary inquiry test'},inquiryId);
-  assert.equal(checked(await adminClient.from('inquiries').select('status').eq('id',inquiryId).single(),'Admin inquiry read').status,'Open');
+  assert.equal(checked(await adminClient.from('inquiries').select('status').eq('id',inquiryId).single(),'Admin inquiry read').status,'New');
   const guestRead=await client().from('inquiries').select('id').eq('id',inquiryId);
   assert.ok(guestRead.error || guestRead.data.length===0);
   console.log('PASS: saved tenant requests, retry deduplication, authoritative room, admin updates, request privacy, unassigned handling and guest inquiry submission');
