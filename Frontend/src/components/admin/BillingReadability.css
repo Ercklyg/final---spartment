@@ -50,6 +50,17 @@
   outline-offset: 3px;
 }
 
+/* The lease picker supplies its own focus ring on the surrounding control. */
+.admin-billing .lease-picker-search {
+  min-height: 0;
+  height: 100%;
+}
+
+.admin-billing .lease-picker-search:focus-visible {
+  outline: none;
+  outline-offset: 0;
+}
+
 .admin-billing button:disabled {
   opacity: 1;
   color: #64748b;
