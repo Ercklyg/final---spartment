@@ -21,10 +21,10 @@ function TenantDetails({ tenant, leases, leasesLoading, onClose, onMoveOut }) {
     return () => previous?.focus();
   }, []);
   const activeLease = (leases || []).find(lease => lease.status === "active");
-  return <dialog ref={dialog} onCancel={onClose} aria-labelledby="tenant-details-heading" className="m-auto max-h-[85dvh] w-[calc(100%-2rem)] max-w-md overflow-y-auto rounded-2xl bg-white p-6 backdrop:bg-slate-950/40">
+  return <dialog ref={dialog} onCancel={onClose} aria-labelledby="tenant-details-heading" className="m-auto max-h-[85dvh] w-[calc(100%-2rem)] max-w-md overflow-y-auto rounded-2xl bg-white p-5 backdrop:bg-slate-950/40 sm:p-6">
     <button type="button" onClick={onClose} aria-label="Close tenant details" className="float-right rounded-lg p-1 hover:bg-slate-100"><X /></button>
-    <h2 id="tenant-details-heading" className="text-2xl font-bold">{tenant.name}</h2><p className="mt-1 break-words text-sm text-slate-500">{tenant.email}</p>
-    <dl className="mt-6 grid gap-4 text-sm">
+    <h2 id="tenant-details-heading" className="break-words text-xl font-bold leading-tight sm:text-2xl">{tenant.name}</h2><p className="mt-1 break-all text-sm text-slate-500">{tenant.email}</p>
+    <dl className="mt-5 grid gap-3.5 text-sm sm:mt-6 sm:gap-4">
       <div><dt className="text-slate-500">Phone number</dt><dd className="mt-1 font-semibold">{tenant.phone}</dd></div>
       <div><dt className="text-slate-500">Emergency contact</dt><dd className="mt-1 font-semibold">{tenant.emergencyName} · {tenant.emergencyPhone} ({tenant.relationship})</dd></div>
       <div><dt className="text-slate-500">Assigned room</dt><dd className="mt-1 text-lg font-bold">{tenant.room}</dd></div>
@@ -68,21 +68,21 @@ export default function TenantCardGrid({ addedTenants = [], onChanged }) {
   };
   return <>
     {!addedTenants.length && <p className="p-8 text-slate-500">No tenants yet. Add a tenant to assign an available room.</p>}
-    <section className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
+    <section className="grid min-w-0 gap-3 sm:gap-5 md:grid-cols-2 xl:grid-cols-3">
       {addedTenants.map(tenant => {
         const status = tenant.billing?.status || "Unavailable";
-        return <article key={tenant.id} className="rounded-2xl bg-white p-5 shadow-sm">
-          <div className="flex items-center gap-3">
-            <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-blue-600 font-bold text-white">{tenant.name.trim().split(/\s+/).map(part => part[0]).slice(0, 2).join("")}</span>
-            <div className="min-w-0 flex-1"><h2 className="truncate font-bold">{tenant.name}</h2><p className="truncate text-sm text-slate-500">{tenant.email}</p></div>
-            <span className="rounded-full bg-emerald-50 px-2 py-1 text-xs text-emerald-600">Active</span>
+        return <article key={tenant.id} className="min-w-0 rounded-2xl border border-slate-200/70 bg-white p-4 shadow-sm sm:p-5">
+          <div className="flex min-w-0 items-start gap-3">
+            <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-blue-600 text-sm font-bold text-white sm:h-12 sm:w-12 sm:text-base">{tenant.name.trim().split(/\s+/).map(part => part[0]).slice(0, 2).join("")}</span>
+            <div className="min-w-0 flex-1"><h2 className="break-words text-sm font-bold leading-5 sm:text-base">{tenant.name}</h2><p className="truncate text-xs text-slate-500 sm:text-sm" title={tenant.email}>{tenant.email}</p></div>
+            <span className="shrink-0 rounded-full bg-emerald-50 px-2 py-1 text-[11px] font-medium text-emerald-600 sm:text-xs">Active</span>
           </div>
-          <div className="mt-5 grid grid-cols-3 gap-2 text-sm">
+          <div className="mt-4 grid min-w-0 grid-cols-2 gap-3 text-sm sm:mt-5 sm:grid-cols-3 sm:gap-2">
             <div className="min-w-0"><p className="text-slate-500">Room</p><strong className="break-words">{tenant.room}</strong></div>
-            <div><p className="text-slate-500">Payment</p><span className={"inline-block rounded-full px-2 py-1 text-xs " + (tone[status] || "bg-slate-100 text-slate-600")}>{status}</span></div>
-            <div className="min-w-0"><p className="text-slate-500">Balance</p><strong className="break-words">{amountLabel(tenant.billing?.balance)}</strong></div>
+            <div className="min-w-0"><p className="text-slate-500">Payment</p><span className={"inline-block rounded-full px-2 py-1 text-xs " + (tone[status] || "bg-slate-100 text-slate-600")}>{status}</span></div>
+            <div className="col-span-2 min-w-0 border-t border-slate-100 pt-2 sm:col-span-1 sm:border-0 sm:pt-0"><p className="text-slate-500">Balance</p><strong className="break-words">{amountLabel(tenant.billing?.balance)}</strong></div>
           </div>
-          <button type="button" onClick={() => selectTenant(tenant.id)} className="mt-5 flex w-full items-center justify-center gap-2 rounded-xl border border-slate-200 py-2.5 text-sm font-medium"><Pencil size={17} />View details</button>
+          <button type="button" onClick={() => selectTenant(tenant.id)} className="mt-4 flex min-h-11 w-full items-center justify-center gap-2 rounded-xl border border-blue-200 bg-blue-50/50 px-3 text-sm font-semibold text-blue-700 transition hover:bg-blue-50 sm:mt-5"><Pencil size={17} />View details</button>
         </article>;
       })}
     </section>

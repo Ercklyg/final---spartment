@@ -4,7 +4,7 @@ import {
   UsersRound,
 } from "lucide-react";
 
-import apartmentBuilding from "../../assets/apartment-building.jpg";
+import apartmentBuilding from "../../assets/apartment-building.webp";
 
 function GuestHero() {
   return (

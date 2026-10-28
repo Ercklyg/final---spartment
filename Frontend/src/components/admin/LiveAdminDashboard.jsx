@@ -22,7 +22,7 @@ export default function LiveAdminDashboard({ onNavigate }) {
   const fetchAi = useCallback(async (force = false) => {
     setAi(prev => ({ ...prev, loading: true, error: '' }));
     try {
-      const result = await api.post('/analytics/recommendations', { month, period: 'Monthly', force });
+      const result = await api.post('/analytics/recommendations', { month, period: 'Monthly', force }, { silent: true });
       if (result.fallback) {
         setAi({ items: [], loading: false, error: result.reason || 'unavailable', updatedAt: null, cached: false, stale: false, source: 'ai' });
       } else {
@@ -35,7 +35,7 @@ export default function LiveAdminDashboard({ onNavigate }) {
   useEffect(() => {
     if (!data?.snapshot) return;
     const controller = new AbortController();
-    api.post('/analytics/recommendations', { month, period: 'Monthly', force: false },{signal:controller.signal}).then(result => {
+    api.post('/analytics/recommendations', { month, period: 'Monthly', force: false },{signal:controller.signal,silent:true}).then(result => {
       if (result.fallback) setAi({ items: [], loading: false, error: result.reason || 'unavailable', updatedAt: null, cached: false, stale: false, source: 'ai' });
       else setAi({ items: result.items || [], loading: false, error: '', updatedAt: result.updatedAt || null, cached: Boolean(result.cached), stale: Boolean(result.stale), source: result.source || 'ai' });
     }).catch(requestError => {
@@ -48,12 +48,12 @@ export default function LiveAdminDashboard({ onNavigate }) {
     <AdminHero selectedMonth={month} onMonthChange={handleMonthChange} />
     {loading ? <PageSkeleton variant="dashboard" label="Loading dashboard..."/>
       : error ? <p role="alert" className="py-5 text-rose-700">{error} <button onClick={reload} className="underline">Retry</button></p>
-        : <div className="space-y-5">
-          <AdminAttention snapshot={data.snapshot} onNavigate={onNavigate} />
+        : <div className="space-y-4 sm:space-y-5">
+          <AdminAttention snapshot={data.snapshot} series={data.series} onNavigate={onNavigate} />
           <AdminNotifications snapshot={data.snapshot} />
           <AdminMetrics snapshot={data.snapshot} onNavigate={onNavigate} />
           <SmartRecommendations onNavigate={onNavigate} aiItems={ai.items} aiLoading={ai.loading} aiError={ai.error} aiUpdatedAt={ai.updatedAt} aiCached={ai.cached} aiStale={ai.stale} aiSource={ai.source} onRefreshAi={() => fetchAi(true)} />
-          <div className="flex items-center justify-between gap-3 text-xs text-slate-500">
+          <div className="flex flex-wrap items-center justify-between gap-3 text-[11px] text-slate-500 sm:text-xs">
             <p>Updated {new Date(data.loadedAt).toLocaleString('en-PH')}</p>
             <button onClick={reload} className="font-medium text-blue-600 hover:underline">Refresh</button>
           </div>

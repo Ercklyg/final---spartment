@@ -47,7 +47,7 @@ export default function AdminTenantsPage({ onNavigate, onLogout }) {
   return <main className="flex min-h-screen bg-[#f1f5f9] text-slate-900">
     <AdminSidebar activePage="Tenants" onNavigate={onNavigate} />
     <div className="min-w-0 flex-1"><AdminHeader onLogout={onLogout} />
-      <div className="mx-auto max-w-[1480px] px-6 pb-10 xl:px-10">
+      <div className="mx-auto max-w-[1480px] px-4 pb-24 sm:px-6 lg:pb-10 xl:px-10">
         <TenantsToolbar count={data?.total ?? null} onAdd={() => setIsAddOpen(true)} onRefresh={reload} loading={loading} />
         {loading&&!data ? <PageSkeleton variant="tenants" label="Loading tenants and billing balances..."/>
           : error&&!data ? <p role="alert" className="mb-4 text-rose-700">{error} <button onClick={reload} className="underline">Retry</button></p>

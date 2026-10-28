@@ -42,8 +42,8 @@ const wait=(milliseconds,signal)=>new Promise((resolve,reject)=>{
   signal?.addEventListener('abort',aborted,{once:true});
 });
 async function request(path,options={}){
-  const {timeoutMs=30000,...fetchOptions}=options;
-  const announce=options.method&&options.method!=='GET';
+  const {timeoutMs=30000,silent=false,...fetchOptions}=options;
+  const announce=!silent&&options.method&&options.method!=='GET';
   const userId=session?.user?.id,current=revision;
   const timedSignal=AbortSignal.timeout(timeoutMs);
   const signal=fetchOptions.signal?AbortSignal.any([fetchOptions.signal,timedSignal]):timedSignal;
@@ -97,6 +97,13 @@ function get(path,{signal,cacheMs=0,force=false,timeoutMs=30000}={}){
   if(!force&&cached?.expiresAt>Date.now())return Promise.resolve(cached.data);
   if(cached)responseCache.delete(key);
   let record=inflight.get(key);
+  // React StrictMode mounts, cleans up, and mounts effects again in development.
+  // The first cleanup can abort the shared request before its promise has
+  // finished settling. Never attach the remounted effect to that dead request.
+  if(record?.controller.signal.aborted){
+    if(inflight.get(key)===record)inflight.delete(key);
+    record=null;
+  }
   if(!record){
     const controller=new AbortController();
     record={controller,consumers:0,settled:false,promise:null};

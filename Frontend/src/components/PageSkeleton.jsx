@@ -23,6 +23,11 @@ function Form({fields=4}) {
 function Chart() {
   return <div className="skeleton-panel"><Lines/><div className="skeleton-chart">{[42,65,50,82,62,92].map((height,index)=><SkeletonBlock key={index} className="skeleton-bar" style={{height:height+'%'}}/>)}</div></div>;
 }
+function Analytics() {
+  return <div className="skeleton-analytics">
+    <div className="skeleton-columns"><Chart/><Table rows={4}/></div>
+  </div>;
+}
 function Content({variant}) {
   switch(variant){
     case 'rooms': return <Cards rooms count={6}/>;
@@ -34,7 +39,7 @@ function Content({variant}) {
     case 'table': return <Table rows={4}/>;
     case 'billing': return <><Form/><Cards count={4}/><Table/></>;
     case 'tenant-billing': return <><Cards/><Table/><Table rows={3}/></>;
-    case 'analytics': return <><Chart/><Cards/><Table/></>;
+    case 'analytics': return <Analytics/>;
     case 'auth': return <div className="skeleton-auth"><div className="skeleton-auth-intro"><SkeletonBlock className="skeleton-title"/><Lines/><SkeletonBlock className="skeleton-image"/></div><Form fields={2}/></div>;
     default: return <><Cards/><div className="skeleton-columns"><Table rows={4}/><Chart/></div><Table rows={3}/></>;
   }

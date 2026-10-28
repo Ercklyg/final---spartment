@@ -5,7 +5,7 @@ import { api } from "../../lib/api.js";
 import { useSessionState } from "../../lib/useSessionState.js";
 
 function RoomGrid({ onInquire }) {
-  const [selectedFloor, setSelectedFloor] = useSessionState("guest-room-floor","1");
+  const [selectedFloor, setSelectedFloor] = useSessionState("guest-room-floor-v2","all");
   const [selectedBuilding, setSelectedBuilding] = useSessionState("guest-room-building","all");
   const [rooms, setRooms] = useState([]);
   const [isLoading, setIsLoading] = useState(true);

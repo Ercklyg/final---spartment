@@ -48,7 +48,7 @@ export default function AddTenantModal({ onClose, onAdd, existingTenants = [], r
 
   };
   const fields = (items) => items.map(([key, label, type, optional]) => <label key={key} className="text-sm font-medium text-slate-700">{label}{optional ? " (optional)" : ""}<input required={!optional} type={type} value={form[key]} onChange={e => change(key,e.target.value)} min={key === "rent" ? "0.01" : undefined} step={key === "rent" ? "0.01" : undefined} autoComplete={key === "email" ? "off" : undefined} className={inputClass}/></label>);
-  return <dialog ref={dialog} onCancel={event => { if (saving) event.preventDefault(); else onClose(); }} aria-labelledby="add-tenant-title" className="m-auto max-h-[90dvh] w-[calc(100%-2rem)] max-w-xl overflow-y-auto rounded-2xl bg-white p-6 text-slate-900 shadow-xl backdrop:bg-slate-950/40">
+  return <dialog ref={dialog} onCancel={event => { if (saving) event.preventDefault(); else onClose(); }} aria-labelledby="add-tenant-title" className="m-auto max-h-[90dvh] w-[calc(100%-2rem)] max-w-xl overflow-y-auto rounded-2xl bg-white p-5 text-slate-900 shadow-xl backdrop:bg-slate-950/40 sm:p-6">
     <form onSubmit={submit}><fieldset disabled={saving}>
       <div className="flex items-start justify-between gap-3"><div><h2 id="add-tenant-title" className="text-xl font-bold">Add tenant</h2><p className="mt-1 text-sm text-slate-500">Create the tenant account and record their tenancy details.</p></div><button type="button" disabled={saving} onClick={onClose} aria-label="Close add tenant" className="p-2"><X/></button></div>
       <h3 className="mt-5 font-semibold">Personal information</h3>

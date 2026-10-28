@@ -3,7 +3,7 @@ import {
   MessageCircle,
 } from "lucide-react";
 
-import apartmentBuilding from "../../assets/apartment-building.jpg";
+import apartmentBuilding from "../../assets/apartment-building.webp";
 
 function RoomCard({ room, onInquire }) {
   const isAvailable = room.status === "Available";

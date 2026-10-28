@@ -35,7 +35,7 @@ export default function MoveOutDialog({ tenant, onClose, onDone }) {
       setSaving(false);
     }
   };
-  return <dialog ref={dialog} onCancel={event => { if (saving) event.preventDefault(); else onClose(); }} aria-labelledby="move-out-title" className="m-auto max-h-[90dvh] w-[calc(100%-2rem)] max-w-md overflow-y-auto rounded-2xl bg-white p-6 text-slate-900 shadow-xl backdrop:bg-slate-950/40">
+  return <dialog ref={dialog} onCancel={event => { if (saving) event.preventDefault(); else onClose(); }} aria-labelledby="move-out-title" className="m-auto max-h-[90dvh] w-[calc(100%-2rem)] max-w-md overflow-y-auto rounded-2xl bg-white p-5 text-slate-900 shadow-xl backdrop:bg-slate-950/40 sm:p-6">
     <form onSubmit={submit}><fieldset disabled={saving}>
       <div className="flex items-start justify-between gap-3"><div><h2 id="move-out-title" className="text-xl font-bold">Move out tenant</h2><p className="mt-1 text-sm text-slate-500">{tenant.name} · Room {tenant.room}</p></div><button type="button" disabled={saving} onClick={onClose} aria-label="Close move out" className="p-2"><X /></button></div>
       <p className="mt-4 text-sm text-slate-600">This ends the active lease on the effective date and frees the room. Bills, payments and lease history stay on record, and the tenant keeps their login.</p>

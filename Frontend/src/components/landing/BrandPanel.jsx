@@ -5,7 +5,7 @@ import {
   Wrench,
 } from "lucide-react";
 
-import apartmentBuilding from "../../assets/apartment-building.jpg";
+import apartmentBuilding from "../../assets/apartment-building.webp";
 import FeatureCard from "./FeatureCard.jsx";
 
 function BrandPanel() {
