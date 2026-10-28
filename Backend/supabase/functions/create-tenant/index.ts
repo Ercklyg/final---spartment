@@ -13,7 +13,9 @@ Deno.serve(async request => {
   if (request.method !== "POST") return reply(405, { error: "Use POST." });
   const token = request.headers.get("Authorization")?.match(/^Bearer (.+)$/i)?.[1];
   if (!token) return reply(401, { error: "Sign in to continue." });
-  const admin = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!, {
+  const serviceKey = JSON.parse(Deno.env.get("SUPABASE_SECRET_KEYS") || "{}").spartment_production;
+  if (!serviceKey) return reply(503, { error: "Account provisioning is temporarily unavailable." });
+  const admin = createClient(Deno.env.get("SUPABASE_URL")!, serviceKey, {
     auth: { persistSession: false, autoRefreshToken: false },
   });
   try {

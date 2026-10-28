@@ -14,7 +14,9 @@ Deno.serve(async req=>{
     const raw=await req.text();if(raw.length>32768)return reply(413,{error:'Request too large'});
     const body=JSON.parse(raw);
     if(typeof body?.key!=='string'||!/^[a-f0-9]{64}$/.test(body.key))return reply(400,{error:'Invalid key'});
-    const db=createClient(Deno.env.get('SUPABASE_URL')!,Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,{auth:{persistSession:false,autoRefreshToken:false}});
+    const serviceKey=JSON.parse(Deno.env.get('SUPABASE_SECRET_KEYS')||'{}').spartment_production;
+    if(!serviceKey)return reply(503,{error:'Storage unavailable'});
+    const db=createClient(Deno.env.get('SUPABASE_URL')!,serviceKey,{auth:{persistSession:false,autoRefreshToken:false}});
     const now=new Date().toISOString();
     if(body.action==='login-attempt'){
       if(typeof body.ipKey!=='string'||!/^[a-f0-9]{64}$/.test(body.ipKey))return reply(400,{error:'Invalid limit key'});
