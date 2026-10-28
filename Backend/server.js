@@ -11,6 +11,7 @@ dotenv.config({path:fileURLToPath(new URL('./.env',import.meta.url)),quiet:true}
 if(!process.env.SUPABASE_URL||!process.env.SUPABASE_ANON_KEY)throw new Error('Set SUPABASE_URL and SUPABASE_ANON_KEY in Backend/.env.');
 const app=express();
 app.disable('x-powered-by');
+app.set('trust proxy',1);
 app.use(helmet());
 const origins=[...allowedOrigins()];
 app.use(cors({origin:origins,credentials:true,allowedHeaders:['Content-Type','X-Spartment-Request','X-Spartment-User']}));
@@ -20,5 +21,6 @@ app.use('/api',browserSecurity,rateLimit({windowMs:60_000,limit:120,standardHead
 app.use((req,res)=>res.status(404).json({error:'Route not found.'}));
 app.use(errorHandler);
 const port=Number(process.env.PORT||5000);
-const server=app.listen(port,process.env.HOST||'127.0.0.1',()=>console.log(`Spartment backend listening on port ${port}`));
+const host=process.env.HOST||'0.0.0.0';
+const server=app.listen(port,host,()=>console.log(`Spartment backend listening on ${host}:${port}`));
 for(const signal of ['SIGINT','SIGTERM'])process.on(signal,()=>server.close());
