@@ -53,10 +53,10 @@ export default function TenantCardGrid({ addedTenants = [], onChanged }) {
   const selectTenant = id => { setSelectedId(id); setLeases([]); setLeasesLoading(true); };
   useEffect(() => {
     if (!selectedId) return;
-    let active = true;
-    leaseHistory(api, selectedId).then(data => { if (active) { setLeases(Array.isArray(data) ? data : data?.data || []); setLeasesLoading(false); } })
-      .catch(() => { if (active) { setLeases([]); setLeasesLoading(false); } });
-    return () => { active = false; };
+    const controller = new AbortController();
+    leaseHistory(api.withSignal(controller.signal), selectedId).then(data => { setLeases(Array.isArray(data) ? data : data?.data || []); setLeasesLoading(false); })
+      .catch(error => { if(error?.name!=='AbortError'){setLeases([]);setLeasesLoading(false);} });
+    return () => controller.abort();
   }, [selectedId]);
   const closeDetails = () => { setSelectedId(null); setMoveOutOpen(false); };
   const submitMoveOut = async form => {

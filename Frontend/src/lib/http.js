@@ -10,8 +10,10 @@ export async function browserRequest(path,options={}) {
     data=await response.json();
   }catch(error){
     if(error.name==='AbortError')throw error;
-    if(error.name==='TimeoutError')throw new Error('The account request timed out. Please retry.',{cause:error});
-    throw new Error('Unable to reach the backend. Make sure the backend server is running.',{cause:error});
+    if(error.name==='TimeoutError'){
+      const timeout=new Error('The request timed out. Please retry.',{cause:error});timeout.code='timeout';throw timeout;
+    }
+    const network=new Error('Unable to reach the backend. Make sure the backend server is running.',{cause:error});network.code='network';throw network;
   }
   if(!response.ok){const error=new Error(data.error||'Request failed.');error.status=response.status;error.code=data.code;throw error;}
   return data;

@@ -2,22 +2,23 @@ import { useEffect, useMemo, useState } from "react";
 import RoomCard from "./RoomCard.jsx";
 import PageSkeleton from '../PageSkeleton.jsx';
 import { api } from "../../lib/api.js";
+import { useSessionState } from "../../lib/useSessionState.js";
 
 function RoomGrid({ onInquire }) {
-  const [selectedFloor, setSelectedFloor] = useState("1");
-  const [selectedBuilding, setSelectedBuilding] = useState("all");
+  const [selectedFloor, setSelectedFloor] = useSessionState("guest-room-floor","1");
+  const [selectedBuilding, setSelectedBuilding] = useSessionState("guest-room-building","all");
   const [rooms, setRooms] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState("");
 
   useEffect(() => {
-    let isCurrent = true;
+    const controller = new AbortController();
 
     const loadRooms = async () => {
       let data;
-      try{data=await api.get("/public/rooms");}catch{if(isCurrent){setLoadError("Unable to load rooms. Please refresh.");setIsLoading(false);}return;}
+      try{data=await api.get("/public/rooms",{signal:controller.signal,cacheMs:60_000});}catch(error){if(error?.name!=='AbortError'){setLoadError("Unable to load rooms. Please refresh.");setIsLoading(false);}return;}
 
-      if (!isCurrent) return;
+      if (controller.signal.aborted) return;
       setIsLoading(false);
 
 
@@ -35,7 +36,7 @@ function RoomGrid({ onInquire }) {
     };
 
     loadRooms();
-    return () => { isCurrent = false; };
+    return () => controller.abort();
   }, []);
 
   const floors = [...new Set(rooms.map((room) => room.floor))];

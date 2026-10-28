@@ -2,12 +2,13 @@ import PageSkeleton from "../PageSkeleton.jsx";
 import { useRef, useState } from "react";
 import { api } from "../../lib/api.js";
 import { useRemoteData } from "../../lib/useRemoteData.js";
+import { useSessionState } from "../../lib/useSessionState.js";
 
 const loadWorkspace = client => client.get("/requests/workspace");
 const inquiryStatuses = ["New", "Contacted", "Resolved"];
 const requestStatuses = ["New", "Scheduled", "In progress", "Resolved"];
 
-function RequestCard({ request, inquiry, onView, onSaved }) {
+function RequestCard({ request, inquiry, onView }) {
   const title = inquiry ? "Room inquiry" : request.subject;
   const person = inquiry ? request.full_name : request.profiles?.full_name;
   return <article className="flex flex-wrap items-center justify-between gap-4 rounded-xl border border-slate-200 bg-white p-5">
@@ -65,8 +66,8 @@ function RequestInformation({ request, inquiry, onClose, onSaved }) {
 }
 
 export default function LiveAdminRequests() {
-  const { data, error, loading, reload } = useRemoteData(loadWorkspace);
-  const [filter, setFilter] = useState("All");
+  const { data, error, loading, reload } = useRemoteData(loadWorkspace,{keepPrevious:true});
+  const [filter, setFilter] = useSessionState("admin-requests-filter","All");
   const [selected, setSelected] = useState(null);
   const requests = data?.requests || [];
   const inquiries = data?.inquiries || [];
@@ -74,9 +75,10 @@ export default function LiveAdminRequests() {
   const shownInquiries = filter === "All" || filter === "Inquiry" ? inquiries : [];
   return <section className="space-y-4 py-8"><h1 className="text-3xl font-bold">Customer requests</h1>
     <div className="flex flex-wrap gap-2">{["All", "Maintenance", "Other", "Inquiry"].map(value => <button key={value} type="button" onClick={() => setFilter(value)} className={`rounded-lg border px-3 py-2 ${filter === value ? "border-blue-600 bg-blue-600 text-white" : "border-slate-300 bg-white"}`}>{value}</button>)}<button type="button" onClick={reload} className="ml-auto underline">Refresh</button></div>
-    {loading ? <PageSkeleton variant="list" label="Loading requests..." /> : error ? <p role="alert" className="text-rose-700">{error}</p> : <div className="space-y-3">
-      {shownRequests.map(request => <RequestCard key={`request-${request.id}`} request={request} onSaved={reload} onView={() => setSelected({ request, inquiry: false })} />)}
-      {shownInquiries.map(request => <RequestCard key={`inquiry-${request.id}`} request={request} inquiry onSaved={reload} onView={() => setSelected({ request, inquiry: true })} />)}
+    {loading&&!data ? <PageSkeleton variant="list" label="Loading requests..." /> : error&&!data ? <p role="alert" className="text-rose-700">{error}</p> : <div className="space-y-3" aria-busy={loading}>
+      {loading&&<p role="status" className="text-sm text-blue-700">Updating requests…</p>}{error&&<p role="alert" className="text-sm text-rose-700">{error}</p>}
+      {shownRequests.map(request => <RequestCard key={`request-${request.id}`} request={request} onView={() => setSelected({ request, inquiry: false })} />)}
+      {shownInquiries.map(request => <RequestCard key={`inquiry-${request.id}`} request={request} inquiry onView={() => setSelected({ request, inquiry: true })} />)}
       {!shownRequests.length && !shownInquiries.length && <p className="text-slate-500">No matching requests.</p>}
     </div>}
     {selected && <RequestInformation key={selected.request.id} request={selected.request} inquiry={selected.inquiry} onClose={() => setSelected(null)} onSaved={reload} />}

@@ -1,4 +1,3 @@
-import PageSkeleton from '../PageSkeleton.jsx';
 import { useState } from "react";
 import { money, today } from "../../lib/billing.js";
 import BillPaymentsDialog from "../billing/BillPaymentsDialog.jsx";
@@ -29,8 +28,9 @@ export default function BillingLedger({ type, bills, summary, onPayment, onCorre
         <button onClick={onRefresh} className={button}>Refresh</button>
       </div>
       
+      {loading&&<p role="status" aria-live="polite" className="border-t border-slate-100 px-5 py-3 text-sm text-blue-700">Updating bills while keeping the current results visible…</p>}
       <div className="overflow-x-auto"><table className="w-full min-w-[1050px] text-left text-sm"><thead><tr>{["Tenant / Room","Period / Due date",...(utility?["Electricity","Water"]:[]),"Total","Paid","Balance","Status","Actions"].map(title=><th key={title}>{title}</th>)}</tr></thead>
-        <tbody aria-busy={loading}>{loading&&<tr><td colSpan={utility?10:8}><PageSkeleton variant="list" label="Updating bills..."/></td></tr>}{!loading&&shown.map(bill=><tr key={bill.id} className="border-t border-slate-200">
+        <tbody aria-busy={loading}>{shown.map(bill=><tr key={bill.id} className="border-t border-slate-200">
           <td><strong>{bill.leases?.profiles?.full_name || "Unknown tenant"}</strong><p className="text-slate-600">{bill.leases?.rooms?.buildings?.name} / Room {bill.leases?.rooms?.room_number || "Unassigned"}</p></td>
           <td><p>{bill.billing_period.slice(0,7)}</p><p className="whitespace-nowrap text-sm text-slate-600">Due {bill.due_date}</p></td>
           {utility&&<><td>{money(bill.electricity_amount)}</td><td>{money(bill.water_amount)}</td></>}

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { ShieldCheck } from "lucide-react";
 import ChatboxHeader from "./ChatboxHeader";
 import ChatboxMenu from "./ChatboxMenu";
@@ -8,10 +8,6 @@ import OtherForm from "./OtherForm";
 
 function Chatbox({ onClose, initialView = "menu", prefilledRoom = "", hideInquiry = false }) {
   const [currentView, setCurrentView] = useState(initialView);
-
-
-  useEffect(() => { setCurrentView(initialView); }, [initialView]);
-
   function handleSelect(type) {
     setCurrentView(type);
   }

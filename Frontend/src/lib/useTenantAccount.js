@@ -8,11 +8,11 @@ export function useTenantAccount() {
   const [loading, setLoading] = useState(true);
   const [revision, setRevision] = useState(0);
   useEffect(() => {
-    let active = true;
-    loadTenantAccount(api).then(data => { if (active) { setAccount(data); setError(""); } })
-      .catch(error => { if (active) { setAccount(null); setError(error.message); } })
-      .finally(() => { if (active) setLoading(false); });
-    return () => { active = false; };
+    const controller = new AbortController();
+    loadTenantAccount(api.withSignal(controller.signal,{force:revision>0})).then(data => { setAccount(data); setError(""); })
+      .catch(error => { if(error?.name!=='AbortError'){setAccount(null);setError(error.message);} })
+      .finally(() => { if(!controller.signal.aborted)setLoading(false); });
+    return () => controller.abort();
   }, [revision]);
   const retry = () => { setLoading(true); setAccount(null); setError(""); setRevision(value => value + 1); };
   return { account, error, loading, retry };

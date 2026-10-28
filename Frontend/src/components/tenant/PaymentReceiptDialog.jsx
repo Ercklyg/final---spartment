@@ -8,9 +8,9 @@ export default function PaymentReceiptDialog({paymentId,onClose}) {
   const [html,setHtml]=useState(''),[error,setError]=useState(''),[ready,setReady]=useState(false),[revision,setRevision]=useState(0);
   useEffect(()=>{const previous=document.activeElement;dialog.current.showModal();return ()=>previous?.focus();},[]);
   useEffect(()=>{
-    let active=true;
-    loadPaymentReceipt(api,paymentId).then(payment=>{if(active)setHtml(receiptHtml(payment));}).catch(e=>{if(active)setError(e.message);});
-    return ()=>{active=false;};
+    const controller=new AbortController();
+    loadPaymentReceipt(api.withSignal(controller.signal,{force:revision>0}),paymentId).then(payment=>setHtml(receiptHtml(payment))).catch(e=>{if(e?.name!=='AbortError')setError(e.message);});
+    return ()=>controller.abort();
   },[paymentId,revision]);
   const download=()=>{const url=URL.createObjectURL(new Blob([html],{type:'text/html;charset=utf-8'}));const link=document.createElement('a');link.href=url;link.download=`spartment-payment-${paymentId}.html`;link.click();showFeedback("Receipt download requested. Check your browser downloads.","info");setTimeout(()=>URL.revokeObjectURL(url),1000);};
   const print=()=>{try{frame.current.contentWindow.focus();frame.current.contentWindow.print();showFeedback("Print dialog requested. Choose a printer or Save as PDF in your browser.","info");}catch{showFeedback('Printing is unavailable. Download the receipt and print it from your browser.','error');setError('Printing is unavailable. Download the receipt and print it from your browser.');}};

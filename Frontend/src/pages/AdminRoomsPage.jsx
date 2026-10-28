@@ -2,6 +2,7 @@ import PageSkeleton from "../components/PageSkeleton.jsx";
 
 import { useEffect, useState } from "react";
 import { api } from "../lib/api.js";
+import { useSessionState } from "../lib/useSessionState.js";
 import AddRoomModal from "../components/admin/AddRoomModal.jsx";
 import DeleteRoomModal from "../components/admin/DeleteRoomModal.jsx";
 import AdminHeader from "../components/admin/AdminHeader.jsx";
@@ -12,26 +13,25 @@ import RoomsToolbar from "../components/admin/RoomsToolbar.jsx";
 const toRow = room => [room.room_number, room.floor, room.status[0].toUpperCase() + room.status.slice(1), (room.tenant_assignments?.full_name || room.tenant_assignments?.[0]?.full_name) || (room.status === "occupied" ? "Occupied" : "Unassigned"), room.buildings?.name || "Building", room.id, Number(room.monthly_rate), room.description, room.size_sqm, room.capacity, Boolean(room.tenant_assignments?.full_name || room.tenant_assignments?.length)];
 
 export default function AdminRoomsPage({ onNavigate, onLogout }) {
-  const [filter, setFilter] = useState("All Rooms");
-  const [query, setQuery] = useState("");
+  const [filter, setFilter] = useSessionState("admin-rooms-filter", "All Rooms");
+  const [query, setQuery] = useSessionState("admin-rooms-query", "");
   const [rooms, setRooms] = useState([]);
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [editingRoom, setEditingRoom] = useState(null);
   const [deletingRoom, setDeletingRoom] = useState(null);
   const [pendingStatus, setPendingStatus] = useState(null);
-  const [sort, setSort] = useState("number");
+  const [sort, setSort] = useSessionState("admin-rooms-sort", "number");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(null);
   const [reload, setReload] = useState(0);
   useEffect(() => {
-    let active = true;
-    api.get("/rooms").then(data => {
-      if (!active) return;
+    const controller = new AbortController();
+    api.get("/rooms",{signal:controller.signal,cacheMs:30_000,force:reload>0}).then(data => {
       setRooms(data.map(toRow)); setError("");
       setLoading(false);
-    }).catch(() => { if (active) { setError("Unable to load rooms. Please retry."); setLoading(false); } });
-    return () => { active = false; };
+    }).catch(error => { if(error?.name!=='AbortError'){setError("Unable to load rooms. Please retry.");setLoading(false);} });
+    return () => controller.abort();
   }, [reload]);
   const addRoom = async room => {
     const data=await api.post("/rooms",room);
@@ -39,11 +39,13 @@ export default function AdminRoomsPage({ onNavigate, onLogout }) {
   };
   const updateRoomStatus = async (id, status) => {
     if (saving) return;
+    const previous=rooms.find(room=>room[5]===id);
     setSaving(id); setError("");
+    setRooms(items=>items.map(room=>room[5]===id?[...room.slice(0,2),status,...room.slice(3)]:room));
     try {
       const data = await api.patch("/rooms/"+id+"/status",{status:status.toLowerCase()});
       setRooms(items => items.map(room => room[5] === id ? toRow(data) : room));
-    } catch { setError("Unable to save room status. Please try again."); }
+    } catch { if(previous)setRooms(items=>items.map(room=>room[5]===id?previous:room));setError("Unable to save room status. The previous status was restored."); }
     finally { setSaving(null); }
   };
   const editRoom = async room => {
@@ -61,7 +63,7 @@ export default function AdminRoomsPage({ onNavigate, onLogout }) {
       <AdminHeader onLogout={onLogout} />
       <div className="mx-auto max-w-[1280px] px-4 pb-24 sm:px-6 lg:pb-10 xl:px-8">
         <RoomsToolbar filter={filter} onFilter={setFilter} query={query} onQuery={setQuery} onAdd={() => setIsAddOpen(true)} sort={sort} onSort={setSort} rooms={rooms} loading={loading} error={error} />
-        {error && <div role="alert" className="mt-4 text-rose-700">{error} <button onClick={() => { setLoading(true); setError(""); setReload(n => n + 1); }} className="underline">Reload rooms</button></div>}
+        <div aria-live="polite" aria-atomic="true">{saving&&<p role="status" className="mt-4 text-sm text-blue-700">Saving room status…</p>}{error && <div role="alert" className="mt-4 text-rose-700">{error} <button onClick={() => { setLoading(true); setError(""); setReload(n => n + 1); }} className="underline">Reload rooms</button></div>}</div>
         {loading ? <PageSkeleton variant="rooms" label="Loading rooms..." /> : <FloorRoomGrid filter={filter} query={query} rooms={rooms} sort={sort} saving={saving} onStatusChange={(id, status) => { const room = rooms.find(item => item[5] === id); if (room && status !== room[2]) setPendingStatus({ id, status, room }); }} onEdit={setEditingRoom} onDelete={setDeletingRoom} />}
       </div>
     </div>

@@ -34,16 +34,15 @@ export default function LiveAdminDashboard({ onNavigate }) {
   }, [month]);
   useEffect(() => {
     if (!data?.snapshot) return;
-    let active = true;
-    api.post('/analytics/recommendations', { month, period: 'Monthly', force: false }).then(result => {
-      if (!active) return;
+    const controller = new AbortController();
+    api.post('/analytics/recommendations', { month, period: 'Monthly', force: false },{signal:controller.signal}).then(result => {
       if (result.fallback) setAi({ items: [], loading: false, error: result.reason || 'unavailable', updatedAt: null, cached: false, stale: false, source: 'ai' });
       else setAi({ items: result.items || [], loading: false, error: '', updatedAt: result.updatedAt || null, cached: Boolean(result.cached), stale: Boolean(result.stale), source: result.source || 'ai' });
     }).catch(requestError => {
-      if (!active) return;
+      if (requestError?.name === 'AbortError') return;
       setAi({ items: [], loading: false, error: requestError.message || 'unavailable', updatedAt: null, cached: false, stale: false, source: 'ai' });
     });
-    return () => { active = false; };
+    return () => controller.abort();
   }, [data?.snapshot, month]);
   return <>
     <AdminHero selectedMonth={month} onMonthChange={handleMonthChange} />

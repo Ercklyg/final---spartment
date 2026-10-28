@@ -4,10 +4,11 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { api } from '../../lib/api.js';
 import { createBill, money, monthEnd, recordPayment, today } from '../../lib/billing.js';
 import { useRemoteData } from '../../lib/useRemoteData.js';
+import { useSessionState } from '../../lib/useSessionState.js';
 import BillingLedger from './BillingLedger.jsx';
 import { ChevronDown, Search } from 'lucide-react';
 const field='mt-1 w-full rounded-lg border border-slate-300 bg-white p-2.5';
-const loadLeases=client=>client.get('/billing/leases');
+const loadLeases=client=>client.get('/billing/leases',{cacheMs:30_000});
 function LeasePicker({ leases, value, includeAll, disabled, onChange }) {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState('');
@@ -47,8 +48,8 @@ function PaymentForm({bill,onClose,onSaved}) {
   return <div className="fixed inset-0 z-[70] flex items-center justify-center bg-slate-950/40 p-4"><form onSubmit={submit} role="dialog" aria-modal="true" aria-label="Record payment" className="w-full max-w-md rounded-xl bg-white p-6"><h2 className="text-xl font-bold">Record payment</h2><p className="mt-1 text-sm">Remaining balance: {money(bill.balance)}</p><fieldset disabled={saving} className="mt-4 space-y-3">{[['amount','Amount','number'],['date','Payment date','date'],['reference','Reference note','text']].map(([key,label,type])=><label key={key} className="block text-sm">{label}<input type={type} required={key!=='reference'} min={key==='amount'?'0.01':undefined} max={key==='amount'?bill.balance:key==='date'?today():undefined} step={key==='amount'?'0.01':undefined} maxLength={254} value={form[key]} onChange={e=>setForm({...form,[key]:e.target.value})} className={field}/></label>)}{error&&<p role="alert" className="text-rose-700">{error}</p>}<div className="flex justify-end gap-3"><button type="button" onClick={onClose}>Cancel</button><button className="rounded-lg bg-blue-600 px-4 py-2 text-white">{saving?'Saving...':'Save payment'}</button></div></fieldset></form></div>;
 }
 export default function LiveAdminBilling({ type }) {
-  const [month, setMonth] = useState(today().slice(0, 7));
-  const [filters,setFilters]=useState({search:'',status:'All',offset:0});
+  const [month, setMonth] = useSessionState(`admin-billing-${type}-month`,today().slice(0, 7));
+  const [filters,setFilters]=useSessionState(`admin-billing-${type}-filters`,{search:'',status:'All',offset:0});
   const [search,setSearch]=useState('');
   useEffect(()=>{const timer=setTimeout(()=>setSearch(filters.search),300);return ()=>clearTimeout(timer);},[filters.search]);
   const loader=useCallback(client=>client.get('/billing/workspace?'+new URLSearchParams({month,type,search,status:filters.status,offset:filters.offset,limit:25})),[month,type,search,filters.status,filters.offset]);
@@ -115,7 +116,7 @@ export default function LiveAdminBilling({ type }) {
       <p className="mt-1">The billing month and due date apply to everyone. Existing bills of this type for the month will be skipped.</p>
     </div>}
     {!data.leases.length && <p className="mt-3 text-sm text-slate-500">Add a tenant with an active lease first.</p>}
-    {saving && <p role="status" className="mt-3 text-sm text-blue-700">Creating {all ? 'bills for all active tenants' : 'bill'}...</p>}
+    {saving && <div role="status" aria-live="polite" className="mt-3 text-sm text-blue-700"><progress aria-label="Saving billing changes" className="mb-1 h-1.5 w-full overflow-hidden rounded-full"/><p>Creating {all ? 'bills for all active tenants' : 'bill'}… Please keep this page open.</p></div>}
     {message && <p role="alert" className="mt-3 text-rose-700">{message}</p>}
     {result && <div role={result.failures.length ? "alert" : "status"} className={"mt-3 rounded-lg p-3 text-sm " + (result.failures.length ? "bg-amber-50 text-amber-900" : "bg-emerald-50 text-emerald-800")}>
       <p className="font-semibold">{result.message}</p>

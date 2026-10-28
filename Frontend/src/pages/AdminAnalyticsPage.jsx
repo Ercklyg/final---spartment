@@ -2,6 +2,7 @@ import PageSkeleton from "../components/PageSkeleton.jsx";
 import { showFeedback } from "../lib/actionFeedback.js";
 import { api } from '../lib/api.js';
 import { useCallback, useState } from "react";
+import { useSessionState } from "../lib/useSessionState.js";
 import { ArrowUpRight, Download } from "lucide-react";
 import AdminHeader from "../components/admin/AdminHeader.jsx";
 import AdminSidebar from "../components/admin/AdminSidebar.jsx";
@@ -208,12 +209,12 @@ function AnalyticsReport({ data, month, period, onNavigate }) {
 }
 
 export default function AdminAnalyticsPage({ onNavigate, onLogout }) {
-  const [month, setMonth] = useState(today().slice(0, 7));
-  const [period, setPeriod] = useState("Monthly");
+  const [month, setMonth] = useSessionState("admin-analytics-month",today().slice(0, 7));
+  const [period, setPeriod] = useSessionState("admin-analytics-period","Monthly");
   const [exporting,setExporting]=useState(false);
   const [confirmExport,setConfirmExport]=useState(false);
   const loader = useCallback(client => loadAdminAnalytics(client, month, period), [month, period]);
-  const { data, error, loading, reload } = useRemoteData(loader);
+  const { data, error, loading, reload } = useRemoteData(loader,{keepPrevious:true});
   const exportReport = async () => {
     if (!data||exporting) return;
     setConfirmExport(false);
@@ -250,7 +251,7 @@ export default function AdminAnalyticsPage({ onNavigate, onLogout }) {
             <button type="button" disabled={!data||exporting} className="analytics-export disabled:opacity-50" onClick={() => setConfirmExport(true)}><Download size={16} />{exporting?'Preparing PDF...':'Export PDF'}</button>
           </div>
         </div>
-        {loading ? <PageSkeleton variant="analytics" label="Loading analytics..."/> : error ? <p role="alert" className="text-rose-700">{error} <button onClick={reload} className="underline">Retry</button></p> : <AnalyticsReport data={data} month={month} period={period} onNavigate={onNavigate} />}
+        {loading&&!data ? <PageSkeleton variant="analytics" label="Loading analytics..."/> : error&&!data ? <p role="alert" className="text-rose-700">{error} <button onClick={reload} className="underline">Retry</button></p> : <><div aria-live="polite">{loading&&<p role="status" className="mb-3 text-sm text-blue-700">Updating analytics while keeping the current report visible…</p>}{error&&<p role="alert" className="mb-3 text-sm text-rose-700">{error} <button onClick={reload} className="underline">Retry</button></p>}{exporting&&<p role="status" className="mb-3 text-sm text-blue-700">Preparing your PDF download…</p>}</div><AnalyticsReport data={data} month={month} period={period} onNavigate={onNavigate} /></>}
       </div>
     </div>
     {confirmExport && <div className="fixed inset-0 z-[90] flex items-center justify-center bg-slate-950/45 p-4">

@@ -29,9 +29,8 @@ function InquiryForm({ onBack, prefilledRoom = "" }) {
     message: "",
   });
   useEffect(() => {
-    let active = true;
-    api.get("/public/rooms").then((data) => {
-      if (!active) return;
+    const controller = new AbortController();
+    api.get("/public/rooms",{signal:controller.signal,cacheMs:60_000,force:roomsRevision>0}).then((data) => {
       const availableRooms = data.filter((room) => room.status === "available");
       setRooms(availableRooms);
       setFormData((previous) => ({
@@ -39,12 +38,12 @@ function InquiryForm({ onBack, prefilledRoom = "" }) {
         preferredRoom: availableRooms.some((room) => roomLabel(room) === previous.preferredRoom)
           ? previous.preferredRoom : "",
       }));
-    }).catch(() => {
-      if (active) setRoomsError("Unable to load available rooms. Please try again.");
+    }).catch((error) => {
+      if (error?.name!=='AbortError') setRoomsError("Unable to load available rooms. Please try again.");
     }).finally(() => {
-      if (active) setRoomsLoading(false);
+      if (!controller.signal.aborted) setRoomsLoading(false);
     });
-    return () => { active = false; };
+    return () => controller.abort();
   }, [roomsRevision]);
 
   function retryRooms() {
@@ -79,7 +78,7 @@ function InquiryForm({ onBack, prefilledRoom = "" }) {
     const signature=JSON.stringify(formData);if(attempt.current?.signature!==signature)attempt.current={signature,id:crypto.randomUUID()};
     try {
       if (formData.preferredRoom) {
-        const availableRooms = (await api.get("/public/rooms")).filter((room) => room.status === "available");
+        const availableRooms = (await api.get("/public/rooms",{force:true})).filter((room) => room.status === "available");
         setRooms(availableRooms);
         if (!availableRooms.some((room) => roomLabel(room) === formData.preferredRoom)) {
           setFormData((previous) => ({ ...previous, preferredRoom: "" }));
