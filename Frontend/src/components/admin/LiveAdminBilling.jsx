@@ -57,7 +57,8 @@ export default function LiveAdminBilling({ type }) {
   const leases=useRemoteData(loadLeases);
   const data=page.data&&leases.data?{...page.data,leases:leases.data}:null;
   const error=page.error||leases.error,loading=page.loading||leases.loading;
-  const reload=()=>{page.reload();leases.reload();};
+  const reloadWorkspace=()=>page.reload();
+  const reloadAll=()=>{page.reload();leases.reload();};
   const changeMonth=value=>{setMonth(value);setFilters(f=>({...f,offset:0}));};
   const [form, setForm] = useState({ lease: '', period: today().slice(0, 7), due: monthEnd(today().slice(0, 7)), rent: '', electricity: '', water: '' });
   const [saving, setSaving] = useState(false);
@@ -83,13 +84,13 @@ export default function LiveAdminBilling({ type }) {
         rent: '', electricity: '', water: '',
       }));
       changeMonth(form.period);
-      reload();
+      reloadWorkspace();
     } catch (e) { setMessage(e.message); }
     finally { busy.current = false; setSaving(false); }
   };
 
   if (loading&&!data) return <PageSkeleton variant="billing" label="Loading billing..."/>;
-  if (error) return <p role="alert" className="py-6 text-rose-700">{error} <button onClick={reload} className="underline">Retry</button></p>;
+  if (error) return <p role="alert" className="py-6 text-rose-700">{error} <button onClick={reloadAll} className="underline">Retry</button></p>;
 
   const createForm = <form onSubmit={submit} aria-busy={saving} className="rounded-xl border border-slate-200 bg-white p-4 sm:p-5">
     <h2 className="font-bold">Create {type} bill</h2>
@@ -124,8 +125,8 @@ export default function LiveAdminBilling({ type }) {
     </div>}
   </form>;
 
-  return <><BillingLedger type={type} bills={data.bills} summary={data.summary} month={month} onMonthChange={changeMonth} page={data} loading={page.loading||search!==filters.search} filters={filters} onFiltersChange={setFilters} createForm={createForm} onRefresh={reload} onPayment={setPayment} onCorrection={setCorrection} />
-    {correction && <PaymentCorrectionDialog payment={correction} onClose={() => setCorrection(null)} onSaved={() => { setCorrection(null); reload(); }} />}
-    {payment && <PaymentForm bill={payment} onClose={() => setPayment(null)} onSaved={() => { setPayment(null); reload(); }} />}
+  return <><BillingLedger type={type} bills={data.bills} summary={data.summary} month={month} onMonthChange={changeMonth} page={data} loading={page.loading||search!==filters.search} filters={filters} onFiltersChange={setFilters} createForm={createForm} onRefresh={reloadAll} onPayment={setPayment} onCorrection={setCorrection} />
+    {correction && <PaymentCorrectionDialog payment={correction} onClose={() => setCorrection(null)} onSaved={() => { setCorrection(null); reloadWorkspace(); }} />}
+    {payment && <PaymentForm bill={payment} onClose={() => setPayment(null)} onSaved={() => { setPayment(null); reloadWorkspace(); }} />}
   </>;
 }
