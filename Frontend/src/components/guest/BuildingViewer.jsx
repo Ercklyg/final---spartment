@@ -36,7 +36,9 @@ export default function BuildingViewer({ compact = false, building = 'main' }) {
   }, []);
 
   useEffect(() => {
-    if (reducedMotion) return;
+    // Compact viewers are used on the public landing page. Keep their preview
+    // lightweight and load Three.js only after an explicit visitor action.
+    if (compact || reducedMotion) return;
     const activate = () => {
       setStatus('loading');
       setActive(true);
@@ -49,10 +51,10 @@ export default function BuildingViewer({ compact = false, building = 'main' }) {
       if (!entries.some(entry => entry.isIntersecting)) return;
       observer.disconnect();
       activate();
-    }, { rootMargin: '200px' });
+    }, { rootMargin: '0px' });
     observer.observe(hostRef.current);
     return () => observer.disconnect();
-  }, [reducedMotion]);
+  }, [compact, reducedMotion]);
 
   useEffect(() => {
     if (!active) return;
@@ -120,7 +122,7 @@ export default function BuildingViewer({ compact = false, building = 'main' }) {
         <div ref={hostRef} className="building-canvas" />
         {!active && <div className="building-viewer-cover">
           {details.preview && <img src={details.preview} alt={details.alt} loading="lazy" />}
-          {reducedMotion && <button type="button" onClick={loadModel} className="absolute bottom-4 left-1/2 -translate-x-1/2 rounded-xl bg-slate-950/85 px-4 py-2.5 text-sm font-semibold text-white shadow-lg">Load interactive 3D view</button>}
+          {(compact || reducedMotion) && <button type="button" onClick={loadModel} className="absolute bottom-4 left-1/2 -translate-x-1/2 rounded-xl bg-slate-950/85 px-4 py-2.5 text-sm font-semibold text-white shadow-lg">Load interactive 3D view</button>}
         </div>}
         {status === 'loading' && <div className="building-viewer-message" role="status"><LoaderCircle className="animate-spin" size={26} /><strong>Building your view…</strong></div>}
         {status === 'error' && <div className="building-viewer-message" role="alert"><Box size={28} /><strong>The 3D view couldn’t load.</strong><p>Try again or use a browser with 3D graphics enabled.</p><button type="button" onClick={loadModel}>Try again</button></div>}

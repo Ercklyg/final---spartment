@@ -70,8 +70,9 @@ export default function App() {
     setProfile(null); setError("");
     await auth.signIn(email, password);
   };
-  if (session === undefined) return <PageSkeleton label="Loading your account..." fullPage/>;
-  if (session?.error) return <main className="p-8"><p role="alert">{session.error}</p><button type="button" onClick={()=>auth.restore()} className="mt-4 underline">Retry session check</button></main>;
+  // Session restoration must not hold the public website behind the API. This
+  // is especially important when the backend is waking from an idle state.
+  if (session === undefined || session?.error) return <LandingPage onContinueAsGuest={() => navigate("guest")} onSignIn={signIn} />;
   if (page === "guest" && !userId) return <LazyPage Page={GuestPage} variant={skeletons.guest} onExit={() => navigate("landing")} />;
   if (!userId) return <LandingPage onContinueAsGuest={() => navigate("guest")} onSignIn={signIn} />;
   if (profile?.id !== userId && !error) return <PageSkeleton label="Loading your account..." fullPage/>;
