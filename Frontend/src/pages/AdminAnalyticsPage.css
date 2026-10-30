@@ -20,7 +20,26 @@
 .analytics-page button:focus-visible,.analytics-page input:focus-visible,.analytics-page select:focus-visible,.analytics-page summary:focus-visible { outline:2px solid #2563eb; outline-offset:2px; }
 
 /* Report layout */
-.analytics-report-grid { display:grid; gap:16px; }
+.analytics-report-grid { display:grid; align-items:start; gap:16px; }
+.analytics-report-column { display:contents; min-width:0; }
+.analytics-revenue { order:1; }
+.analytics-forecast { order:2; }
+.analytics-collection-health { order:3; }
+.analytics-risk-analysis { order:4; }
+.analytics-room { order:5; }
+.analytics-full-width { grid-column:1/-1; min-width:0; }
+.analytics-vacancy-analysis { display:grid; grid-template-columns:160px minmax(0,1fr); align-items:center; gap:28px; margin-top:24px; }
+.analytics-vacancy-analysis > .analytics-vacancy-chart { display:flex; flex-direction:column; align-items:center; gap:14px; min-width:0; }
+.analytics-vacancy-legend { display:flex; justify-content:center; flex-wrap:wrap; gap:8px 12px; font-size:10px; color:#64748b; }
+.analytics-vacancy-legend span { display:flex; align-items:center; gap:8px; }
+.analytics-vacancy-legend i { width:8px; height:8px; border-radius:50%; background:#2563eb; }
+.analytics-vacancy-legend span:last-child i { background:#e2e8f0; }
+.analytics-vacancy-explanation { border-top:1px solid #e2e8f0; padding-top:14px; }
+.analytics-vacancy-analysis > div { min-width:0; }
+.analytics-vacancy-analysis > div:last-child { padding-left:24px; border-left:1px solid #e2e8f0; }
+.analytics-vacancy-analysis .analytics-muted { font-size:13px; }
+.analytics-methodology .analytics-disclosure { margin-top:0; }
+.analytics-vacancy-amount { display:block; margin:6px 0; color:#047857; font-size:32px; font-weight:800; letter-spacing:-.03em; font-variant-numeric:tabular-nums; }
 .analytics-grid-wide,.analytics-grid-narrow { min-width:0; }
 .analytics-panel { min-width:0; padding:22px; border:1px solid #e2e8f0; border-radius:18px; background:#fff; box-shadow:0 8px 30px -22px #1e3a8a40; }
 .analytics-revenue { border-top:3px solid #3b82f6; background:linear-gradient(155deg,#eff6ff 0%,#fff 42%); }
@@ -179,9 +198,9 @@
 /* Phone layout */
 .analytics-mobile-list,.analytics-chart-amount-compact { display:none; }
 @media(min-width:1280px) {
-  .analytics-report-grid { grid-template-columns:minmax(0,1.6fr) minmax(0,1fr); gap:20px; }
-  .analytics-grid-wide { grid-column:1; }
-  .analytics-grid-narrow { grid-column:2; }
+  .analytics-report-grid { grid-template-columns:minmax(0,1.6fr) minmax(0,1fr); gap:16px; }
+  .analytics-report-column { display:flex; flex-direction:column; gap:16px; }
+  .analytics-report-column > .analytics-panel { width:100%; order:initial; }
 }
 @media(max-width:767px) {
   .analytics-page { padding:20px 16px calc(32px + env(safe-area-inset-bottom)); }
@@ -246,6 +265,8 @@
   .analytics-confirm-actions button { width:100%; min-height:44px; }
 }
 @media(max-width:480px) {
+  .analytics-vacancy-analysis { grid-template-columns:1fr; gap:20px; text-align:center; }
+  .analytics-vacancy-analysis > div:last-child { border-left:0; border-top:1px solid #e2e8f0; padding:18px 0 0; }
   .analytics-page { padding-left:12px; padding-right:12px; }
   .analytics-occupancy-visual { flex-direction:column; align-items:flex-start; }
   .analytics-mobile-card-fields { grid-template-columns:1fr; }

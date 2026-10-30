@@ -4,7 +4,7 @@ const PAGE_W = 595;
 const PAGE_H = 842;
 const MARGIN = 42;
 const usableW = PAGE_W - MARGIN * 2;
-const ascii = value => String(value ?? "").replaceAll("₱", "PHP ").normalize("NFKD").replace(/[\u0300-\u036f]/g, "").replace(/[^\x20-\x7E]/g, "?");
+const ascii = value => String(value ?? "").replaceAll("₱", "PHP ").replaceAll("·", "|").replace(/[\u2010-\u2015]/g, "-").normalize("NFKD").replace(/[\u0300-\u036f]/g, "").replace(/[^\x20-\x7E]/g, "?");
 const pdfString = value => ascii(value).replaceAll("\\", "\\\\").replaceAll("(", "\\(").replaceAll(")", "\\)");
 const fmt = value => money(Number(value || 0));
 const monthTitle = month => new Date(`${month}-01T12:00:00`).toLocaleDateString("en-PH", { month: "long", year: "numeric" });
@@ -14,8 +14,8 @@ function createPdfPages(data, month, period) {
   let commands = [];
   let y = 42;
   const push = value => commands.push(value);
-  const text = (value, x, top, size = 9, color = "0.09 0.17 0.29") => {
-    push(`${color} rg BT /F1 ${size} Tf 1 0 0 1 ${x.toFixed(2)} ${(PAGE_H - top).toFixed(2)} Tm (${pdfString(value)}) Tj ET`);
+  const text = (value, x, top, size = 9, color = "0.09 0.17 0.29", bold = false) => {
+    push(`${color} rg BT /${bold ? 'F2' : 'F1'} ${size} Tf 1 0 0 1 ${x.toFixed(2)} ${(PAGE_H - top).toFixed(2)} Tm (${pdfString(value)}) Tj ET`);
   };
   const rect = (x, top, w, h, fill, stroke) => {
     if (fill) push(`${fill} rg ${x} ${(PAGE_H - top - h).toFixed(2)} ${w} ${h} re f`);
@@ -54,36 +54,43 @@ function createPdfPages(data, month, period) {
     return lines.length ? lines : [""];
   };
   const sectionTitle = (title, subtitle) => {
-    if (y > PAGE_H - 90) newPage();
-    text(title, MARGIN, y + 12, 13, "0.09 0.17 0.29");
+    if (y > PAGE_H - 160) newPage();
+    rect(MARGIN, y + 1, 3, 14, "0.14 0.36 0.89");
+    text(title, MARGIN + 10, y + 12, 13, "0.09 0.17 0.29", true);
     y += 19;
-    if (subtitle) { text(subtitle, MARGIN, y + 7, 8, "0.38 0.44 0.53"); y += 16; }
+    if (subtitle) { for (const part of wrap(subtitle, 108)) { text(part, MARGIN, y + 7, 8, "0.38 0.44 0.53"); y += 12; } y += 4; }
     y += 4;
   };
   const drawTable = (headers, rows, widths, emptyText = "No records.") => {
     const contentRows = rows.length ? rows : [[emptyText, ...Array(Math.max(0, headers.length - 1)).fill("")]];
     const drawHeader = () => {
-      rect(MARGIN, y, usableW, 22, "0.92 0.95 0.99");
+      rect(MARGIN, y, usableW, 26, "0.09 0.17 0.29");
       let x = MARGIN;
-      headers.forEach((header, index) => { text(header.toUpperCase(), x + 5, y + 14, 6.4, "0.16 0.28 0.45"); x += widths[index]; });
-      y += 22;
+      headers.forEach((header, index) => { text(header.toUpperCase(), x + 8, y + 17, 7, "1 1 1", true); x += widths[index]; });
+      y += 26;
     };
     drawHeader();
     contentRows.forEach((row, rowIndex) => {
-      const wrapped = row.map((cell, index) => wrap(cell, Math.max(7, Math.floor(widths[index] / 4.1))));
-      const lineCount = Math.min(3, Math.max(...wrapped.map(lines => lines.length)));
-      const height = Math.max(21, lineCount * 9 + 9);
+      const wrapped = row.map((cell, index) => wrap(cell, Math.max(7, Math.floor((widths[index] - 16) / 5))));
+      const lineCount = Math.max(...wrapped.map(lines => lines.length));
+      const height = Math.max(28, lineCount * 11 + 12);
       if (y + height > PAGE_H - 45) { newPage(); drawHeader(); }
       if (rowIndex % 2 === 1) rect(MARGIN, y, usableW, height, "0.985 0.99 1");
       let x = MARGIN;
       wrapped.forEach((cellLines, index) => {
-        cellLines.slice(0, 3).forEach((value, lineIndex) => text(value, x + 5, y + 12 + lineIndex * 9, 7.2, "0.12 0.19 0.29"));
+        cellLines.forEach((value, lineIndex) => {
+          const numeric = /^(PHP\s|[\d,]+(?:\.\d+)?%?$)/.test(value);
+          // Helvetica digits are 556 units wide; currency values contain only digits,
+          // punctuation and the fixed PHP prefix, so numeric columns align exactly.
+          const width = [...value].reduce((sum, char) => sum + (/[0-9]/.test(char) ? .556 : /[., ]/.test(char) ? .278 : char === '%' ? .889 : char === 'H' ? .722 : .667), 0) * 8;
+          text(value, numeric ? x + widths[index] - 8 - width : x + 8, y + 17 + lineIndex * 11, 8, "0.12 0.19 0.29");
+        });
         x += widths[index];
       });
       line(MARGIN, y + height, PAGE_W - MARGIN, y + height);
       y += height;
     });
-    y += 10;
+    y += 18;
   };
 
   const snapshot = data.snapshot || {};
@@ -102,24 +109,32 @@ function createPdfPages(data, month, period) {
   ];
 
   newPage();
-  text("Collections & operations report", MARGIN, y + 20, 22, "0.07 0.14 0.25");
-  text(`${period} view  ·  ${monthTitle(month)}`, MARGIN, y + 38, 10, "0.36 0.43 0.53");
-  text(`REPORT THROUGH  ${snapshot.cutoff || "-"}`, PAGE_W - MARGIN - 125, y + 18, 8, "0.16 0.28 0.45");
-  text(`Generated ${new Date(data.loadedAt || Date.now()).toLocaleDateString("en-PH")}`, PAGE_W - MARGIN - 125, y + 31, 7, "0.40 0.46 0.54");
-  y += 58;
+  text("Financial and occupancy report", MARGIN, y + 20, 22, "0.07 0.14 0.25", true);
+  text(`${period} view  |  ${monthTitle(month)}`, MARGIN, y + 40, 10, "0.36 0.43 0.53");
+  text(`Report through ${snapshot.cutoff || "-"}`, MARGIN, y + 60, 8, "0.16 0.28 0.45");
+  text(`Generated ${new Date(data.loadedAt || Date.now()).toLocaleDateString("en-PH", {timeZone:'Asia/Manila'})}`, PAGE_W - MARGIN - 125, y + 60, 8, "0.40 0.46 0.54");
+  y += 78;
   const gap = 9;
   const cardW = (usableW - gap * 3) / 4;
   kpis.forEach((item, index) => {
     const x = MARGIN + index * (cardW + gap);
     rect(x, y, cardW, 61, "0.97 0.98 1", "0.85 0.89 0.95");
     text(item[0], x + 8, y + 15, 6, "0.38 0.45 0.55");
-    text(item[1], x + 8, y + 34, 11, "0.07 0.14 0.25");
+    text(item[1], x + 8, y + 34, Math.min(11, (cardW - 16) / (ascii(item[1]).length * .62)), "0.07 0.14 0.25", true);
     text(item[2], x + 8, y + 49, 6.5, "0.40 0.46 0.54");
   });
   y += 76;
 
   sectionTitle("Revenue trend", `Billed by billing period and collected by payment date · Through ${snapshot.cutoff || "-"}`);
   drawTable(["Period", "Billed (PHP)", "Collected (PHP)"], (data.series || []).map(point => [point.label, fmt(point.billed), fmt(point.value)]), [170, 170, 171], "No collection data.");
+
+  sectionTitle("Collection forecast", "Three-month simple moving average. Estimates are not guaranteed income.");
+  const forecastMonth = new Date(year, monthNumber, 1).toLocaleDateString('en-PH', {month:'long',year:'numeric'});
+  const forecastText = data.forecast == null
+    ? data.forecastStatus === 'month_incomplete' ? `Waiting for ${monthTitle(month)} to close` : 'Insufficient completed-month payment history'
+    : fmt(data.forecast);
+  drawTable(['Forecast period', 'Estimated collections'], [[forecastMonth, forecastText]], [230, 281]);
+  drawTable(['Source month', 'Recorded collections (PHP)'], (data.forecastMonths || []).map(point => [point.label, fmt(point.value)]), [230, 281], 'No forecast history.');
 
   const statusRows = ["Paid", "Partially paid", "Pending", "Late"].map(status => {
     const bills = periodRows.filter(bill => bill.status === status);
@@ -153,10 +168,11 @@ export function generateAnalyticsPdf(data, month, period) {
   pages.forEach((content, index) => {
     const pageObject = 3 + index * 2;
     const contentObject = pageObject + 1;
-    objects.push(`<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ${PAGE_W} ${PAGE_H}] /Resources << /Font << /F1 ${3 + pages.length * 2} 0 R >> >> /Contents ${contentObject} 0 R >>`);
+    objects.push(`<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ${PAGE_W} ${PAGE_H}] /Resources << /Font << /F1 ${3 + pages.length * 2} 0 R /F2 ${4 + pages.length * 2} 0 R >> >> /Contents ${contentObject} 0 R >>`);
     objects.push(`<< /Length ${content.length} >>\nstream\n${content}\nendstream`);
   });
   objects.push("<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>");
+  objects.push("<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold /Encoding /WinAnsiEncoding >>");
   let document = "%PDF-1.4\n";
   const offsets = [0];
   objects.forEach((object, index) => {

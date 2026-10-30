@@ -132,6 +132,7 @@ export const analytics=async(req)=>{
   const {snapshot,series,forecastMonths}=data;
   if(req.query.export==='csv')return {csv:analyticsCsv(snapshot,series,month)};
   const currentMonth=today().slice(0,7);
-  const forecast=month>=currentMonth||forecastMonths.some(p=>!p.paymentCount)?null:Math.round(forecastMonths.reduce((sum,p)=>sum+Math.round(p.value*100),0)/3)/100;
-  return {...data,comparison:comparisonTotals(series),forecast,loadedAt:new Date().toISOString()};
+  const forecastStatus=month>=currentMonth?'month_incomplete':forecastMonths.some(p=>!p.paymentCount)?'missing_history':'ready';
+  const forecast=forecastStatus!=='ready'?null:Math.round(forecastMonths.reduce((sum,p)=>sum+Math.round(p.value*100),0)/3)/100;
+  return {...data,comparison:comparisonTotals(series),forecast,forecastStatus,loadedAt:new Date().toISOString()};
 };
