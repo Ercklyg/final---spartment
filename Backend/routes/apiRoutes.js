@@ -38,6 +38,7 @@ router.get('/requests/workspace',requireAdmin,app.requestWorkspace);
 router.post('/requests/submit',app.requestCreate);
 router.patch('/inquiries/:id',requireAdmin,app.inquiryUpdate);
 router.get('/notifications',app.notifications);
+router.get('/notifications/admin',requireAdmin,app.adminNotifications);
 router.post('/notifications/read',app.readNotifications);
 router.get('/analytics',requireAdmin,app.analytics);
 router.post('/analytics/recommendations',requireAdmin,app.aiRecommendations);

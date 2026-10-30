@@ -26,6 +26,7 @@ export default function NotificationTable({ onNavigate }) {
       <div className="flex items-center gap-2"><BellRing size={18} className="text-blue-600" /><h2 id="notifications-heading" className="text-sm font-bold text-slate-900">Notifications</h2>{data && <span className="rounded-full bg-blue-50 px-2 py-0.5 text-[10px] font-semibold text-blue-600">{unreadCount} unread</span>}</div>
       <button type="button" disabled={saving || loading || !unreadCount} onClick={() => mark(null)} className="text-xs font-medium text-blue-600 hover:underline disabled:text-slate-400">Mark all as read</button>
     </div>
+    <p className="px-5 pt-2 text-[11px] text-slate-500">Unread first · newest first within each group</p>
     {loading ? <PageSkeleton variant="list" label="Loading notifications..."/>
       : error ? <p role="alert" className="px-5 py-3 text-xs text-rose-700">{error} <button onClick={reload} className="underline">Retry</button></p>
         : !data.length ? <p className="px-5 py-3 text-xs text-slate-500">No notifications yet.</p>
@@ -35,7 +36,7 @@ export default function NotificationTable({ onNavigate }) {
             const color = item.kind === "payment" ? "bg-emerald-50 text-emerald-600" : "bg-blue-50 text-blue-600";
             return <article key={item.id} className={"flex items-center gap-3 px-5 py-3 " + (item.is_read ? "" : "bg-blue-50/30")}>
               <span className={"flex h-9 w-9 shrink-0 items-center justify-center rounded-lg " + color}><Icon size={17} /></span>
-              <div className="min-w-0 flex-1"><h3 className="text-sm font-semibold text-slate-800">{item.title}</h3><p className="whitespace-pre-wrap text-xs text-slate-500">{item.message}</p>
+              <div className="min-w-0 flex-1"><h3 className="text-sm font-semibold text-slate-800">{item.title}</h3>{item.alert && <span className="my-1 inline-block rounded-full bg-rose-50 px-2 py-0.5 text-[11px] font-semibold text-rose-700">{item.alert}</span>}<p className="whitespace-pre-wrap text-xs text-slate-500">{item.message}</p>
                 <div className="mt-1 flex gap-3">{!item.is_read && <button disabled={saving} onClick={() => mark([item.id])} className="text-[11px] text-blue-600 hover:underline disabled:text-slate-400">Mark as read</button>}{isBilling && <button onClick={() => onNavigate?.("billing")} className="inline-flex items-center text-[11px] text-blue-600 hover:underline">View billing <ChevronRight size={14} /></button>}</div>
               </div>
               <span className="hidden whitespace-nowrap text-[11px] text-slate-400 sm:block">{new Date(item.created_at).toLocaleDateString("en-PH")}</span>

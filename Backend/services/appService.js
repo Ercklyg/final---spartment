@@ -5,6 +5,7 @@ import { report } from '../models/reports.js';
 import { loadBills, createBill, recordPayment, billingOverview, loadBillingLeases, today } from '../models/billing.js';
 import { loadRequests, submitInquiry, submitTenantRequest } from '../models/requests.js';
 import { loadNotifications, markNotificationsRead, markAllNotificationsRead } from '../models/notifications.js';
+import { loadAdminNotifications } from '../models/adminNotifications.js';
 import { loadPaymentReceipt } from '../models/paymentReceipt.js';
 import { analyticsCsv, comparisonTotals } from '../models/adminAnalytics.js';
 import { changePassword } from '../models/changePassword.js';
@@ -95,6 +96,7 @@ export const inquiry=async(req)=>{
   await submitInquiry(createUserClient(),clean,validate.uuid(body.id,'inquiry ID'));return ({ok:true});
 };
 export const notifications=async(req)=>loadNotifications(req.db,req.user.id,validate.page(req.query),req.query.before);
+export const adminNotifications=async(req)=>loadAdminNotifications(req.db);
 export const readNotifications=async(req)=>{
   if(req.body?.all===true)await markAllNotificationsRead(req.db,req.user.id,req.body.before);
   else await markNotificationsRead(req.db,validate.ids(req.body?.ids),req.user.id);

@@ -50,7 +50,7 @@ export default function LiveAdminDashboard({ onNavigate }) {
       : error ? <p role="alert" className="py-5 text-rose-700">{error} <button onClick={reload} className="underline">Retry</button></p>
         : <div className="space-y-4 sm:space-y-5">
           <AdminAttention snapshot={data.snapshot} series={data.series} onNavigate={onNavigate} />
-          <AdminNotifications snapshot={data.snapshot} />
+          <AdminNotifications key={data.loadedAt} />
           <AdminMetrics snapshot={data.snapshot} onNavigate={onNavigate} />
           <SmartRecommendations onNavigate={onNavigate} aiItems={ai.items} aiLoading={ai.loading} aiError={ai.error} aiUpdatedAt={ai.updatedAt} aiCached={ai.cached} aiStale={ai.stale} aiSource={ai.source} onRefreshAi={() => fetchAi(true)} />
           <div className="flex flex-wrap items-center justify-between gap-3 text-[11px] text-slate-500 sm:text-xs">

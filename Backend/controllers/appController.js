@@ -22,6 +22,7 @@ export const requests=async(req,res)=>res.status(200).json(await service.request
 export const requestCreate=async(req,res)=>res.status(201).json(await service.requestCreate(req));
 export const inquiry=async(req,res)=>res.status(201).json(await service.inquiry(req));
 export const notifications=async(req,res)=>res.status(200).json(await service.notifications(req));
+export const adminNotifications=async(req,res)=>res.json(await service.adminNotifications(req));
 export const readNotifications=async(req,res)=>res.status(200).json(await service.readNotifications(req));
 export const rooms=async(req,res)=>res.status(200).json(await service.rooms(req));
 export const publicRooms=async(req,res)=>res.status(200).json(await service.publicRooms(req));
