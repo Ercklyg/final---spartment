@@ -20,6 +20,7 @@ html {
   min-width: 320px;
   min-height: 100%;
   scroll-behavior: smooth;
+  scrollbar-gutter: stable;
 }
 
 body {
@@ -141,6 +142,22 @@ a {
 .chatbox-enter {
   animation: chatbox-in 0.22s cubic-bezier(0.21, 1.02, 0.73, 1) both;
   transform-origin: bottom right;
+}
+
+@keyframes admin-menu-in {
+  from {
+    opacity: 0;
+    transform: translateY(-6px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.admin-menu-enter {
+  animation: admin-menu-in 0.16s ease-out both;
+  transform-origin: top right;
 }
 /* Analytics revenue bars: give each flex column a real drawing area. */
 .h-48 > div > span:first-child {

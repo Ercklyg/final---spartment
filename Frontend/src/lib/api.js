@@ -1,5 +1,6 @@
 import { actionConfirmation, showFeedback } from './actionFeedback.js';
 import { browserRequest } from './http.js';
+import { clearIdleMarker, resetIdleMarker } from './useIdleLogout.js';
 import { clearSessionUiState } from './useSessionState.js';
 const listeners=new Set(),pendingAuth=new Set(),responseCache=new Map(),inflight=new Map();
 let session,refreshing,restoring;
@@ -136,15 +137,16 @@ export const auth={
   subscribe(callback){listeners.add(callback);queueMicrotask(()=>callback(session));if(session===undefined)void restoreSession();return ()=>listeners.delete(callback);},
   async signIn(email,password){
     const current=++revision;cancelAuth();clearData();clearSessionUiState();
-    try{const value=await authRequest('/auth/login',{email,password});if(current!==revision)return;publish(value);broadcast();showFeedback('You are now signed in.');}
+    try{const value=await authRequest('/auth/login',{email,password});if(current!==revision)return;publish(value);resetIdleMarker(value?.user?.id);broadcast();showFeedback('You are now signed in.');}
     catch(error){if(error.name!=='AbortError')showFeedback(error.message,'error');throw error;}
   },
-  async signOut(){
+  async signOut(message){
     revision++;cancelAuth();
     // Only report local sign-out once the server has cleared its HttpOnly cookies.
     const result=await browserRequest('/auth/logout',{method:'POST',body:'{}'});
+    clearIdleMarker();
     clearLocalSession();
-    showFeedback(result.revoked?'You have been signed out.':'Signed out on this device. Server session revocation could not be confirmed.',result.revoked?'success':'info');
+    showFeedback(message||(result.revoked?'You have been signed out.':'Signed out on this device. Server session revocation could not be confirmed.'),result.revoked?'success':'info');
   },
 };
 window.addEventListener('storage',event=>{

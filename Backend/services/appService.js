@@ -17,6 +17,11 @@ import * as validate from './validation.js';
 import { readSessionCookie } from './sessionCookies.js';
 import { createHash } from 'node:crypto';
 const checked=result=>{if(result.error)throw new HttpError(400,result.error.message);return result.data;};
+const DEFAULT_IDLE_TIMEOUT_MINUTES=15;
+export const config=()=>{
+  const configured=Number.parseFloat(process.env.IDLE_TIMEOUT_MINUTES);
+  return {idleTimeoutMinutes:Number.isFinite(configured)&&configured>0?configured:DEFAULT_IDLE_TIMEOUT_MINUTES};
+};
 export const login=async(req)=>{
   if(typeof req.body?.email!=='string'||!req.body.email.trim()||typeof req.body?.password!=='string'||!req.body.password.length)throw new HttpError(400,'Email and password are required.');
   const result=await signInWithPassword(createUserClient(),req.body.email.trim().toLowerCase(),req.body.password);

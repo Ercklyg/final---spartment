@@ -25,8 +25,8 @@ VITE_API_URL=/api for its server connection through Vite's development proxy. Th
 no Supabase SDK, credentials, database queries, or RPC calls. Frontend lib files
 are HTTP wrappers, React hooks and display/receipt formatting only.
 
-Backend/.env contains SUPABASE_URL, SUPABASE_ANON_KEY, PORT, HOST and
-FRONTEND_ORIGIN. The URL and public key remain server-side. The hosted protected
+Backend/.env contains SUPABASE_URL, SUPABASE_ANON_KEY, PORT, HOST,
+FRONTEND_ORIGIN and IDLE_TIMEOUT_MINUTES. The URL and public key remain server-side. The hosted protected
 create-tenant function uses its own server-provided service-role credentials.
 Never place a service-role key in browser code.
 

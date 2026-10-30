@@ -20,3 +20,5 @@ services:
         sync: false
       - key: FRONTEND_ORIGIN
         sync: false
+      - key: IDLE_TIMEOUT_MINUTES
+        value: "15"

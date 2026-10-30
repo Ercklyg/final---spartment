@@ -1,6 +1,7 @@
 import * as service from '../services/appService.js';
 import { setSessionCookies, clearSessionCookies, publicSession } from '../services/sessionCookies.js';
 export const billingLeases=async(req,res)=>res.json(await service.billingLeases(req));
+export const config=async(req,res)=>res.json(await service.config());
 export const login=async(req,res)=>{const data=await service.login(req);setSessionCookies(res,data);res.json(publicSession(data));};
 export const refresh=async(req,res)=>{
   try{const data=await service.refresh(req);setSessionCookies(res,data);res.json(publicSession(data));}

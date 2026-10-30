@@ -11,6 +11,7 @@ router.post('/auth/login',loginLimit,app.login);
 router.post('/auth/session',app.session);
 router.post('/auth/refresh',app.refresh);
 router.post('/auth/logout',app.logout);
+router.get('/public/config',app.config);
 router.get('/public/rooms',app.publicRooms);
 router.post('/public/inquiries',app.inquiry);
 router.use(authenticate);
