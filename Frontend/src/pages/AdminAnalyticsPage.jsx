@@ -8,6 +8,7 @@ import AdminHeader from "../components/admin/AdminHeader.jsx";
 import AdminSidebar from "../components/admin/AdminSidebar.jsx";
 import { loadAdminAnalytics } from "../lib/adminAnalytics.js";
 import { generateAnalyticsPdf } from "../lib/analyticsPdf.js";
+import { closeFromBackdrop } from "../lib/dialog.js";
 import { money, today } from "../lib/billing.js";
 import { useRemoteData } from "../lib/useRemoteData.js";
 import "./AdminAnalyticsPage.css";
@@ -51,10 +52,6 @@ function AnalyticsReport({ data, month, period }) {
   const forecastMax = Math.max(1, ...forecastMonths.map(point => Number(point.value || 0)));
   const [year, selectedMonth] = month.split("-").map(Number);
   const forecastLabel = new Date(year, selectedMonth, 1).toLocaleDateString("en-PH", { month: "long", year: "numeric" });
-  const selectedMonthLabel = new Date(year, selectedMonth - 1, 1).toLocaleDateString("en-PH", { month: "long", year: "numeric" });
-  const forecastStatus = data.forecastStatus || (month >= today().slice(0, 7) ? "month_incomplete" : forecast === null ? "missing_history" : "ready");
-  const waitingForClose = forecastStatus === "month_incomplete";
-  const forecastAvailableDate = new Date(year, selectedMonth, 1).toLocaleDateString("en-PH", { month: "long", day: "numeric", year: "numeric" });
   const overdueAging = collectionHealth.aging.filter(bucket => /^(31-60|61\+)/.test(bucket.label)).reduce((sum, bucket) => sum + Number(bucket.balance || 0), 0);
   const [riskPage, setRiskPage] = useState(1);
   const [riskBuilding, setRiskBuilding] = useState("All");
@@ -142,7 +139,7 @@ function AnalyticsReport({ data, month, period }) {
         <SectionHeading id="forecast-heading" icon={TrendingUp} title="Collections forecast" subtitle={`Three-month moving average for ${forecastLabel}`} />
         <div className="analytics-forecast-value">
           <p className="analytics-eyebrow">ESTIMATED COLLECTIONS</p>
-          <p className={"analytics-forecast-number" + (forecast === null ? " analytics-forecast-number--muted" : "")} aria-live="polite">{forecast === null ? waitingForClose ? `Waiting for ${selectedMonthLabel} to close` : "Not enough history" : money(forecast)}</p>
+          <p className={"analytics-forecast-number" + (forecast === null ? " analytics-forecast-number--muted" : "")} aria-live="polite">{forecast === null ? "Not enough history" : money(forecast)}</p>
           <p className="analytics-muted">{forecastLabel}</p>
         </div>
         <div className="analytics-forecast-months" aria-label="Monthly collections used in the forecast">
@@ -153,9 +150,7 @@ function AnalyticsReport({ data, month, period }) {
           </div>)}
         </div>
         <p className="analytics-footnote">{forecast === null
-          ? waitingForClose
-            ? `This forecast requires three completed months. Refresh on or after ${forecastAvailableDate}, once ${selectedMonthLabel} is complete. To view a forecast now, select an earlier completed month with payments in all three months shown.`
-            : "At least one recorded payment is needed in each of the three completed months shown. Select another completed month or record any missing payments to calculate an estimate."
+          ? "At least one recorded payment is needed in each of the three completed months shown. Select another report month or record any missing payments to calculate an estimate."
           : "Average recorded collections for the three completed months shown above."} Uses monthly history regardless of the chart grouping. This is an estimate, not guaranteed income.</p>
       </section>
       <section className="analytics-panel analytics-collection-health analytics-grid-narrow" aria-labelledby="collection-health-heading">
@@ -245,7 +240,7 @@ export default function AdminAnalyticsPage({ onNavigate, onLogout }) {
         {loading&&!data ? <PageSkeleton variant="analytics" label="Loading analytics..."/> : error&&!data ? <p role="alert" className="text-rose-700">{error} <button onClick={reload} className="underline">Retry</button></p> : <><div aria-live="polite">{loading&&<p role="status" className="mb-3 text-sm text-blue-700">Updating analytics while keeping the current report visible…</p>}{error&&<p role="alert" className="mb-3 text-sm text-rose-700">{error} <button onClick={reload} className="underline">Retry</button></p>}{exporting&&<p role="status" className="mb-3 text-sm text-blue-700">Preparing your PDF download…</p>}</div><AnalyticsReport data={data} month={month} period={period} onNavigate={onNavigate} /></>}
       </div>
     </div>
-    {confirmExport && <div className="fixed inset-0 z-[90] flex items-center justify-center bg-slate-950/45 p-4">
+    {confirmExport && <div onMouseDown={event=>closeFromBackdrop(event,()=>setConfirmExport(false),exporting)} className="fixed inset-0 z-[90] flex items-center justify-center bg-slate-950/45 p-4">
       <section role="alertdialog" aria-modal="true" aria-labelledby="confirm-pdf-title" aria-describedby="confirm-pdf-description" className="w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl">
         <h2 id="confirm-pdf-title" className="text-lg font-bold text-slate-900">Download analytics PDF?</h2>
         <p id="confirm-pdf-description" className="mt-2 text-sm leading-6 text-slate-600">A formatted A4 report for the {period.toLowerCase()} period ending {month} will be generated and downloaded to your device.</p>

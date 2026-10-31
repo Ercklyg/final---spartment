@@ -40,6 +40,8 @@ function buildPayload(snapshot, month) {
 function buildPrompt(payload) {
   return [
     'You are an apartment operations assistant. Recommend up to 4 useful actions for the admin.',
+    'Write every item as a constructive recommendation, not as an alert or warning. Lead with the action the admin can take.',
+    'Use calm, supportive language. Mention the supporting number after the recommended action.',
     'Rules: use ONLY tenant names from the input; never invent names, amounts, or rooms.',
     'Each item needs a concrete number and one action. Titles max 60 chars, texts max 140 chars.',
     'Cover only conditions present in the data: overdue/late = "warning", vacant rooms = "opportunity",',
@@ -79,12 +81,12 @@ export function buildLocalInsights(snapshot, month) {
       .filter(t => t.name && t.name !== 'Unknown tenant')
       .sort((a, b) => (b.lateBillCount || 0) - (a.lateBillCount || 0))[0];
     items.push(repeat ? {
-      title: `Support ${repeat.name} with a payment check-in`,
-      text: `${repeat.lateBillCount} late bills. Discuss optional installments or a due-date change to help them catch up and stay.`,
+      title: `Offer ${repeat.name} a payment check-in`,
+      text: `Consider discussing installments or a due-date change; ${repeat.lateBillCount} bills currently need follow-up.`,
       category: 'warning', page: 'Billing',
     } : {
-      title: `Follow up on ${late.length} late bill${late.length === 1 ? '' : 's'}`,
-      text: `${peso(snapshot.overdue)} past due. Discuss optional installments or a due-date change case by case.`,
+      title: `Schedule payment follow-ups`,
+      text: `Consider flexible options case by case for ${late.length} bill${late.length === 1 ? '' : 's'} totaling ${peso(snapshot.overdue)}.`,
       category: 'warning', page: 'Billing',
     });
   }

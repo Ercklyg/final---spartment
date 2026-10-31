@@ -54,13 +54,12 @@ function RoomGrid({ onInquire }) {
           <h2 className="text-2xl font-extrabold tracking-tight text-slate-950 sm:text-3xl">{selectedBuilding === "all" ? "All Buildings" : selectedBuilding}{selectedFloor === "all" ? "" : ` · Floor ${selectedFloor}`}</h2>
           <p className="mt-1 text-sm text-slate-500">{isLoading ? "Loading available units..." : `${filteredRooms.length} unit${filteredRooms.length !== 1 ? "s" : ""} currently available`}</p>
         </div>
-        <div className="flex flex-wrap items-center gap-3">
-          <span className="rounded-full bg-blue-50 px-3 py-2 text-xs font-bold text-blue-600">{filteredRooms.length} Units</span>
-          <select value={selectedFloor} onChange={(event) => setSelectedFloor(event.target.value)} className="h-10 rounded-xl border border-slate-200 bg-white px-4 text-sm font-medium text-slate-700 outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10">
+        <div className="grid grid-cols-2 gap-3 sm:flex sm:items-center">
+          <select aria-label="Filter by floor" value={selectedFloor} onChange={(event) => setSelectedFloor(event.target.value)} className="h-11 min-w-0 rounded-xl border border-slate-200 bg-white px-4 text-sm font-medium text-slate-700 outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10">
             <option value="all">All Floors</option>
             {floors.map((floor) => <option key={floor} value={floor}>Floor {floor}</option>)}
           </select>
-          <select value={selectedBuilding} onChange={(event) => setSelectedBuilding(event.target.value)} className="h-10 rounded-xl border border-slate-200 bg-white px-4 text-sm font-medium text-slate-700 outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10" aria-label="Filter by building">
+          <select value={selectedBuilding} onChange={(event) => setSelectedBuilding(event.target.value)} className="h-11 min-w-0 rounded-xl border border-slate-200 bg-white px-4 text-sm font-medium text-slate-700 outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10" aria-label="Filter by building">
             <option value="all">All Buildings</option>
             {buildings.map((building) => <option key={building} value={building}>{building}</option>)}
           </select>

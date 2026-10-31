@@ -5,3 +5,4 @@ export const loadBills=client=>client.get('/billing');
 export const loadBillingOverview=client=>client.get('/billing?view=overview');
 export const createBill=(client,form)=>client.post('/billing/bills',form);
 export const recordPayment=(client,bill,form,id)=>client.post('/billing/payments',{billId:bill.id,form,id});
+export const sendPaymentReminder=(client,bill)=>client.post('/billing/reminders',{billId:bill.id});

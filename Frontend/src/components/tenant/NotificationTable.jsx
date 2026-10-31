@@ -1,49 +1,94 @@
 import PageSkeleton from "../PageSkeleton.jsx";
-import { useRef, useState } from "react";
-import { BellRing, ChevronRight, Info, ReceiptText } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { ArrowRight, ArrowUpRight, BellRing, CheckCheck, RefreshCw, Wallet, Wrench, X } from "lucide-react";
 import { markAllNotificationsRead, markNotificationsRead } from "../../lib/notifications.js";
 import { useNotificationFeed } from "../../lib/useNotificationFeed.js";
+import { closeFromBackdrop } from "../../lib/dialog.js";
 import { api } from "../../lib/api.js";
 
+const billingNotice = item => ["bill", "payment", "payment_reminder"].includes(item.kind);
+const category = item => billingNotice(item) ? "Payments" : item.kind === "request" ? "Requests" : "Account";
+const timestamp = item => new Date(item.created_at).toLocaleString("en-PH", {dateStyle:"medium",timeStyle:"short"});
+
+function NoticeDialog({ title, onClose, children }) {
+  const ref = useRef(null);
+  useEffect(() => {
+    const dialog=ref.current, previous=document.activeElement;
+    dialog.showModal();
+    return () => { dialog.close(); previous?.focus(); };
+  }, []);
+  return <dialog ref={ref} aria-label={title} onCancel={event=>{event.preventDefault();onClose();}} onMouseDown={event=>closeFromBackdrop(event,onClose)}
+    className="m-auto max-h-[85dvh] w-[calc(100%-2rem)] max-w-2xl overflow-y-auto rounded-2xl border border-slate-200 bg-white p-5 text-slate-900 shadow-2xl backdrop:bg-slate-950/40">
+    <div className="mb-4 flex items-start justify-between gap-4"><h2 className="text-xl font-bold">{title}</h2><button autoFocus type="button" onClick={onClose} aria-label="Close notifications" className="rounded-lg p-2 text-slate-500 hover:bg-slate-100"><X size={20}/></button></div>
+    {children}
+  </dialog>;
+}
+
+function NoticeRows({ items, onView }) {
+  return items.length ? <div className="space-y-2">{items.map(item=>{
+    const Icon=billingNotice(item)?Wallet:category(item)==="Requests"?Wrench:BellRing;
+    return <button key={item.id} type="button" onClick={()=>onView(item)} aria-label={`View notification: ${item.title}`}
+      className={`group flex w-full items-start gap-3 rounded-xl border border-l-4 p-3 text-left transition-colors sm:items-center sm:gap-4 ${item.is_read?"border-slate-200 bg-white hover:bg-slate-50":"border-blue-200 bg-blue-50/80 hover:bg-blue-100/70"} ${item.alert?"border-l-amber-400":"border-l-blue-600"}`}>
+      <span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${item.alert?"bg-amber-50 text-amber-700":"bg-blue-50 text-blue-600"}`}><Icon size={21}/></span>
+      <span className="min-w-0 flex-1">
+        <span className="flex flex-wrap items-center gap-2"><span className={`text-sm leading-5 text-slate-900 ${item.is_read?"font-semibold":"font-bold"}`}>{item.title}</span><span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-slate-500">{category(item)}</span></span>
+        <span className="mt-1 block line-clamp-2 break-words text-xs leading-5 text-slate-600">{item.message}</span>
+        <span className="mt-1 block text-[11px] text-slate-500">{timestamp(item)}{item.alert && <span className="ml-2 font-semibold text-amber-700">{item.alert}</span>}</span>
+        <span className="mt-2 inline-flex items-center gap-1 rounded-lg border border-blue-100 bg-blue-50 px-2.5 py-1.5 text-xs font-semibold text-blue-700 sm:hidden">View <ArrowRight size={14}/></span>
+      </span>
+      {!item.is_read && <span className="mt-3 h-2.5 w-2.5 shrink-0 rounded-full bg-blue-600 ring-4 ring-blue-100 sm:mt-0"><span className="sr-only">Unread</span></span>}
+      <span className="hidden shrink-0 items-center gap-1 rounded-lg border border-blue-100 bg-blue-50 px-2.5 py-1.5 text-xs font-semibold text-blue-700 group-hover:bg-blue-100 sm:inline-flex">View <ArrowRight size={14}/></span>
+    </button>;
+  })}</div> : <div className="rounded-xl border border-dashed border-slate-200 px-4 py-8 text-center"><CheckCheck size={24} className="mx-auto mb-2 text-emerald-600"/><p className="text-sm font-semibold text-slate-700">No notifications yet</p><p className="mt-1 text-xs text-slate-500">Account updates will appear here.</p></div>;
+}
+
 export default function NotificationTable({ onNavigate }) {
-  const { data, error, loading, reload:reloadFeed, more, total, unreadCount, asOf, loadingMore } = useNotificationFeed();
+  const { data, error, loading, reload, more, total, unreadCount, asOf, loadingMore } = useNotificationFeed();
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState("");
-  const [limit, setLimit] = useState(3);
-  const reload=()=>{setLimit(3);reloadFeed();};
-  const busy = useRef(false);
-  const mark = async ids => {
-    if (busy.current || (ids!==null&&!ids.length)) return;
-    busy.current = true;
-    setSaving(true);
-    setSaveError("");
-    try { if(ids===null)await markAllNotificationsRead(api,asOf);else await markNotificationsRead(api, ids); reload(); }
-    catch (e) { setSaveError(e.message); }
-    finally { busy.current = false; setSaving(false); }
+  const [allOpen,setAllOpen]=useState(false);
+  const [selected,setSelected]=useState(null);
+  const busy=useRef(false);
+  const notices=data||[];
+  const mark=async ids=>{
+    if(busy.current)return;
+    busy.current=true;setSaving(true);setSaveError("");
+    try{
+      if(ids===null)await markAllNotificationsRead(api,asOf);
+      else await markNotificationsRead(api,ids);
+      setSelected(item=>item && (ids===null||ids.includes(item.id))?{...item,is_read:true}:item);
+      reload();
+    }catch(e){setSaveError(e.message);}
+    finally{busy.current=false;setSaving(false);}
   };
-  return <section aria-labelledby="notifications-heading" className="mt-5 overflow-hidden rounded-xl border border-slate-200/80 bg-white shadow-[0_8px_24px_rgba(15,23,42,0.035)]">
-    <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 px-5 py-5">
-      <div className="flex items-center gap-3"><span className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-50 text-blue-600"><BellRing size={19} /></span><div><h2 id="notifications-heading" className="text-sm font-bold text-slate-900">Notifications</h2><p className="mt-0.5 text-[11px] text-slate-500">Your latest account updates</p></div>{data && <span className="rounded-full bg-blue-50 px-2 py-0.5 text-[10px] font-semibold text-blue-600">{unreadCount} unread</span>}</div>
-      <button type="button" disabled={saving || loading || !unreadCount} onClick={() => mark(null)} className="rounded-lg border border-slate-200 px-3 py-2 text-xs font-medium text-slate-600 transition-colors hover:bg-slate-50 disabled:opacity-40">Mark all as read</button>
-    </div>
-    <p className="px-5 pt-3 text-[11px] text-slate-400">Unread first · newest first within each group</p>
-    {loading ? <PageSkeleton variant="list" label="Loading notifications..."/>
-      : error ? <p role="alert" className="px-5 py-3 text-xs text-rose-700">{error} <button onClick={reload} className="underline">Retry</button></p>
-        : !data.length ? <p className="px-5 py-3 text-xs text-slate-500">No notifications yet.</p>
-          : <div className="space-y-2 p-3">{data.slice(0, limit).map(item => {
-            const isBilling = item.kind === "bill" || item.kind === "payment";
-            const Icon = item.kind === "payment" ? ReceiptText : Info;
-            const color = item.is_read ? "bg-slate-100 text-slate-500" : "bg-blue-100 text-blue-600";
-            return <article key={item.id} className={"flex items-start gap-3 rounded-xl border px-4 py-4 transition-colors " + (item.is_read ? "border-slate-100 bg-white" : "border-blue-100 bg-blue-50/60 shadow-[inset_3px_0_0_#3b82f6]")}>
-              <span className={"flex h-9 w-9 shrink-0 items-center justify-center rounded-lg " + color}><Icon size={17} /></span>
-              <div className="min-w-0 flex-1"><div className="flex flex-wrap items-center gap-2"><h3 className={"text-sm text-slate-800 " + (item.is_read ? "font-medium" : "font-semibold")}>{item.title}</h3>{!item.is_read && <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-blue-700"><span aria-hidden="true" className="h-1.5 w-1.5 rounded-full bg-blue-600" />Unread</span>}</div>{item.alert && <span className="my-1 inline-block rounded-full bg-rose-50 px-2 py-0.5 text-[11px] font-semibold text-rose-700">{item.alert}</span>}<p className="whitespace-pre-wrap text-xs text-slate-500">{item.message}</p>
-                <div className="mt-3 flex flex-wrap gap-3">{!item.is_read && <button disabled={saving} onClick={() => mark([item.id])} className="text-[11px] font-medium text-slate-500 hover:text-blue-700 disabled:text-slate-400">Mark as read</button>}{isBilling && <button onClick={() => onNavigate?.("billing")} className="inline-flex items-center text-[11px] font-semibold text-blue-600 hover:underline">View billing <ChevronRight size={14} /></button>}</div>
-              </div>
-              <span className="hidden whitespace-nowrap text-[11px] text-slate-400 sm:block">{new Date(item.created_at).toLocaleDateString("en-PH")}</span>
-            </article>;
-          })}</div>}
-    {loadingMore&&<PageSkeleton variant="list" label="Loading more notifications..."/>}{total > limit && <button disabled={loadingMore} onClick={async () => {if(data.length>=total||limit+5<=data.length||await more())setLimit(n=>n+5);}} className="px-5 py-3 text-xs font-medium text-blue-600 hover:underline">Show more</button>}
-    {saving && <p role="status" className="px-5 py-3 text-xs text-slate-500">Saving read status...</p>}
-    {saveError && <p role="alert" className="px-5 py-3 text-xs text-rose-700">{saveError}</p>}
-  </section>;
+  const content=<>{loading&&!data?<PageSkeleton variant="list" label="Loading notifications..."/>:<NoticeRows items={notices} onView={setSelected}/>}
+    {error&&<p role="alert" className="mt-3 text-sm text-rose-700">{error} <button onClick={reload} className="underline">Retry</button></p>}
+    {notices.length<total&&<button disabled={loadingMore||loading} onClick={more} className="mt-4 rounded-lg border border-blue-200 px-4 py-2 text-sm font-semibold text-blue-700 disabled:opacity-50">{loadingMore?"Loading…":"Load more notifications"}</button>}</>;
+  return <>
+    <section aria-labelledby="notifications-heading" className="mt-5 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
+      <div className="flex flex-wrap items-center gap-3">
+        <BellRing size={25} className="shrink-0 text-blue-600"/>
+        <div className="min-w-0 flex-1"><h2 id="notifications-heading" className="text-lg font-bold text-slate-900">Notifications</h2><p className="text-xs text-slate-500">Your latest account updates</p></div>
+        <button type="button" title="Refresh notifications" aria-label="Refresh notifications" disabled={loading||saving} onClick={reload} className="rounded-lg border border-slate-200 p-2.5 text-slate-500 hover:bg-slate-50 disabled:opacity-50"><RefreshCw size={16} className={loading?"animate-spin":""}/></button>
+        <button type="button" disabled={!total} onClick={()=>setAllOpen(true)} className="inline-flex items-center gap-1.5 rounded-lg bg-blue-600 px-3 py-2.5 text-xs font-semibold text-white hover:bg-blue-700 disabled:opacity-50">View all <ArrowUpRight size={15}/></button>
+      </div>
+      <div className="my-4 flex flex-wrap items-center justify-between gap-2 rounded-xl bg-slate-50 px-3 py-2 ring-1 ring-slate-100"><span className="text-xs font-medium text-slate-600">{unreadCount} unread</span><button type="button" disabled={saving||loading||!unreadCount} onClick={()=>mark(null)} className="inline-flex min-h-9 items-center gap-1.5 text-xs font-semibold text-blue-700 disabled:opacity-40"><CheckCheck size={15}/>Mark all as read</button></div>
+      {loading&&!data?<PageSkeleton variant="list" label="Loading notifications..."/>:<NoticeRows items={notices.slice(0,3)} onView={setSelected}/>}
+      {error&&<p role="alert" className="mt-3 text-sm text-rose-700">{error} <button onClick={reload} className="underline">Retry</button></p>}
+      {!loading&&total>3&&<p className="mt-3 text-xs text-slate-500">Showing 3 of {total} notifications. Select View all to see the rest.</p>}
+      {saveError&&<p role="alert" className="mt-3 text-sm text-rose-700">{saveError}</p>}
+    </section>
+    {allOpen&&<NoticeDialog title="All notifications" onClose={()=>setAllOpen(false)}>{content}</NoticeDialog>}
+    {selected&&<NoticeDialog title={selected.title} onClose={()=>setSelected(null)}>
+      <p className="text-xs font-semibold uppercase tracking-wide text-blue-600">{category(selected)}</p>
+      {selected.alert&&<p className="mt-3 text-sm font-semibold text-amber-700">{selected.alert}</p>}
+      <p className="mt-4 whitespace-pre-wrap break-words text-sm leading-6 text-slate-600">{selected.message}</p>
+      <p className="mt-4 text-xs text-slate-500">{timestamp(selected)}</p>
+      {saveError&&<p role="alert" className="mt-3 text-sm text-rose-700">{saveError}</p>}
+      <div className="mt-5 flex flex-wrap items-center justify-between gap-3 border-t border-slate-100 pt-4">
+        {selected.is_read?<span className="inline-flex items-center gap-1.5 text-xs text-slate-500"><CheckCheck size={16}/>Read</span>:<button disabled={saving} onClick={()=>mark([selected.id])} className="rounded-lg border border-slate-200 px-3 py-2 text-sm font-medium text-slate-600 disabled:opacity-50">{saving?"Saving…":"Mark as read"}</button>}
+        {billingNotice(selected)&&<button onClick={()=>{setSelected(null);setAllOpen(false);onNavigate?.("billing");}} className="inline-flex items-center gap-1.5 rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white">View billing <ArrowRight size={15}/></button>}
+      </div>
+    </NoticeDialog>}
+  </>;
 }

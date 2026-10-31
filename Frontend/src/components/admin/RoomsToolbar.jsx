@@ -25,10 +25,10 @@ function RoomsToolbar({ filter, onFilter, query, onQuery, onAdd, sort, onSort, r
         <button type="button" onClick={() => onSort(sort === "number" ? "status" : "number")} className="inline-flex h-11 shrink-0 items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-3.5 text-xs font-medium text-slate-600 transition hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"><ArrowDownWideNarrow size={16} aria-hidden="true" />Sort: {sort === "number" ? "Room number" : "Status"}</button>
       </div>
       <div className="mt-3 grid grid-cols-2 gap-2 border-t border-slate-100 pt-3 sm:flex sm:flex-wrap sm:items-center sm:gap-1.5">
-        {filters.map(item => <button key={item} type="button" aria-pressed={filter === item} onClick={() => onFilter(item)} className={`${item === "All Rooms" ? "col-span-2 sm:col-span-1 " : ""}inline-flex items-center justify-between gap-2 rounded-lg border px-3 py-2.5 text-xs font-medium transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 sm:justify-start sm:py-2 ${filter === item ? "border-slate-900 bg-slate-900 text-white shadow-sm" : "border-slate-100 text-slate-500 hover:border-slate-200 hover:bg-slate-50 hover:text-slate-800"}`}>
+        {filters.map(item => <button key={item} type="button" aria-pressed={filter === item} onClick={() => onFilter(item)} className={`${item === "All Rooms" ? "col-span-2 sm:col-span-1 " : ""}inline-flex items-center justify-between gap-2 rounded-lg border px-3 py-2.5 text-xs font-medium transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 sm:justify-start sm:py-2 ${filter === item ? "border-blue-200 bg-blue-50 text-blue-700 shadow-sm" : "border-slate-100 text-slate-500 hover:border-slate-200 hover:bg-slate-50 hover:text-slate-800"}`}>
           {item === "All Rooms" ? <CircleCheck size={13} aria-hidden="true" /> : <span className={`h-1.5 w-1.5 rounded-full ${filterDots[item]}`} />}
           {item}
-          <span className={`rounded-md px-1.5 py-0.5 text-[10px] tabular-nums ${filter === item ? "bg-white/15 text-white" : "bg-slate-100 text-slate-500"}`}>{loading || error ? "—" : countFor(item)}</span>
+          <span className={`rounded-md px-1.5 py-0.5 text-[10px] tabular-nums ${filter === item ? "bg-blue-100 text-blue-700" : "bg-slate-100 text-slate-500"}`}>{loading || error ? "—" : countFor(item)}</span>
         </button>)}
       </div>
     </section>

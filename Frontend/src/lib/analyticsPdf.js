@@ -125,13 +125,23 @@ function createPdfPages(data, month, period) {
   });
   y += 76;
 
+  const outstandingRows = rows.filter(bill => Number(bill.balance) > 0)
+    .sort((a, b) => String(a.due_date).localeCompare(String(b.due_date)) || String(a.name).localeCompare(String(b.name)));
+  sectionTitle("Management summary", "Key figures for decision-making. Detailed supporting records appear later in this report.");
+  drawTable(["Measure", "Summary"], [
+    ["Collection performance", `${Number(health.collectionRate || 0).toFixed(1)}% collected; ${Number(health.onTimeRate || 0).toFixed(1)}% of due bills paid in full on time`],
+    ["Outstanding exposure", `${fmt(snapshot.outstanding)} across ${outstandingRows.length} unpaid bills`],
+    ["Overdue exposure", `${fmt(snapshot.overdue)} overdue through ${snapshot.cutoff || "the report date"}`],
+    ["Occupancy", `${Number(snapshot.occupancy || 0).toFixed(1)}% occupied; ${snapshot.available || 0} rooms currently available`],
+  ], [165, 346]);
+
   sectionTitle("Revenue trend", `Billed by billing period and collected by payment date · Through ${snapshot.cutoff || "-"}`);
   drawTable(["Period", "Billed (PHP)", "Collected (PHP)"], (data.series || []).map(point => [point.label, fmt(point.billed), fmt(point.value)]), [170, 170, 171], "No collection data.");
 
   sectionTitle("Collection forecast", "Three-month simple moving average. Estimates are not guaranteed income.");
   const forecastMonth = new Date(year, monthNumber, 1).toLocaleDateString('en-PH', {month:'long',year:'numeric'});
   const forecastText = data.forecast == null
-    ? data.forecastStatus === 'month_incomplete' ? `Waiting for ${monthTitle(month)} to close` : 'Insufficient completed-month payment history'
+    ? 'Insufficient completed-month payment history'
     : fmt(data.forecast);
   drawTable(['Forecast period', 'Estimated collections'], [[forecastMonth, forecastText]], [230, 281]);
   drawTable(['Source month', 'Recorded collections (PHP)'], (data.forecastMonths || []).map(point => [point.label, fmt(point.value)]), [230, 281], 'No forecast history.');
@@ -154,6 +164,25 @@ function createPdfPages(data, month, period) {
 
   sectionTitle("Tenant payment risk", "At least two bills paid late or still unpaid in the six-month window.");
   drawTable(["Tenant", "Room", "Late bills", "Overdue balance"], (health.repeatLatePayers || []).map(tenant => [tenant.name, tenant.room, tenant.lateBillCount, fmt(tenant.overdueBalance)]), [135, 190, 70, 116], "No tenants meet the repeated late-payment rule.");
+
+  sectionTitle("Outstanding bills appendix", "Unpaid bills through the report date. This detail supports the outstanding and overdue summary figures.");
+  drawTable(["Tenant / Room", "Type / Period", "Due date", "Balance", "Status"], outstandingRows.map(bill => [
+    `${bill.name || "Tenant"} / ${bill.room || "Unassigned"}`,
+    `${bill.bill_type || "Bill"} / ${String(bill.billing_period || "").slice(0,7)}`,
+    bill.due_date || "-",
+    fmt(bill.balance),
+    bill.status || "Outstanding",
+  ]), [155, 105, 78, 98, 75], "No outstanding bills.");
+
+  sectionTitle("Report notes", "Definitions and scope used throughout this report.");
+  drawTable(["Item", "Definition"], [
+    ["Billed", "Charges grouped by the bill's billing period."],
+    ["Collected", "Recorded payments grouped by payment date; a payment may settle an older bill."],
+    ["Outstanding", "Bill total less recorded payments as of the report cutoff."],
+    ["Overdue", "Outstanding balance on bills whose due date is before the report cutoff."],
+    ["Forecast", "Simple average of recorded collections in the three completed source months; not guaranteed income."],
+    ["Inventory", "Current room status and not a historical snapshot for the selected period."],
+  ], [130, 381]);
 
   if (commands.length) finishPage();
   return pages;

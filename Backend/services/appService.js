@@ -1,10 +1,11 @@
 import { createUserClient } from '../config/supabase.js';
 import { HttpError } from '../middleware/errors.js';
 import { loadTenantAccount } from '../models/tenantAccount.js';
+import { loadTenantDirectory } from '../models/tenantDirectory.js';
 import { report } from '../models/reports.js';
 import { loadBills, createBill, recordPayment, billingOverview, loadBillingLeases, today } from '../models/billing.js';
 import { loadRequests, submitInquiry, submitTenantRequest } from '../models/requests.js';
-import { loadNotifications, markNotificationsRead, markAllNotificationsRead } from '../models/notifications.js';
+import { loadNotifications, markNotificationsRead, markAllNotificationsRead, sendPaymentReminder, addReminderTimes } from '../models/notifications.js';
 import { loadAdminNotifications } from '../models/adminNotifications.js';
 import { loadPaymentReceipt } from '../models/paymentReceipt.js';
 import { analyticsCsv, comparisonTotals } from '../models/adminAnalytics.js';
@@ -16,6 +17,7 @@ import { roomColumns, createRoom, updateRoom, deleteRoom } from '../models/rooms
 import * as validate from './validation.js';
 import { readSessionCookie } from './sessionCookies.js';
 import { createHash } from 'node:crypto';
+import { updateLoginLimit } from '../middleware/loginLimit.js';
 const checked=result=>{if(result.error)throw new HttpError(400,result.error.message);return result.data;};
 const DEFAULT_IDLE_TIMEOUT_MINUTES=15;
 export const config=()=>{
@@ -24,7 +26,10 @@ export const config=()=>{
 };
 export const login=async(req)=>{
   if(typeof req.body?.email!=='string'||!req.body.email.trim()||typeof req.body?.password!=='string'||!req.body.password.length)throw new HttpError(400,'Email and password are required.');
-  const result=await signInWithPassword(createUserClient(),req.body.email.trim().toLowerCase(),req.body.password);
+  let result;
+  try{result=await signInWithPassword(createUserClient(),req.body.email.trim().toLowerCase(),req.body.password);}
+  catch(error){if(error.code==='invalid_credentials')await updateLoginLimit(req,'login-failure');throw error;}
+  await updateLoginLimit(req,'login-success');
   return (result.session);
 };
 const refreshes=new Map();
@@ -72,7 +77,8 @@ export const password=async(req)=>{
   if(!['current','new','confirm'].every(key=>typeof req.body?.[key]==='string'))throw new HttpError(400,'Password fields are required.');
   const client=createUserClient();
   try{await signInWithPassword(client,req.user.email,req.body.current,'Your current password is incorrect.');}
-  catch(error){if(error.code==='invalid_credentials')error.status=400;throw error;}
+  catch(error){if(error.code==='invalid_credentials'){await updateLoginLimit(req,'login-failure');error.status=400;}throw error;}
+  await updateLoginLimit(req,'login-success');
   try{await changePassword(client.auth,createUserClient().auth,req.body);return ({ok:true});}
   finally{await client.auth.signOut({scope:'local'});}
 };
@@ -85,6 +91,7 @@ export const paymentCreate=async(req)=>{
   const payment={amount:validate.amount(form.amount),date:validate.date(form.date,'payment date'),reference:validate.text(form.reference,'reference',254,true)};
   await recordPayment(req.db,{id:validate.uuid(body.billId,'bill ID')},payment,validate.uuid(body.id,'payment ID'));return ({ok:true});
 };
+export const paymentReminder=async(req)=>sendPaymentReminder(req.db,validate.uuid(req.body?.billId,'bill ID'));
 export const receipt=async(req)=>(await loadPaymentReceipt(req.db,validate.uuid(req.params.id,'payment ID')));
 export const requests=async(req)=>(await loadRequests(req.db));
 export const requestCreate=async(req)=>{
@@ -113,17 +120,30 @@ export const roomCreate=async(req)=>createRoom(req.db,req.body);
 export const roomUpdate=async(req)=>updateRoom(req.db,req.params.id,req.body);
 export const roomDelete=async(req)=>deleteRoom(req.db,req.params.id);
 export const roomStatus=async(req)=>{validate.uuid(req.params.id,'room ID');validate.choice(req.body?.status,['available','occupied','reserved','maintenance'],'room status');return (checked(await req.db.from('rooms').update({status:req.body.status}).eq('id',req.params.id).select(roomColumns).single()));};
-export const tenants=async(req)=>report(req.db,'tenant_directory_page',validate.page(req.query));
-export const billingLeases=async(req)=>loadBillingLeases(req.db);
+export const tenants=async(req)=>{
+  const search=validate.text(req.query.search,'search',160,true).trim().toLowerCase();
+  const page=validate.page(req.query);
+  if(!search)return report(req.db,'tenant_directory_page',page);
+  const rows=await loadTenantDirectory(req.db);
+  const filtered=rows.filter(tenant=>[tenant.full_name,tenant.email,tenant.phone,tenant.rooms?.room_number]
+    .some(value=>String(value||'').toLowerCase().includes(search)));
+  return {data:filtered.slice(page.p_offset,page.p_offset+page.p_limit),total:filtered.length,offset:page.p_offset,limit:page.p_limit};
+};
+export const billingLeases=async(req)=>{
+  const {month,type}=req.query;
+  if(month==null&&type==null)return loadBillingLeases(req.db);
+  if(typeof month!=='string'||!/^\d{4}-(0[1-9]|1[0-2])$/.test(month))throw new HttpError(400,'Invalid billing month.');
+  return loadBillingLeases(req.db,month,validate.choice(type,['rent','utility'],'bill type'));
+};
 export const billingWorkspace=async(req)=>{
   if(req.query.month){
     const {month,type,status='All',search=''}=req.query;
     if(typeof month!=='string'||!/^\d{4}-(0[1-9]|1[0-2])$/.test(month))throw new HttpError(400,'Invalid billing month.');
     const data=await report(req.db,'billing_page',{p_month:month+'-01',p_type:validate.choice(type,['rent','utility'],'bill type'),p_status:validate.choice(status,['All','Paid','Pending','Partially paid','Late'],'status'),p_search:validate.text(search,'search',160,true),...validate.page(req.query)});
-    return {...data,summary:{months:{[month]:{[type]:data.totals}}}};
+    return {...data,bills:await addReminderTimes(req.db,data.bills),summary:{months:{[month]:{[type]:data.totals}}}};
   }
   const [bills,leases]=await Promise.all([loadBills(req.db),loadBillingLeases(req.db)]);
-  return ({bills,summary:billingOverview(bills),leases});
+  return ({bills:await addReminderTimes(req.db,bills),summary:billingOverview(bills),leases});
 };
 export const requestWorkspace=async(req)=>({requests:await loadRequests(req.db),inquiries:await readAll(()=>req.db.from('inquiries').select('*').order('created_at',{ascending:false}).order('id'))});
 export const inquiryUpdate=async(req)=>{validate.uuid(req.params.id,'inquiry ID');validate.choice(req.body?.status,['New','Contacted','Resolved'],'status');return (checked(await req.db.from('inquiries').update({status:req.body.status}).eq('id',req.params.id).select('id').single()));};
@@ -134,10 +154,19 @@ export const analytics=async(req)=>{
   const exportType=req.query.export;
   if(exportType && !['csv','pdf'].includes(exportType))throw new HttpError(400,'Invalid report export format.');
   const data=await report(req.db,'analytics_report',{p_month:month+'-01',p_period:period,p_export:exportType==='csv'||exportType==='pdf'});
-  const {snapshot,series,forecastMonths}=data;
+  const {snapshot,series}=data;
   if(req.query.export==='csv')return {csv:analyticsCsv(snapshot,series,month)};
-  const currentMonth=today().slice(0,7);
-  const forecastStatus=month>=currentMonth?'month_incomplete':forecastMonths.some(p=>!p.paymentCount)?'missing_history':'ready';
+  const selectedStart=new Date(`${month}-01T00:00:00Z`);
+  const sourceStart=new Date(Date.UTC(selectedStart.getUTCFullYear(),selectedStart.getUTCMonth()-3,1)).toISOString().slice(0,10);
+  const sourceEnd=`${month}-01`;
+  const payments=await readAll(()=>req.db.from('payments').select('amount,payment_date').gte('payment_date',sourceStart).lt('payment_date',sourceEnd).order('payment_date').order('id'));
+  const forecastMonths=Array.from({length:3},(_,index)=>{
+    const date=new Date(Date.UTC(selectedStart.getUTCFullYear(),selectedStart.getUTCMonth()-3+index,1));
+    const label=date.toISOString().slice(0,7);
+    const monthPayments=payments.filter(payment=>String(payment.payment_date).startsWith(label));
+    return {label,value:monthPayments.reduce((sum,payment)=>sum+Number(payment.amount||0),0),paymentCount:monthPayments.length};
+  });
+  const forecastStatus=forecastMonths.some(point=>!point.paymentCount)?'missing_history':'ready';
   const forecast=forecastStatus!=='ready'?null:Math.round(forecastMonths.reduce((sum,p)=>sum+Math.round(p.value*100),0)/3)/100;
   return {...data,comparison:comparisonTotals(series),forecast,forecastStatus,loadedAt:new Date().toISOString()};
 };

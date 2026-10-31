@@ -89,6 +89,10 @@
   background-color: #f8fafc;
 }
 
+.admin-billing tbody tr:hover {
+  background-color: #eff6ff;
+}
+
 .admin-billing tbody tr:focus-within {
   background-color: #eff6ff;
 }

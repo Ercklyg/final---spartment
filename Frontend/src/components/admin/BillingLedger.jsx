@@ -2,20 +2,52 @@ import { useState } from "react";
 import { money, today } from "../../lib/billing.js";
 import BillPaymentsDialog from "../billing/BillPaymentsDialog.jsx";
 import PageControls from "../PageControls.jsx";
+import { BellRing, RefreshCw, Search, X } from "lucide-react";
+import { closeFromBackdrop } from "../../lib/dialog.js";
 
 const colors = { Paid: "bg-emerald-50 text-emerald-700", Pending: "bg-amber-50 text-amber-700", "Partially paid": "bg-orange-50 text-orange-700", Late: "bg-rose-50 text-rose-700" };
 const field = "w-full rounded-lg border border-slate-300 bg-white p-2 text-sm";
 const button = "rounded-lg border border-slate-300 px-3 py-2 text-sm hover:bg-slate-50";
+const cardTones = {
+  Electricity: "border-t-blue-500 bg-blue-50/35",
+  Water: "border-t-cyan-500 bg-cyan-50/35",
+  "Total billed": "border-t-blue-500 bg-blue-50/35",
+  Collected: "border-t-emerald-500 bg-emerald-50/35",
+  Balance: "border-t-amber-500 bg-amber-50/35",
+  "Overdue balance": "border-t-rose-500 bg-rose-50/35",
+};
+const statuses = ["All", "Paid", "Pending", "Partially paid", "Late"];
 
 function StatusBadge({ status }) {
   return <span className={"inline-flex items-center gap-1.5 whitespace-nowrap rounded-full px-2.5 py-1 text-xs font-medium " + colors[status]}><span aria-hidden="true" className="h-1.5 w-1.5 rounded-full bg-current"/>{status}</span>;
 }
 
-export default function BillingLedger({ type, bills, summary, onPayment, onCorrection, onRefresh, createForm, month, onMonthChange, page, loading=false, filters, onFiltersChange }) {
+const remindedLabel=value=>value?new Date(value).toLocaleString("en-PH",{dateStyle:"medium",timeStyle:"short"}):null;
+
+function ReminderDialog({bill,onClose,onSend}) {
+  const [sending,setSending]=useState(false);
+  const [error,setError]=useState("");
+  const tenant=bill.leases?.profiles?.full_name||"Tenant";
+  const message=`This is a friendly reminder that your ${bill.bill_type} bill for ${new Date(bill.billing_period+"T00:00:00").toLocaleDateString("en-PH",{month:"long",year:"numeric"})} has a remaining balance of ${money(bill.balance)}. It was due on ${new Date(bill.due_date+"T00:00:00").toLocaleDateString("en-PH",{dateStyle:"medium"})}. Please review your billing details.`;
+  const submit=async()=>{setSending(true);setError("");try{await onSend(bill);onClose();}catch(reason){setError(reason.message);}finally{setSending(false);}};
+  return <div role="dialog" aria-modal="true" aria-labelledby="reminder-title" className="fixed inset-0 z-[80] flex items-center justify-center bg-slate-950/45 p-4" onMouseDown={event=>closeFromBackdrop(event,onClose,sending)} onKeyDown={event=>{if(event.key==="Escape"&&!sending)onClose();}}>
+    <div className="w-full max-w-lg rounded-2xl bg-white p-5 shadow-2xl sm:p-6">
+      <div className="flex items-start justify-between gap-4"><div className="flex items-start gap-3"><span className="rounded-xl bg-amber-50 p-2.5 text-amber-600"><BellRing size={21}/></span><div><h2 id="reminder-title" className="text-lg font-bold">Send payment reminder?</h2><p className="mt-1 text-sm text-slate-500">The tenant will receive this in their notifications.</p></div></div><button type="button" aria-label="Close reminder" disabled={sending} onClick={onClose} className="rounded-lg p-2 text-slate-500 hover:bg-slate-100"><X size={19}/></button></div>
+      <dl className="mt-5 grid grid-cols-2 gap-3 rounded-xl bg-slate-50 p-4 text-sm"><div><dt className="text-slate-500">Tenant</dt><dd className="mt-1 font-semibold">{tenant}</dd></div><div><dt className="text-slate-500">Remaining balance</dt><dd className="mt-1 font-semibold text-rose-700">{money(bill.balance)}</dd></div><div><dt className="text-slate-500">Billing month</dt><dd className="mt-1 font-semibold">{bill.billing_period.slice(0,7)}</dd></div><div><dt className="text-slate-500">Due date</dt><dd className="mt-1 font-semibold">{bill.due_date}</dd></div></dl>
+      <div className="mt-4"><p className="text-sm font-medium text-slate-700">Reminder message</p><p className="mt-1 rounded-xl border border-slate-200 bg-white p-3 text-sm leading-6 text-slate-600">{message}</p></div>
+      {bill.last_reminded_at&&<p className="mt-3 text-xs text-slate-500">Last reminded: {remindedLabel(bill.last_reminded_at)}</p>}
+      {error&&<p role="alert" className="mt-3 text-sm text-rose-700">{error}</p>}
+      <div className="mt-5 flex justify-end gap-2"><button type="button" disabled={sending} onClick={onClose} className={button}>Cancel</button><button type="button" disabled={sending} onClick={submit} className="inline-flex items-center gap-2 rounded-lg bg-amber-500 px-4 py-2 text-sm font-semibold text-white hover:bg-amber-600"><BellRing size={16}/>{sending?"Sending…":"Send reminder"}</button></div>
+    </div>
+  </div>;
+}
+
+export default function BillingLedger({ type, bills, summary, onPayment, onReminder, onCorrection, onRefresh, createForm, month, onMonthChange, page, loading=false, filters, onFiltersChange }) {
   const query=filters.search,status=filters.status;
   const setQuery=search=>onFiltersChange({...filters,search,offset:0});
   const setStatus=status=>onFiltersChange({...filters,status,offset:0});
   const [selected,setSelected]=useState(null);
+  const [reminder,setReminder]=useState(null);
   const utility=type==="utility";
   const shown=bills.filter(bill=>bill.bill_type===type&&bill.billing_period.startsWith(month));
   const totals=summary.months[month]?.[type];
@@ -28,19 +60,23 @@ export default function BillingLedger({ type, bills, summary, onPayment, onCorre
 
   return <>
     <div className="mt-5">{createForm}</div>
-    <div className="mt-4 grid grid-cols-2 gap-3 xl:grid-cols-4">{cards.map(([label,value])=><article key={label} className="min-w-0 rounded-xl border border-slate-200 bg-white p-4 sm:p-5"><p className="text-xs text-slate-600 sm:text-sm">{label}</p><h2 className="mt-1 break-words text-xl font-bold sm:mt-2 sm:text-2xl">{money(value)}</h2></article>)}</div>
+    <div className="mt-4 grid grid-cols-2 gap-3 xl:grid-cols-4">{cards.map(([label,value])=><article key={label} className={"min-w-0 rounded-xl border border-t-4 border-slate-200 p-4 shadow-sm sm:p-5 " + cardTones[label]}><p className="text-xs font-medium text-slate-600 sm:text-sm">{label}</p><h2 className="mt-1 break-words text-xl font-bold text-slate-950 sm:mt-2 sm:text-2xl">{money(value)}</h2></article>)}</div>
     <section className="mt-5 overflow-hidden rounded-xl border border-slate-200 bg-white">
       <div className="p-4 sm:p-5">
-        <div><h2 className="text-xl font-bold">{utility?"Utility bills":"Rent payment history"}</h2><p className="text-sm text-slate-600">Status updates from payments and due dates.</p></div>
-        <div className="mt-4 grid grid-cols-2 gap-3 md:grid-cols-4 lg:grid-cols-[auto_minmax(180px,1fr)_auto_auto]">
-          <label className="col-span-2 text-sm md:col-span-1">Month<input type="month" value={month} onChange={event=>onMonthChange(event.target.value || today().slice(0,7))} className={field}/></label>
-          <label className="col-span-2 text-sm md:col-span-1"><span className="sr-only">Search tenant or room</span><input aria-label="Search tenant or room" placeholder="Search tenant or room" value={query} onChange={event=>setQuery(event.target.value)} className={field + " mt-[1.5rem]"}/></label>
-          <label className="text-sm"><span className="sr-only">Bill status</span><select aria-label="Bill status" value={status} onChange={event=>setStatus(event.target.value)} className={field + " mt-[1.5rem]"}>{["All","Paid","Pending","Partially paid","Late"].map(value=><option key={value}>{value}</option>)}</select></label>
-          <button type="button" onClick={onRefresh} className={button + " mt-[1.5rem]"}>Refresh</button>
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div><h2 className="text-xl font-bold">{utility?"Utility bills":"Rent payment history"}</h2><p className="text-sm text-slate-600">Status updates from payments and due dates.</p></div>
+          <button type="button" onClick={onRefresh} disabled={loading} className={button + " inline-flex items-center gap-2 font-medium text-slate-700"}><RefreshCw size={16} className={loading?"animate-spin":""}/>Refresh</button>
+        </div>
+        <div className="mt-4 grid items-end gap-3 md:grid-cols-[180px_minmax(240px,1fr)] lg:grid-cols-[180px_minmax(260px,1fr)_auto]">
+          <label className="text-sm font-medium text-slate-700">Month<input type="month" value={month} onChange={event=>onMonthChange(event.target.value || today().slice(0,7))} className={field + " mt-1.5"}/></label>
+          <label className="text-sm font-medium text-slate-700">Search tenant or room<span className="relative mt-1.5 block"><Search aria-hidden="true" size={18} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"/><input aria-label="Search tenant or room" placeholder="Search by tenant name or room" value={query} onChange={event=>setQuery(event.target.value)} className={field + " pl-10 pr-10"}/>{query&&<button type="button" aria-label="Clear search" onClick={()=>setQuery("")} className="absolute right-2 top-1/2 -translate-y-1/2 rounded-md p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-700"><X size={17}/></button>}</span></label>
+          <div className="flex flex-wrap gap-2 md:col-span-2 lg:col-span-1" aria-label="Filter bills by status">
+            {statuses.map(value=><button key={value} type="button" aria-pressed={status===value} onClick={()=>setStatus(value)} className={"rounded-full border px-3 py-1.5 text-sm font-medium transition-colors "+(status===value?"border-blue-600 bg-blue-600 text-white shadow-sm":"border-slate-200 bg-slate-50 text-slate-600 hover:border-blue-200 hover:bg-blue-50 hover:text-blue-700")}>{value}</button>)}
+          </div>
         </div>
       </div>
 
-      {loading&&<p role="status" aria-live="polite" className="border-t border-slate-100 px-4 py-3 text-sm text-blue-700 sm:px-5">Updating bills while keeping the current results visible…</p>}
+      {loading&&<div role="status" aria-live="polite" className="border-t border-blue-100 bg-blue-50/50"><div className="h-1 w-full animate-pulse bg-blue-500"/><p className="px-4 py-2 text-xs font-medium text-blue-700 sm:px-5">Updating billing records…</p></div>}
 
       <div className="divide-y divide-slate-200 border-t border-slate-200 lg:hidden">
         {shown.map(bill=><article key={bill.id} className="p-4 sm:p-5">
@@ -55,27 +91,30 @@ export default function BillingLedger({ type, bills, summary, onPayment, onCorre
             <div><p className="text-xs text-slate-500">Paid</p><p className="font-semibold text-emerald-700">{money(bill.paid)}</p></div>
             <div><p className="text-xs text-slate-500">Balance</p><p className={"font-semibold "+(bill.balance>0?"text-rose-700":"text-emerald-700")}>{money(bill.balance)}</p></div>
           </div>
+          {bill.last_reminded_at&&<p className="mt-3 text-xs text-slate-500">Last reminded: {remindedLabel(bill.last_reminded_at)}</p>}
           <div className="mt-4 grid grid-cols-1 gap-2 min-[360px]:grid-cols-2">
             {bill.balance>0&&<button type="button" disabled={loading} onClick={()=>onPayment(bill)} className="rounded-lg bg-blue-600 px-3 py-2.5 text-sm font-semibold text-white hover:bg-blue-700">Record payment</button>}
+            {bill.balance>0&&<button type="button" disabled={loading} onClick={()=>setReminder(bill)} className="inline-flex items-center justify-center gap-2 rounded-lg border border-amber-300 bg-amber-50 px-3 py-2.5 text-sm font-semibold text-amber-800 hover:bg-amber-100"><BellRing size={16}/>Send reminder</button>}
             <button type="button" disabled={loading} onClick={event=>openDetails(event,bill)} className={button}>{bill.payments.length?"Payments / receipts":"View details"}</button>
           </div>
         </article>)}
         {!loading&&!shown.length&&<p className="p-8 text-center text-sm text-slate-500">No bills match this month or search.</p>}
       </div>
 
-      <div className="hidden overflow-x-auto lg:block"><table className="w-full min-w-[1050px] text-left text-sm"><thead><tr>{["Tenant / Room","Period / Due date",...(utility?["Electricity","Water"]:[]),"Total","Paid","Balance","Status","Actions"].map(title=><th key={title}>{title}</th>)}</tr></thead>
-        <tbody aria-busy={loading}>{shown.map(bill=><tr key={bill.id} className="border-t border-slate-200">
+      <div className="hidden overflow-x-auto lg:block"><table className="w-full min-w-[1050px] text-left text-sm"><thead><tr>{["Tenant / Room","Period / Due date",...(utility?["Electricity","Water"]:[]),"Total","Paid","Balance","Status","Actions"].map(title=><th key={title} className={["Electricity","Water","Total","Paid","Balance"].includes(title)?"text-right":""}>{title}</th>)}</tr></thead>
+        <tbody aria-busy={loading}>{shown.map(bill=><tr key={bill.id} className="border-t border-slate-200 transition-colors hover:bg-blue-50/50">
           <td><strong>{bill.leases?.profiles?.full_name || "Unknown tenant"}</strong><p className="text-slate-600">{bill.leases?.rooms?.buildings?.name} / Room {bill.leases?.rooms?.room_number || "Unassigned"}</p></td>
           <td><p>{bill.billing_period.slice(0,7)}</p><p className="whitespace-nowrap text-sm text-slate-600">Due {bill.due_date}</p></td>
-          {utility&&<><td>{money(bill.electricity_amount)}</td><td>{money(bill.water_amount)}</td></>}
-          <td>{money(bill.total)}</td><td>{money(bill.paid)}</td><td className={"font-semibold "+(bill.balance>0?"text-rose-700":"text-emerald-700")}>{money(bill.balance)}</td>
+          {utility&&<><td className="text-right tabular-nums">{money(bill.electricity_amount)}</td><td className="text-right tabular-nums">{money(bill.water_amount)}</td></>}
+          <td className="text-right font-medium tabular-nums">{money(bill.total)}</td><td className="text-right font-medium text-emerald-700 tabular-nums">{money(bill.paid)}</td><td className={"text-right font-semibold tabular-nums "+(bill.balance>0?"text-rose-700":"text-emerald-700")}>{money(bill.balance)}</td>
           <td><StatusBadge status={bill.displayStatus}/></td>
-          <td><div className="flex flex-wrap gap-2">{bill.balance>0&&<button type="button" disabled={loading} onClick={()=>onPayment(bill)} className="rounded-lg bg-blue-600 px-3 py-2 text-sm text-white hover:bg-blue-700">Record payment</button>}<button type="button" disabled={loading} onClick={event=>openDetails(event,bill)} className={button}>{bill.payments.length?"Payments / receipts":"View details"}</button></div></td>
+          <td><div className="flex flex-wrap gap-2">{bill.balance>0&&<button type="button" disabled={loading} onClick={()=>onPayment(bill)} className="rounded-lg bg-blue-600 px-3 py-2 text-sm text-white hover:bg-blue-700">Record payment</button>}{bill.balance>0&&<button type="button" disabled={loading} onClick={()=>setReminder(bill)} className="inline-flex items-center gap-1.5 rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-sm font-medium text-amber-800 hover:bg-amber-100"><BellRing size={15}/>Remind</button>}<button type="button" disabled={loading} onClick={event=>openDetails(event,bill)} className={button}>{bill.payments.length?"Payments / receipts":"View details"}</button>{bill.last_reminded_at&&<span className="basis-full text-xs text-slate-500">Last reminded {remindedLabel(bill.last_reminded_at)}</span>}</div></td>
         </tr>)}{!loading&&!shown.length&&<tr><td colSpan={utility?9:7} className="p-8 text-center text-slate-500">No bills match this month or search.</td></tr>}</tbody>
       </table></div>
       <p className="border-t border-slate-100 px-4 py-3 text-sm text-slate-500 sm:px-5">Showing {shown.length} of {page.total} matching bills ({page.periodTotal} for {month}).</p>
       <PageControls disabled={loading} offset={filters.offset} limit={25} total={page.total} onChange={offset=>onFiltersChange({...filters,offset})}/>
     </section>
     {selected&&<BillPaymentsDialog key={selected.id} bill={selected} onClose={()=>setSelected(null)} onCorrection={onCorrection}/>}
+    {reminder&&<ReminderDialog bill={reminder} onClose={()=>setReminder(null)} onSend={onReminder}/>}
   </>;
 }

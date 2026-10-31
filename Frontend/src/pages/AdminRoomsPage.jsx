@@ -6,6 +6,7 @@ import { useSessionState } from "../lib/useSessionState.js";
 import AddRoomModal from "../components/admin/AddRoomModal.jsx";
 import DeleteRoomModal from "../components/admin/DeleteRoomModal.jsx";
 import AdminHeader from "../components/admin/AdminHeader.jsx";
+import { closeFromBackdrop } from "../lib/dialog.js";
 import AdminSidebar from "../components/admin/AdminSidebar.jsx";
 import FloorRoomGrid from "../components/admin/FloorRoomGrid.jsx";
 import RoomsToolbar from "../components/admin/RoomsToolbar.jsx";
@@ -63,8 +64,8 @@ export default function AdminRoomsPage({ onNavigate, onLogout }) {
       <AdminHeader onLogout={onLogout} />
       <div className="mx-auto max-w-[1280px] px-4 pb-24 sm:px-6 lg:pb-10 xl:px-8">
         <RoomsToolbar filter={filter} onFilter={setFilter} query={query} onQuery={setQuery} onAdd={() => setIsAddOpen(true)} sort={sort} onSort={setSort} rooms={rooms} loading={loading} error={error} />
-        <div aria-live="polite" aria-atomic="true">{saving&&<p role="status" className="mt-4 text-sm text-blue-700">Saving room status…</p>}{error && <div role="alert" className="mt-4 text-rose-700">{error} <button onClick={() => { setLoading(true); setError(""); setReload(n => n + 1); }} className="underline">Reload rooms</button></div>}</div>
-        {loading ? <PageSkeleton variant="rooms" label="Loading rooms..." /> : <FloorRoomGrid filter={filter} query={query} rooms={rooms} sort={sort} saving={saving} onStatusChange={(id, status) => { const room = rooms.find(item => item[5] === id); if (room && status !== room[2]) setPendingStatus({ id, status, room }); }} onEdit={setEditingRoom} onDelete={setDeletingRoom} />}
+        <div aria-live="polite" aria-atomic="true">{error && <div role="alert" className="mt-4 text-rose-700">{error} <button onClick={() => { setLoading(true); setError(""); setReload(n => n + 1); }} className="underline">Reload rooms</button></div>}</div>
+        {loading ? <PageSkeleton variant="rooms" label="Loading rooms..." /> : <FloorRoomGrid filter={filter} query={query} rooms={rooms} sort={sort} saving={saving} onClearFilters={() => { setFilter("All Rooms"); setQuery(""); }} onStatusChange={(id, status) => { const room = rooms.find(item => item[5] === id); if (room && status !== room[2]) setPendingStatus({ id, status, room }); }} onEdit={setEditingRoom} onDelete={setDeletingRoom} />}
       </div>
     </div>
     {isAddOpen && <AddRoomModal onClose={() => setIsAddOpen(false)} onAdd={addRoom} />}
@@ -74,7 +75,7 @@ export default function AdminRoomsPage({ onNavigate, onLogout }) {
       capacity: String(editingRoom[9] || "2-3").replace(/\s*persons?\s*$/i, ""), notes: editingRoom[7] || "",
     }} />}
     {deletingRoom && <DeleteRoomModal room={deletingRoom} onClose={() => setDeletingRoom(null)} onDelete={deleteRoom} />}
-    {pendingStatus && <div role="presentation" className="fixed inset-0 z-[80] flex items-center justify-center bg-slate-950/40 p-4">
+    {pendingStatus && <div role="presentation" onMouseDown={event=>closeFromBackdrop(event,()=>setPendingStatus(null),saving)} className="fixed inset-0 z-[80] flex items-center justify-center bg-slate-950/40 p-4">
       <section role="alertdialog" aria-modal="true" aria-labelledby="room-status-title" aria-describedby="room-status-description" className="w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl">
         <h2 id="room-status-title" className="text-lg font-bold text-slate-900">Confirm availability change</h2>
         <p id="room-status-description" className="mt-2 text-sm text-slate-600">Change room {pendingStatus.room[0]} in {pendingStatus.room[4]} from {pendingStatus.room[2].toLowerCase()} to {pendingStatus.status.toLowerCase()}?</p>

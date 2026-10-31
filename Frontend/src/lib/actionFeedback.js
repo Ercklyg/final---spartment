@@ -17,6 +17,7 @@ const confirmations={
   '/tenants':'Tenant account created and room assigned successfully.',
   '/billing/bills':'Bill created successfully.',
   '/billing/payments':'Payment recorded successfully.',
+  '/billing/reminders':'Payment reminder sent to the tenant.',
   '/payments/corrections':'Payment correction saved. The audit history and tenant notification were updated.',
   '/requests/submit':'Your request was submitted successfully.',
   '/public/inquiries':'Your inquiry was submitted successfully.',

@@ -17,7 +17,7 @@ export default function StatementSection({ type, statusFilter = "All", bills }) 
   const years=[...new Set(rows.map(bill=>bill.billing_period.slice(0,4)))].sort().reverse();
   const shown=rows.filter(bill=>(statusFilter==="All"||bill.displayStatus===statusFilter)&&(year==="All"||bill.billing_period.startsWith(year)));
   const heads=["Period","Due date",...(isRent?["Amount"]:["Electricity","Water","Total"]),"Balance","Status","Actions"];
-  const action = bill => <button type="button" onClick={()=>setSelected(bill)} className="flex items-center gap-2 text-sm font-medium text-blue-600 hover:underline"><FileText size={18}/>{bill.payments.length ? "View receipts" : "View details"}</button>;
+  const action = bill => <button type="button" onClick={()=>setSelected(bill)} aria-label={`${bill.payments.length ? "View receipts" : "View details"} for ${type} - ${periodLabel(bill.billing_period)}`} className="inline-flex min-h-10 w-full items-center justify-center gap-2 whitespace-nowrap rounded-xl border border-blue-200 bg-blue-50 px-3 py-2 text-xs font-semibold text-blue-700 shadow-sm transition-colors hover:border-blue-300 hover:bg-blue-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600 sm:w-auto"><FileText size={18}/>{bill.payments.length ? "View receipts" : "View details"}</button>;
   return <>
     <section className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
       <div className="mb-3 flex flex-wrap items-start justify-between gap-3 sm:mb-4">

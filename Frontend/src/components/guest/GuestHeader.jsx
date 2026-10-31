@@ -14,7 +14,7 @@ function GuestHeader({ onExit }) {
               Spartment
             </h1>
 
-            <p className="hidden text-[10px] font-medium text-slate-400 sm:block">
+            <p className="hidden text-xs font-medium text-slate-500 sm:block">
               Manage Today. Build Tomorrow.
             </p>
           </div>
@@ -23,7 +23,7 @@ function GuestHeader({ onExit }) {
         <button
           type="button"
           onClick={onExit}
-          className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 transition hover:border-slate-300 hover:bg-slate-50"
+          className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 transition-colors hover:border-slate-300 hover:bg-slate-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600"
         >
           <LogOut size={17} strokeWidth={1.8} />
           <span>Exit</span>

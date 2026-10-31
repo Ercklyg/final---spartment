@@ -1,11 +1,21 @@
 import { ChevronDown, LoaderCircle, LogOut, ShieldCheck } from "lucide-react";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { closeFromBackdrop } from "../../lib/dialog.js";
 
 function AdminHeader({ onLogout }) {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const menuRef = useRef(null);
+  useEffect(() => {
+    if (!isMenuOpen) return;
+    const closeOutside = event => { if (!menuRef.current?.contains(event.target)) setIsMenuOpen(false); };
+    const closeWithKeyboard = event => { if (event.key === "Escape") setIsMenuOpen(false); };
+    document.addEventListener("pointerdown", closeOutside);
+    document.addEventListener("keydown", closeWithKeyboard);
+    return () => { document.removeEventListener("pointerdown", closeOutside); document.removeEventListener("keydown", closeWithKeyboard); };
+  }, [isMenuOpen]);
   const requestLogout = () => { setIsMenuOpen(false); setIsConfirmOpen(true); };
   const confirmLogout = () => {
     setIsLoggingOut(true);
@@ -17,26 +27,23 @@ function AdminHeader({ onLogout }) {
       <header className="sticky top-0 z-40 border-b border-slate-200/80 bg-white/90 backdrop-blur-md">
         <div className="mx-auto flex h-16 w-full max-w-[1280px] items-center px-4 sm:h-[72px] sm:px-6 xl:px-8">
           <span className="text-lg font-extrabold tracking-tight sm:text-xl lg:hidden">Spartment</span>
-          <div className="relative ml-auto">
+          <div ref={menuRef} className="relative ml-auto">
             <button
               type="button"
               onClick={() => setIsMenuOpen((open) => !open)}
               aria-expanded={isMenuOpen}
               aria-haspopup="menu"
-              className={"group flex items-center gap-2 rounded-xl border py-1.5 pl-1.5 pr-2 text-left transition sm:gap-3 " + (isMenuOpen ? "border-slate-200 bg-slate-50 shadow-sm" : "border-transparent hover:border-slate-200 hover:bg-slate-50")}
+              className={"group flex items-center gap-2 rounded-2xl border py-1.5 pl-1.5 pr-1.5 text-left transition-all sm:gap-3 " + (isMenuOpen ? "border-blue-100 bg-blue-50/70 shadow-[0_6px_18px_rgba(15,23,42,0.08)]" : "border-transparent hover:border-slate-200 hover:bg-slate-50")}
             >
-              <span className="relative flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 text-sm font-bold text-white shadow-sm ring-2 ring-white sm:h-10 sm:w-10 sm:text-base">
+              <span className="relative flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-blue-500 via-blue-600 to-indigo-700 text-sm font-extrabold text-white shadow-[0_5px_12px_rgba(37,99,235,0.25)] ring-1 ring-blue-400/30 sm:h-11 sm:w-11 sm:text-base">
                 A
-                <span className="absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full border-2 border-white bg-emerald-500" />
+                <span className="absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full border-[2.5px] border-white bg-emerald-500" />
               </span>
               <span className="hidden min-w-0 text-left min-[360px]:block">
-                <span className="block text-sm font-semibold leading-tight text-slate-900 sm:text-[15px]">Admin</span>
-                <span className="block text-xs leading-tight text-slate-500 sm:text-[13px]">Administrator</span>
+                <span className="block text-sm font-bold leading-tight text-slate-950 sm:text-[15px]">Admin</span>
+                <span className="mt-0.5 flex items-center gap-1 text-xs leading-tight text-slate-500 sm:text-[13px]"><ShieldCheck size={12} className="text-blue-500"/>Administrator</span>
               </span>
-              <ChevronDown
-                size={17}
-                className={"shrink-0 text-slate-400 transition-transform duration-200 " + (isMenuOpen ? "rotate-180 text-slate-600" : "group-hover:text-slate-600")}
-              />
+              <span className={"flex h-8 w-8 shrink-0 items-center justify-center rounded-xl transition-colors " + (isMenuOpen ? "bg-white text-blue-600 shadow-sm" : "text-slate-400 group-hover:bg-white group-hover:text-slate-600")}><ChevronDown size={17} className={"transition-transform duration-200 " + (isMenuOpen ? "rotate-180" : "")}/></span>
             </button>
             {isMenuOpen && (
               <div role="menu" className="admin-menu-enter absolute right-0 top-[calc(100%+10px)] z-50 w-60 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-xl shadow-slate-900/10">
@@ -65,7 +72,7 @@ function AdminHeader({ onLogout }) {
         </div>
       </header>
       {isConfirmOpen && (
-        <div role="dialog" aria-modal="true" aria-labelledby="admin-logout-title" className="fixed inset-0 z-[60] flex items-center justify-center bg-slate-950/35 px-5 backdrop-blur-sm">
+        <div role="dialog" aria-modal="true" aria-labelledby="admin-logout-title" onMouseDown={event=>closeFromBackdrop(event,()=>setIsConfirmOpen(false),isLoggingOut)} className="fixed inset-0 z-[60] flex items-center justify-center bg-slate-950/35 px-5 backdrop-blur-sm">
           <div className="w-full max-w-sm rounded-2xl border border-slate-200/70 bg-white p-6 shadow-2xl">
             <span className="flex h-11 w-11 items-center justify-center rounded-full bg-rose-50 text-rose-600"><LogOut size={21} /></span>
             <h2 id="admin-logout-title" className="mt-4 text-lg font-bold">Log out of Spartment?</h2>

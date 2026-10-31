@@ -31,7 +31,7 @@ export function billingOverview(bills) {
   const nextDue = bills.filter(bill => bill.balance > 0).map(bill => bill.due_date).sort()[0] || null;
   return { ...totals(bills), count: bills.length, months, utilityMonth, nextDue };
 }
-export async function loadBillingLeases(client) {
+export async function loadBillingLeases(client, period = null, type = null) {
   async function all(table, columns, activeOnly = false) {
     return readAll(()=>{
       let query = client.from(table).select(columns).order('id');
@@ -44,7 +44,13 @@ export async function loadBillingLeases(client) {
     all('tenant_assignments', 'id,monthly_rent'),
   ]);
   const rents = new Map(assignments.map(assignment => [assignment.id, assignment.monthly_rent]));
-  return leases.map(lease => ({ ...lease, rent: rents.get(lease.tenant_id) ?? lease.rooms?.monthly_rate }));
+  let billed=new Set();
+  if(period&&type){
+    const {data,error}=await client.from('bills').select('lease_id').eq('bill_type',type).eq('billing_period',period+'-01');
+    if(error)throw new HttpError(503,'Unable to check existing bills. Please retry.');
+    billed=new Set(data.map(bill=>bill.lease_id));
+  }
+  return leases.map(lease => ({ ...lease, rent: rents.get(lease.tenant_id) ?? lease.rooms?.monthly_rate, billed: billed.has(lease.id) }));
 }
 
 function validateBillForm(form) {

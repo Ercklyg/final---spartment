@@ -36,3 +36,19 @@ export async function markAllNotificationsRead(client,userId,before) {
   const {error}=await client.from('notifications').update({is_read:true}).eq('tenant_id',userId).eq('is_read',false).lte('created_at',cutoff(before));
   if(error)throw new HttpError(503,'Unable to mark notifications as read. Please retry.');
 }
+
+export async function sendPaymentReminder(client,billId) {
+  const {data,error}=await client.rpc('send_bill_reminder',{p_bill:billId});
+  if(error)throw new HttpError(error.message?.includes('wait before')?429:400,error.message || 'Unable to send the payment reminder.');
+  return {ok:true,lastRemindedAt:data};
+}
+
+export async function addReminderTimes(client,bills) {
+  const ids=[...new Set(bills.map(bill=>bill.id).filter(Boolean))];
+  if(!ids.length)return bills;
+  const {data,error}=await client.from('notifications').select('source_id,created_at').eq('kind','bill').eq('title','Payment reminder').in('source_id',ids).order('created_at',{ascending:false});
+  if(error)throw new HttpError(503,'Unable to load payment reminder history. Please retry.');
+  const latest=new Map();
+  for(const item of data)if(!latest.has(item.source_id))latest.set(item.source_id,item.created_at);
+  return bills.map(bill=>({...bill,last_reminded_at:latest.get(bill.id)||null}));
+}

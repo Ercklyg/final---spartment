@@ -32,6 +32,7 @@ router.get('/billing/workspace',requireAdmin,app.billingWorkspace);
 router.get('/billing/leases',requireAdmin,app.billingLeases);
 router.post('/billing/bills',requireAdmin,app.billCreate);
 router.post('/billing/payments',requireAdmin,app.paymentCreate);
+router.post('/billing/reminders',requireAdmin,app.paymentReminder);
 router.get('/payments/:id/receipt',app.receipt);
 router.get('/payments/:id/corrections',requireAdmin,app.correctionHistory);
 router.get('/requests',app.requests);

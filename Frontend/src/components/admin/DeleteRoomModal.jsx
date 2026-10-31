@@ -1,5 +1,6 @@
 import { useRef, useState } from "react";
 import { Trash2 } from "lucide-react";
+import { closeFromBackdrop } from "../../lib/dialog.js";
 
 export default function DeleteRoomModal({ room, onClose, onDelete }) {
   const busy = useRef(false);
@@ -23,7 +24,7 @@ export default function DeleteRoomModal({ room, onClose, onDelete }) {
     }
   }
 
-  return <div role="dialog" aria-modal="true" aria-labelledby="delete-room-title" className="fixed inset-0 z-[70] flex items-center justify-center bg-slate-950/40 p-4">
+  return <div role="dialog" aria-modal="true" aria-labelledby="delete-room-title" onMouseDown={event=>closeFromBackdrop(event,onClose,saving)} className="fixed inset-0 z-[70] flex items-center justify-center bg-slate-950/40 p-4">
     <form onSubmit={remove} className="w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl">
       <h2 id="delete-room-title" className="text-xl font-bold">Delete room {room[0]}?</h2>
       <p className="mt-3 text-sm text-slate-600">This permanently removes {room[4]} / Room {room[0]} from your room listings. This cannot be undone.</p>

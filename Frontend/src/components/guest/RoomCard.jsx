@@ -11,34 +11,30 @@ function RoomCard({ room, onInquire }) {
   const statusStyles = {
 
     Available: "bg-emerald-50 text-emerald-700 border-emerald-100",
-    Occupied: "bg-red-50 text-red-600 border-red-100",
+    Occupied: "bg-slate-100 text-slate-600 border-slate-200",
     Reserved: "bg-amber-50 text-amber-700 border-amber-100",
   };
 
   return (
-    <article className="group overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-[0_8px_30px_rgba(15,23,42,0.06)] transition duration-200 hover:-translate-y-1 hover:shadow-[0_16px_40px_rgba(15,23,42,0.1)]">
-      <div className="relative m-3 overflow-hidden rounded-xl bg-slate-100">
+    <article className="group flex h-full flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition-shadow duration-200 hover:border-blue-200 hover:shadow-md">
+      <div className="relative m-3 shrink-0 overflow-hidden rounded-xl bg-slate-100">
         <img
           src={room.image || apartmentBuilding}
-          alt={`${room.name} interior`}
-          className="h-[185px] w-full object-cover transition duration-500 group-hover:scale-[1.03]"
+          alt={room.image ? `${room.name} interior` : "Apartment building"}
+          className="h-40 w-full object-cover transition duration-500 group-hover:scale-[1.03]"
         />
 
         <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent" />
-
-        <span className="absolute bottom-3 right-3 rounded-lg bg-black/60 px-2.5 py-1 text-[11px] font-semibold text-white backdrop-blur-sm">
-          1/5
-        </span>
       </div>
 
-      <div className="px-4 pb-4">
-        <div className="flex items-start justify-between gap-3">
+      <div className="flex flex-1 flex-col px-4 pb-4">
+        <div className="flex flex-wrap items-start justify-between gap-2">
           <div>
             <h3 className="text-base font-extrabold text-slate-950">
               {room.name}
             </h3>
 
-            <p className="mt-0.5 text-xs text-slate-400">
+            <p className="mt-1 text-xs leading-5 text-slate-600">
               Floor {room.floor}
               <span className="mx-1.5">•</span>
               {room.size}
@@ -57,22 +53,22 @@ function RoomCard({ room, onInquire }) {
           </span>
         </div>
 
-        <p className="mt-3 min-h-10 text-sm leading-5 text-slate-600">
+        <p className="mb-4 mt-3 text-sm leading-5 text-slate-600">
           {room.description}
         </p>
 
-        <div className="mt-5 flex items-end justify-between">
+        <div className="mt-auto flex flex-wrap items-end justify-between gap-2 border-t border-slate-100 pt-4">
           <div>
-            <span className="text-2xl font-extrabold tracking-tight text-slate-950">
+            <span className="text-2xl font-extrabold tabular-nums tracking-tight text-slate-950">
               ₱{room.price.toLocaleString()}
             </span>
 
-            <span className="ml-1 text-xs text-slate-400">
+            <span className="ml-1 text-xs text-slate-500">
               /month
             </span>
           </div>
 
-          <div className="flex items-center gap-1 text-xs text-slate-400">
+          <div className="flex items-center gap-1 text-xs text-slate-500">
             <BedDouble size={15} strokeWidth={1.7} />
             Furnished
           </div>
@@ -82,10 +78,10 @@ function RoomCard({ room, onInquire }) {
           type="button"
           disabled={!isAvailable}
           onClick={() => isAvailable && onInquire(room)}
-          className={`mt-4 flex h-11 w-full items-center justify-center gap-2 rounded-xl text-sm font-semibold transition ${
+          className={`mt-4 flex h-11 w-full items-center justify-center gap-2 rounded-xl text-sm font-semibold transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600 ${
             isAvailable
-              ? "bg-blue-600 text-white shadow-[0_8px_20px_rgba(37,99,235,0.2)] hover:bg-blue-700"
-              : "cursor-not-allowed bg-slate-200 text-slate-500"
+              ? "bg-blue-600 text-white shadow-sm hover:bg-blue-700"
+              : "cursor-not-allowed border border-slate-200 bg-slate-50 text-slate-500"
           }`}
         >
           <MessageCircle size={17} strokeWidth={1.8} />

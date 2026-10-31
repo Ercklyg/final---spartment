@@ -18,6 +18,12 @@ Deno.serve(async req=>{
     if(!serviceKey)return reply(503,{error:'Storage unavailable'});
     const db=createClient(Deno.env.get('SUPABASE_URL')!,serviceKey,{auth:{persistSession:false,autoRefreshToken:false}});
     const now=new Date().toISOString();
+    if(['login-check','login-failure','login-success'].includes(body.action)){
+      if(typeof body.ipKey!=='string'||!/^[a-f0-9]{64}$/.test(body.ipKey))return reply(400,{error:'Invalid limit key'});
+      const {data,error}=await db.rpc('update_login_attempt',{p_account_hash:body.key,p_ip_hash:body.ipKey,p_action:body.action.slice(6)});
+      return error?reply(503,{error:'Storage unavailable'}):reply(200,data);
+    }
+    // Keep the previous backend contract working during rolling deployments.
     if(body.action==='login-attempt'){
       if(typeof body.ipKey!=='string'||!/^[a-f0-9]{64}$/.test(body.ipKey))return reply(400,{error:'Invalid limit key'});
       const {data,error}=await db.rpc('consume_login_attempt',{p_account_hash:body.key,p_ip_hash:body.ipKey});

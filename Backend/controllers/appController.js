@@ -18,6 +18,7 @@ export const account=async(req,res)=>res.status(200).json(await service.account(
 export const bills=async(req,res)=>res.status(200).json(await service.bills(req));
 export const billCreate=async(req,res)=>res.status(201).json(await service.billCreate(req));
 export const paymentCreate=async(req,res)=>res.status(201).json(await service.paymentCreate(req));
+export const paymentReminder=async(req,res)=>res.status(201).json(await service.paymentReminder(req));
 export const receipt=async(req,res)=>res.status(200).json(await service.receipt(req));
 export const requests=async(req,res)=>res.status(200).json(await service.requests(req));
 export const requestCreate=async(req,res)=>res.status(201).json(await service.requestCreate(req));

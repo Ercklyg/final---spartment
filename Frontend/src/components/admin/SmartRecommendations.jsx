@@ -6,14 +6,14 @@ const colors = {
   emerald: "border-l-emerald-500 bg-emerald-50 text-emerald-600",
   blue: "border-l-blue-600 bg-blue-50 text-blue-600",
 };
-const categoryColor = { warning: "rose", opportunity: "amber", attention: "blue", insight: "emerald" };
-const categoryLabel = { warning: "Warning", opportunity: "Opportunity", attention: "Attention", insight: "Insight" };
+const categoryColor = { warning: "blue", opportunity: "emerald", attention: "amber", insight: "emerald" };
+const categoryLabel = { warning: "Recommended action", opportunity: "Growth idea", attention: "Suggested follow-up", insight: "Insight" };
 
 function SmartRecommendations({ onNavigate, aiItems = [], aiLoading = false, aiError = "", aiUpdatedAt = null, aiCached = false, aiStale = false, aiSource = "ai", onRefreshAi }) {
   return <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
     <div className="flex flex-wrap items-start gap-3 sm:flex-nowrap sm:items-center sm:gap-4">
       <Lightbulb size={25} className="mt-0.5 shrink-0 text-amber-400 sm:mt-0" />
-      <div className="min-w-0 flex-1"><h2 className="text-lg font-bold leading-tight sm:text-xl">Smart Recommendations</h2><p className="text-xs leading-5 text-slate-500 sm:text-sm">Suggested actions to improve operations.</p></div>
+      <div className="min-w-0 flex-1"><h2 className="text-lg font-bold leading-tight sm:text-xl">Smart Recommendations</h2><p className="text-xs leading-5 text-slate-500 sm:text-sm">Practical next steps based on your latest property data.</p></div>
       {onRefreshAi && <button type="button" onClick={onRefreshAi} disabled={aiLoading} className="flex w-full items-center justify-center gap-2 rounded-xl border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-50 sm:w-auto"><RefreshCw size={14} className={aiLoading ? "animate-spin" : ""} />{aiLoading ? "Generating..." : "Provide Insight"}</button>}
     </div>
     {aiUpdatedAt && !aiLoading && <p className="mt-2 text-xs text-slate-400">Insights updated {new Date(aiUpdatedAt).toLocaleString("en-PH")}{aiCached ? " · cached" : ""}{aiStale ? " · last available" : ""}</p>}

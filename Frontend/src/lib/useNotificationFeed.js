@@ -11,10 +11,10 @@ export function useNotificationFeed() {
     const requestController=new AbortController();controller.current=requestController;
     busy.current=false;
     api.get('/notifications?limit=25',{signal:requestController.signal,force:revision>0}).then(page=>{if(current===generation.current)setState({...page,loading:false,error:''});})
-      .catch(error=>{if(error?.name!=='AbortError'&&current===generation.current)setState({...empty,loading:false,error:error.message});});
+      .catch(error=>{if(error?.name!=='AbortError'&&current===generation.current)setState(previous=>({...previous,loading:false,loadingMore:false,error:error.message}));});
     return ()=>{requestController.abort();generation.current=current+1;};
   },[revision]);
-  const reload=()=>{controller.current?.abort();generation.current++;setState(s=>({...s,loading:true,error:''}));setRevision(n=>n+1);};
+  const reload=()=>{controller.current?.abort();generation.current++;setState(s=>({...s,loading:true,loadingMore:false,error:''}));setRevision(n=>n+1);};
   const more=async()=>{
     if(busy.current||state.loading||!state.data||state.data.length>=state.total)return;
     busy.current=true;const current=generation.current;

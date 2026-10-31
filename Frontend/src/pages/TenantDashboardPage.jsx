@@ -19,11 +19,11 @@ function DashboardContent({ account, onNavigate, onOpenChat, requestRevision }) 
   const currentBill = nextBill || bills?.toSorted((a, b) => b.billing_period.localeCompare(a.billing_period))[0];
   return <>
     <NotificationTable key={requestRevision} onNavigate={onNavigate} />
-    <div className="mt-3 space-y-3">
+    <div className="mt-4 space-y-4">
       <SummaryCards account={account} />
-      <CurrentBill bill={currentBill} loading={loading} error={error} onRetry={reload} onViewBilling={() => onNavigate?.("billing")} />
+      <CurrentBill bill={currentBill} hasData={bills !== null} loading={loading} error={error} onRetry={reload} onViewBilling={() => onNavigate?.("billing")} />
       <MaintenanceRequestStatus key={requestRevision} onOpenChat={onOpenChat} />
-      <PaymentHistory bills={bills || []} loading={loading} error={error} onRetry={reload} onViewAll={() => onNavigate?.("billing")} />
+      <PaymentHistory bills={bills || []} hasData={bills !== null} loading={loading} error={error} onRetry={reload} onViewAll={() => onNavigate?.("billing")} />
     </div>
   </>;
 }
@@ -32,9 +32,9 @@ export default function TenantDashboardPage({ onLogout, onNavigate }) {
   const { account, loading, error, retry } = useTenantAccount();
   const [isChatOpen, setIsChatOpen] = useState(false);
   const [requestRevision, setRequestRevision] = useState(0);
-  return <main className="min-h-screen bg-[#f6f9fd] text-slate-900">
+  return <main className="tenant-page min-h-screen bg-[#f6f9fd] text-slate-900">
     <TenantHeader name={account?.full_name || "Tenant"} onLogout={onLogout} onNavigate={onNavigate} />
-    <div className="mx-auto max-w-[920px] px-5 pb-10 sm:px-8">
+    <div className="mx-auto max-w-[1100px] px-5 pb-10 sm:px-8">
       <WelcomeBanner name={account?.full_name} />
       <TenantAccountStatus loading={loading} error={error} retry={retry} variant="dashboard" />
       {account && <DashboardContent account={account} onNavigate={onNavigate} requestRevision={requestRevision} onOpenChat={() => setIsChatOpen(true)} />}

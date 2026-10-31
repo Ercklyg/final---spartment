@@ -9,7 +9,7 @@ function RecordedStatus() {
   return <span className="inline-flex items-center whitespace-nowrap rounded-full bg-emerald-50 px-2 py-1 text-emerald-600"><span className="mr-1 inline-block h-1.5 w-1.5 rounded-full bg-emerald-500" />Recorded</span>;
 }
 
-export default function PaymentHistory({ bills, loading, error, onRetry, onViewAll }) {
+export default function PaymentHistory({ bills, hasData, loading, error, onRetry, onViewAll }) {
   const [receiptId, setReceiptId] = useState(null);
   const payments = bills.flatMap(bill => bill.payments.map(payment => ({ ...payment, period: bill.billing_period })))
     .sort((a, b) => b.payment_date.localeCompare(a.payment_date)).slice(0, 4);
@@ -17,7 +17,9 @@ export default function PaymentHistory({ bills, loading, error, onRetry, onViewA
   return <>
     <section className="overflow-hidden rounded-xl border border-slate-200/80 bg-white p-5 shadow-[0_8px_24px_rgba(15,23,42,0.035)]">
       <div className="mb-3 flex items-center justify-between"><h2 className="text-sm font-bold text-slate-900">Payment history</h2><button type="button" onClick={onViewAll} className="flex items-center gap-1 text-[11px] font-medium text-blue-600 hover:text-blue-700">View all <ArrowRight size={14} /></button></div>
-      {loading ? <PageSkeleton variant="table" label="Loading payments..."/> : error ? <p role="alert" className="text-xs text-rose-700">{error} <button onClick={onRetry} className="underline">Retry</button></p> : <>
+      {loading && hasData && <p role="status" className="mb-3 text-[11px] font-medium text-blue-600">Refreshing payments…</p>}
+      {loading && !hasData ? <PageSkeleton variant="table" label="Loading payments..."/> : error && !hasData ? <p role="alert" className="text-xs text-rose-700">{error} <button onClick={onRetry} className="underline">Retry</button></p> : <>
+        {error && <p role="alert" className="mb-3 rounded-lg bg-rose-50 px-3 py-2 text-xs text-rose-700">Could not refresh: {error} <button onClick={onRetry} className="font-semibold underline">Retry</button></p>}
         <ul className="divide-y divide-slate-100 sm:hidden" aria-label="Recent payments">
           {payments.map(payment => <li key={payment.id} className="py-3 first:pt-1 last:pb-0">
             <div className="flex items-start justify-between gap-3">
