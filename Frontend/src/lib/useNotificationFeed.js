@@ -18,10 +18,15 @@ export function useNotificationFeed() {
     return ()=>{requestController.abort();generation.current=current+1;};
   },[revision]);
   useEffect(()=>{
-    const timer=setInterval(()=>{if(document.visibilityState==='visible'&&navigator.onLine)setRevision(n=>n+1);},30000);
-    const visible=()=>{if(document.visibilityState==='visible'&&navigator.onLine)setRevision(n=>n+1);};
+    const refresh=()=>{if(document.visibilityState==='visible'&&navigator.onLine)setRevision(n=>n+1);};
+    // Keep the open dashboard close to real time without maintaining a fragile
+    // long-lived connection through a serverless deployment.
+    const timer=setInterval(refresh,5000);
+    const visible=()=>{if(document.visibilityState==='visible')refresh();};
     document.addEventListener('visibilitychange',visible);
-    return()=>{clearInterval(timer);document.removeEventListener('visibilitychange',visible);};
+    window.addEventListener('focus',refresh);
+    window.addEventListener('online',refresh);
+    return()=>{clearInterval(timer);document.removeEventListener('visibilitychange',visible);window.removeEventListener('focus',refresh);window.removeEventListener('online',refresh);};
   },[]);
   const reload=()=>{controller.current?.abort();generation.current++;setState(s=>({...s,loading:true,loadingMore:false,error:''}));setRevision(n=>n+1);};
   const more=async()=>{

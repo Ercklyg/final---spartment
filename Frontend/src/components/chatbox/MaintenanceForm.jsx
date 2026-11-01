@@ -1,13 +1,23 @@
 import { api } from "../../lib/api.js";
 import { submitTenantRequest, uploadRequestAttachment } from "../../lib/requests.js";
 
-import { ArrowLeft, FileImage, Send, X } from "lucide-react";
+import { ArrowLeft, CheckCircle2, FileImage, FileText, Send, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { useOnlineStatus } from "../../lib/useOnlineStatus.js";
 
 const inputClass =
   "h-11 w-full rounded-xl border border-slate-200 bg-white px-3.5 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-blue-600 focus:ring-4 focus:ring-blue-600/10";
 const labelClass = "mb-1.5 block text-xs font-semibold text-slate-700";
+
+function SelectedFile({file,onRemove}){
+  const isImage=file.type.startsWith('image/');
+  const [preview]=useState(()=>isImage?URL.createObjectURL(file):'');
+  useEffect(()=>()=>{if(preview)URL.revokeObjectURL(preview);},[preview]);
+  return <li className="group relative overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+    {isImage?<div className="aspect-[4/3] bg-slate-100">{preview&&<img src={preview} alt={`Preview of ${file.name}`} className="h-full w-full object-cover"/>}</div>:<div className="flex aspect-[4/3] items-center justify-center bg-red-50 text-red-600"><FileText size={30}/></div>}
+    <div className="flex items-center gap-2 p-2"><span className="min-w-0 flex-1 truncate text-[11px] font-medium text-slate-700">{file.name}</span><button type="button" aria-label={`Remove ${file.name}`} onClick={onRemove} className="rounded-md p-1 text-slate-500 hover:bg-slate-100 hover:text-rose-600"><X size={14}/></button></div>
+  </li>;
+}
 
 function MaintenanceForm({ onBack, prefilledRoom = "" }) {
   const online=useOnlineStatus();
@@ -23,6 +33,7 @@ function MaintenanceForm({ onBack, prefilledRoom = "" }) {
 
   function handleChange(event) {
     const { name, value } = event.target;
+    setSent(false);
     setFormData((previous) => ({ ...previous, [name]: value }));
   }
 
@@ -32,12 +43,11 @@ function MaintenanceForm({ onBack, prefilledRoom = "" }) {
     if(busy.current)return;
     busy.current=true;setSaving(true);setSubmitError("");
     const signature=JSON.stringify([formData,files.map(file=>[file.name,file.size,file.type,file.lastModified])]);if(attempt.current?.signature!==signature)attempt.current={signature,id:crypto.randomUUID(),uploaded:new Set(),requestSaved:false};
-    try{await submitTenantRequest(api,'maintenance',formData,attempt.current.id);attempt.current.requestSaved=true;for(let index=0;index<files.length;index++){const file=files[index],key=`${file.name}:${file.size}:${file.lastModified}`;if(attempt.current.uploaded.has(key))continue;setProgress(`Uploading ${index+1} of ${files.length}: ${file.name}`);await uploadRequestAttachment(api,attempt.current.id,file);attempt.current.uploaded.add(key);}try{sessionStorage.removeItem(draftKey);}catch{/* Draft cleanup is optional. */}setSent(true);}catch(error){setSubmitError(attempt.current?.requestSaved&&attempt.current.uploaded.size<files.length?`Your request was saved, but an attachment needs retrying: ${error.message}`:error.message);}finally{busy.current=false;setSaving(false);setProgress("");}
+    try{await submitTenantRequest(api,'maintenance',formData,attempt.current.id);attempt.current.requestSaved=true;for(let index=0;index<files.length;index++){const file=files[index],key=`${file.name}:${file.size}:${file.lastModified}`;if(attempt.current.uploaded.has(key))continue;setProgress(`Uploading ${index+1} of ${files.length}: ${file.name}`);await uploadRequestAttachment(api,attempt.current.id,file);attempt.current.uploaded.add(key);}try{sessionStorage.removeItem(draftKey);}catch{/* Draft cleanup is optional. */}setFormData({roomNumber:prefilledRoom,issue:'',description:'',priority:'Normal'});setFiles([]);attempt.current=null;setSent(true);}catch(error){setSubmitError(attempt.current?.requestSaved&&attempt.current.uploaded.size<files.length?`Your request was saved, but an attachment needs retrying: ${error.message}`:error.message);}finally{busy.current=false;setSaving(false);setProgress("");}
   }
 
-  function chooseFiles(event){const chosen=[...event.target.files];const allowed=new Set(['image/jpeg','image/png','image/webp','application/pdf']);if(files.length+chosen.length>5){setSubmitError('You can attach up to 5 files.');event.target.value='';return;}const invalid=chosen.find(file=>!allowed.has(file.type)||file.size>10*1024*1024);if(invalid){setSubmitError(`${invalid.name} must be a JPG, PNG, WebP, or PDF no larger than 10 MB.`);event.target.value='';return;}setFiles(previous=>[...previous,...chosen]);setSubmitError('');event.target.value='';}
+  function chooseFiles(event){const chosen=[...event.target.files];const allowed=new Set(['image/jpeg','image/png','image/webp','application/pdf']);if(files.length+chosen.length>5){setSubmitError('You can attach up to 5 files.');event.target.value='';return;}const invalid=chosen.find(file=>!allowed.has(file.type)||file.size>10*1024*1024);if(invalid){setSubmitError(`${invalid.name} must be a JPG, PNG, WebP, or PDF no larger than 10 MB.`);event.target.value='';return;}setFiles(previous=>[...previous,...chosen]);setSent(false);setSubmitError('');event.target.value='';}
 
-  if(sent)return <div role="status" className="p-5"><h3 className="font-bold">Request submitted</h3><p className="mt-2 text-sm">Your message{files.length?` and ${files.length} attachment${files.length===1?'':'s'}`:''} has been saved for the administrator.</p><button type="button" onClick={onBack} className="mt-4 text-blue-600 underline">Back to menu</button></div>;
   return (
     <div className="flex flex-col p-4">
       <div className="mb-3 flex items-center gap-2.5">
@@ -62,6 +72,7 @@ function MaintenanceForm({ onBack, prefilledRoom = "" }) {
         </span>
       </div>
 
+      {sent&&<div role="status" className="mb-3 flex items-start gap-2.5 rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-emerald-800"><CheckCircle2 size={19} className="mt-0.5 shrink-0"/><div><p className="text-sm font-bold">Request submitted</p><p className="text-xs leading-5">Your maintenance request was sent to the administrator. The form is ready for another request.</p></div></div>}
       <form onSubmit={handleSubmit}><fieldset disabled={saving} className="flex flex-col gap-3.5">
         <div className="grid grid-cols-2 gap-3.5">
           <div>
@@ -126,7 +137,7 @@ function MaintenanceForm({ onBack, prefilledRoom = "" }) {
           />
         </div>
 
-        <div><label htmlFor="maintenance-files" className={labelClass}>Photos or documents <span className="font-normal text-slate-500">(optional)</span></label><label htmlFor="maintenance-files" className="flex min-h-11 cursor-pointer items-center justify-center gap-2 rounded-xl border border-dashed border-blue-300 bg-blue-50 px-3 text-sm font-semibold text-blue-700 hover:bg-blue-100"><FileImage size={17}/>Add JPG, PNG, WebP, or PDF</label><input id="maintenance-files" type="file" multiple accept="image/jpeg,image/png,image/webp,application/pdf" onChange={chooseFiles} className="sr-only"/><p className="mt-1 text-[11px] text-slate-500">Up to 5 files, 10 MB each.</p>{files.length>0&&<ul className="mt-2 space-y-1.5">{files.map((file,index)=><li key={`${file.name}-${file.lastModified}`} className="flex items-center gap-2 rounded-lg bg-slate-100 px-2.5 py-2 text-xs"><span className="min-w-0 flex-1 truncate">{file.name}</span><button type="button" aria-label={`Remove ${file.name}`} onClick={()=>setFiles(items=>items.filter((_,itemIndex)=>itemIndex!==index))} className="rounded p-1 text-slate-500 hover:bg-white"><X size={14}/></button></li>)}</ul>}</div>
+        <div><label htmlFor="maintenance-files" className={labelClass}>Photos or documents <span className="font-normal text-slate-500">(optional)</span></label><label htmlFor="maintenance-files" className="flex min-h-11 cursor-pointer items-center justify-center gap-2 rounded-xl border border-dashed border-blue-300 bg-blue-50 px-3 text-sm font-semibold text-blue-700 hover:bg-blue-100"><FileImage size={17}/>Add JPG, PNG, WebP, or PDF</label><input id="maintenance-files" type="file" multiple accept="image/jpeg,image/png,image/webp,application/pdf" onChange={chooseFiles} className="sr-only"/><p className="mt-1 text-[11px] text-slate-500">Up to 5 files, 10 MB each.</p>{files.length>0&&<ul aria-label="Selected attachments" className="mt-2 grid grid-cols-2 gap-2">{files.map((file,index)=><SelectedFile key={`${file.name}-${file.lastModified}`} file={file} onRemove={()=>setFiles(items=>items.filter((_,itemIndex)=>itemIndex!==index))}/>)}</ul>}</div>
 
         <button
           type="submit"
