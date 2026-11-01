@@ -13,7 +13,8 @@ export async function browserRequest(path,options={}) {
     if(error.name==='TimeoutError'){
       const timeout=new Error('The request timed out. Please retry.',{cause:error});timeout.code='timeout';throw timeout;
     }
-    const network=new Error('Unable to reach the backend. Make sure the backend server is running.',{cause:error});network.code='network';throw network;
+    const message=navigator.onLine?'Unable to reach the service. Please check your connection and retry.':'You are offline. Reconnect to the internet and try again.';
+    const network=new Error(message,{cause:error});network.code='network';throw network;
   }
   if(!response.ok){const error=new Error(data.error||'Request failed.');error.status=response.status;error.code=data.code;throw error;}
   return data;

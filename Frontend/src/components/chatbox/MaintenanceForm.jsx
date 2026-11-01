@@ -2,21 +2,24 @@ import { api } from "../../lib/api.js";
 import { submitTenantRequest, uploadRequestAttachment } from "../../lib/requests.js";
 
 import { ArrowLeft, FileImage, Send, X } from "lucide-react";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { useOnlineStatus } from "../../lib/useOnlineStatus.js";
 
 const inputClass =
   "h-11 w-full rounded-xl border border-slate-200 bg-white px-3.5 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-blue-600 focus:ring-4 focus:ring-blue-600/10";
 const labelClass = "mb-1.5 block text-xs font-semibold text-slate-700";
 
 function MaintenanceForm({ onBack, prefilledRoom = "" }) {
-
+  const online=useOnlineStatus();
+  const draftKey='spartment:maintenance-draft';
   const busy=useRef(false); const attempt=useRef(null); const [saving,setSaving]=useState(false); const [submitError,setSubmitError]=useState(""); const [sent,setSent]=useState(false); const [files,setFiles]=useState([]); const [progress,setProgress]=useState("");
-  const [formData, setFormData] = useState({
-    roomNumber: prefilledRoom,
-    issue: "",
-    description: "",
-    priority: "Normal",
+  const [formData, setFormData] = useState(()=>{
+    try {
+      const saved=JSON.parse(sessionStorage.getItem(draftKey));
+      return saved&&typeof saved==='object'?{roomNumber:prefilledRoom||saved.roomNumber||'',issue:saved.issue||'',description:saved.description||'',priority:['Normal','High','Urgent'].includes(saved.priority)?saved.priority:'Normal'}:{roomNumber:prefilledRoom,issue:'',description:'',priority:'Normal'};
+    } catch { return {roomNumber:prefilledRoom,issue:'',description:'',priority:'Normal'}; }
   });
+  useEffect(()=>{try{sessionStorage.setItem(draftKey,JSON.stringify(formData));}catch{/* Draft storage is optional. */}},[formData]);
 
   function handleChange(event) {
     const { name, value } = event.target;
@@ -25,10 +28,11 @@ function MaintenanceForm({ onBack, prefilledRoom = "" }) {
 
   async function handleSubmit(event) {
     event.preventDefault();
+    if(!online){setSubmitError('You are offline. Your form is saved; reconnect and retry.');return;}
     if(busy.current)return;
     busy.current=true;setSaving(true);setSubmitError("");
     const signature=JSON.stringify([formData,files.map(file=>[file.name,file.size,file.type,file.lastModified])]);if(attempt.current?.signature!==signature)attempt.current={signature,id:crypto.randomUUID(),uploaded:new Set(),requestSaved:false};
-    try{await submitTenantRequest(api,'maintenance',formData,attempt.current.id);attempt.current.requestSaved=true;for(let index=0;index<files.length;index++){const file=files[index],key=`${file.name}:${file.size}:${file.lastModified}`;if(attempt.current.uploaded.has(key))continue;setProgress(`Uploading ${index+1} of ${files.length}: ${file.name}`);await uploadRequestAttachment(api,attempt.current.id,file);attempt.current.uploaded.add(key);}setSent(true);}catch(error){setSubmitError(attempt.current?.requestSaved&&attempt.current.uploaded.size<files.length?`Your request was saved, but an attachment needs retrying: ${error.message}`:error.message);}finally{busy.current=false;setSaving(false);setProgress("");}
+    try{await submitTenantRequest(api,'maintenance',formData,attempt.current.id);attempt.current.requestSaved=true;for(let index=0;index<files.length;index++){const file=files[index],key=`${file.name}:${file.size}:${file.lastModified}`;if(attempt.current.uploaded.has(key))continue;setProgress(`Uploading ${index+1} of ${files.length}: ${file.name}`);await uploadRequestAttachment(api,attempt.current.id,file);attempt.current.uploaded.add(key);}try{sessionStorage.removeItem(draftKey);}catch{/* Draft cleanup is optional. */}setSent(true);}catch(error){setSubmitError(attempt.current?.requestSaved&&attempt.current.uploaded.size<files.length?`Your request was saved, but an attachment needs retrying: ${error.message}`:error.message);}finally{busy.current=false;setSaving(false);setProgress("");}
   }
 
   function chooseFiles(event){const chosen=[...event.target.files];const allowed=new Set(['image/jpeg','image/png','image/webp','application/pdf']);if(files.length+chosen.length>5){setSubmitError('You can attach up to 5 files.');event.target.value='';return;}const invalid=chosen.find(file=>!allowed.has(file.type)||file.size>10*1024*1024);if(invalid){setSubmitError(`${invalid.name} must be a JPG, PNG, WebP, or PDF no larger than 10 MB.`);event.target.value='';return;}setFiles(previous=>[...previous,...chosen]);setSubmitError('');event.target.value='';}
@@ -126,11 +130,13 @@ function MaintenanceForm({ onBack, prefilledRoom = "" }) {
 
         <button
           type="submit"
-          className="mt-1 flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-blue-600 text-sm font-semibold text-white shadow-[0_8px_20px_-6px_rgba(37,99,235,0.5)] transition hover:bg-blue-700 active:scale-[0.99]"
+          disabled={!online||saving}
+          className="mt-1 flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-blue-600 text-sm font-semibold text-white shadow-[0_8px_20px_-6px_rgba(37,99,235,0.5)] transition hover:bg-blue-700 active:scale-[0.99] disabled:cursor-not-allowed disabled:bg-slate-400 disabled:shadow-none"
         >
           <Send size={16} />
-          Submit request
+          {online?'Submit request':'Reconnect to submit'}
         </button>
+      {!online&&<p role="status" className="text-sm text-amber-800">Your typed details are saved for this browser session. Attachments must be selected again after a page reload.</p>}
       {submitError&&<p role="alert" className="text-sm text-rose-700">{submitError}</p>}{saving&&<p role="status" className="text-sm">{progress||'Submitting request...'}</p>}</fieldset></form>
     </div>
   );

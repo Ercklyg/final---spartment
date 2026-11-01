@@ -36,6 +36,28 @@ body {
   min-height: 100vh;
 }
 
+.connection-status {
+  position: fixed;
+  z-index: 100;
+  left: 50%;
+  bottom: max(16px, env(safe-area-inset-bottom));
+  display: flex;
+  width: min(calc(100% - 24px), 620px);
+  transform: translateX(-50%);
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border-radius: 12px;
+  padding: 11px 16px;
+  color: white;
+  box-shadow: 0 12px 32px rgb(15 23 42 / 25%);
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.connection-status.is-offline { background: #9a3412; }
+.connection-status.is-online { background: #047857; }
+
 img,
 svg {
   max-width: 100%;

@@ -6,6 +6,7 @@ import App from "./App.jsx";
 import { ResetPasswordPage } from "./lazyEntrypoints.jsx";
 import ActionFeedback from "./components/ActionFeedback.jsx";
 import PageSkeleton from "./components/PageSkeleton.jsx";
+import ConnectionStatus from "./components/ConnectionStatus.jsx";
 import "./components/ActionFeedback.css";
 
 createRoot(document.getElementById("root")).render(
@@ -14,5 +15,6 @@ createRoot(document.getElementById("root")).render(
       {isRecoveryPage ? <ResetPasswordPage /> : <App />}
     </Suspense>
     <ActionFeedback />
+    <ConnectionStatus />
   </StrictMode>
 );
