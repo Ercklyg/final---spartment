@@ -161,12 +161,12 @@ a {
 }
 
 /* Keep the page position stable while a modal is open. */
-html:has(dialog[open], [role="dialog"][aria-modal="true"]),
-body:has(dialog[open], [role="dialog"][aria-modal="true"]) {
+html:has(dialog:modal, [role="dialog"][aria-modal="true"]),
+body:has(dialog:modal, [role="dialog"][aria-modal="true"]) {
   overflow: hidden;
 }
 
-dialog[open], [role="dialog"][aria-modal="true"] {
+dialog:modal, [role="dialog"][aria-modal="true"] {
   overscroll-behavior: contain;
 }
 
@@ -176,7 +176,7 @@ dialog[open], [role="dialog"][aria-modal="true"] {
     transition-property: background-color, border-color, color, box-shadow;
   }
 
-  dialog[open] {
+  dialog:modal {
     animation: dialog-fade-in 150ms ease-out;
   }
 }
