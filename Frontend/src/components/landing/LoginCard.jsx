@@ -123,7 +123,7 @@ function LoginCard({ onContinueAsGuest, onSignIn }) {
                 type="button"
                 onClick={() => setShowPassword((value) => !value)}
                 disabled={isSigningIn}
-                className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 transition hover:text-slate-700"
+                className="absolute right-2 top-1/2 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-lg text-slate-500 transition hover:bg-slate-100 hover:text-slate-700"
                 aria-label={
                   showPassword
                     ? "Hide password"
@@ -170,7 +170,7 @@ function LoginCard({ onContinueAsGuest, onSignIn }) {
         <div className="my-5 flex items-center gap-4">
           <div className="h-px flex-1 bg-slate-200" />
 
-          <span className="text-xs font-medium text-slate-400">
+          <span className="text-xs font-medium text-slate-600">
             OR
           </span>
 

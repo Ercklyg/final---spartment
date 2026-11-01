@@ -11,7 +11,7 @@
 .building-viewer-title { display: flex; align-items: center; gap: 10px; margin-right: auto; }
 .building-viewer-title > span { display: grid; place-items: center; width: 38px; height: 38px; border: 1px solid #dbe7fa; border-radius: 12px; color: #2563eb; background: #eff5ff; }
 .building-viewer-title strong { display: block; font-size: 13px; font-weight: 700; }
-.building-viewer-title small { display: block; font-size: 10px; margin-top: 2px; color: #8291a4; }
+.building-viewer-title small { display: block; font-size: 10px; margin-top: 2px; color: #52657d; }
 .building-icon-button { display: inline-flex; justify-content: center; align-items: center; flex-shrink: 0; width: 38px; height: 38px; border-radius: 10px; color: #53657d; background: transparent; border: 1px solid transparent; transition: background .15s, color .15s; }
 .building-icon-button:hover { background: #e9f1fd; color: #1d4ed8; }
 .building-viewport { position: relative; isolation: isolate; height: 520px; background: #f1f0ec; overflow: hidden; }
@@ -39,8 +39,8 @@
 .building-presets button[aria-pressed=true] { color: #1d4ed8; background: #eff5ff; font-weight: 600; }
 .building-presets button:enabled:hover { background: #f1f5f9; }
 .building-viewer button:disabled { cursor: not-allowed; opacity: .45; }
-.building-viewer-caption { padding: 0 20px 16px; font-size: 10px; line-height: 1.7; color: #75859a; }
-.building-viewer-caption p + p { margin-top: 3px; color: #8e9caf; }
+.building-viewer-caption { padding: 0 20px 16px; font-size: 10px; line-height: 1.7; color: #52657d; }
+.building-viewer-caption p + p { margin-top: 3px; color: #52657d; }
 @media (max-width: 640px) {
   .building-tour { padding: 32px 20px 0; }
   .building-viewer { border-radius: 18px; }
