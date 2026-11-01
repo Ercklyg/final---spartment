@@ -1,5 +1,5 @@
 import { Building2, Eye, MessageSquareText, RefreshCw, Wrench, X } from "lucide-react";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import PageSkeleton from "../PageSkeleton.jsx";
 import { api } from "../../lib/api.js";
 import { useRemoteData } from "../../lib/useRemoteData.js";
@@ -103,6 +103,9 @@ function RequestInformation({ request, inquiry, onClose, onSaved }) {
 
 export default function LiveAdminRequests() {
   const { data, error, loading, reload } = useRemoteData(loadWorkspace, { keepPrevious: true });
+  const reloadRef=useRef(reload);
+  useEffect(()=>{reloadRef.current=reload;},[reload]);
+  useEffect(()=>{const refresh=()=>{if(document.visibilityState==='visible'&&navigator.onLine)reloadRef.current();};const timer=setInterval(refresh,5000);window.addEventListener('focus',refresh);window.addEventListener('online',refresh);return()=>{clearInterval(timer);window.removeEventListener('focus',refresh);window.removeEventListener('online',refresh);};},[]);
   const [filter, setFilter] = useSessionState("admin-requests-filter", "All");
   const [selected, setSelected] = useState(null);
   const requests = data?.requests || [];
@@ -110,6 +113,7 @@ export default function LiveAdminRequests() {
   const shownRequests = requests.filter(request => filter === "All" || request.kind === filter.toLowerCase());
   const shownInquiries = filter === "All" || filter === "Inquiry" ? inquiries : [];
   const total = requests.length + inquiries.length;
+  const currentSelection=selected?{...selected,request:(selected.inquiry?inquiries:requests).find(item=>item.id===selected.request.id)||selected.request}:null;
 
   return <section className="space-y-4 py-6 sm:py-8">
     <div><div className="flex items-center gap-2"><h1 className="text-[28px] font-extrabold leading-tight tracking-tight sm:text-3xl">Customer requests</h1>{data && <span className="rounded-full bg-blue-50 px-2.5 py-1 text-xs font-bold text-blue-700">{total}</span>}</div><p className="mt-1 text-sm text-slate-500 sm:text-base">Review tenant requests and room inquiries.</p></div>
@@ -120,6 +124,6 @@ export default function LiveAdminRequests() {
       {shownInquiries.map(request => <RequestCard key={`inquiry-${request.id}`} request={request} inquiry onView={() => setSelected({ request, inquiry: true })} />)}
       {!shownRequests.length && !shownInquiries.length && <p className="rounded-2xl border border-dashed border-slate-300 bg-white p-8 text-center text-sm text-slate-500">No matching requests.</p>}
     </div>}
-    {selected && <RequestInformation key={selected.request.id} request={selected.request} inquiry={selected.inquiry} onClose={() => setSelected(null)} onSaved={reload} />}
+    {currentSelection && <RequestInformation key={currentSelection.request.id} request={currentSelection.request} inquiry={currentSelection.inquiry} onClose={() => setSelected(null)} onSaved={reload} />}
   </section>;
 }
