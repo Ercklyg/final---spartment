@@ -3,6 +3,8 @@ import { HttpError } from '../middleware/errors.js';
 
 const configured=()=>Boolean(process.env.VAPID_PUBLIC_KEY&&process.env.VAPID_PRIVATE_KEY&&process.env.VAPID_SUBJECT);
 const category={bill:'billing_enabled',payment:'payment_enabled',request:'request_enabled',account:'account_enabled'};
+const cleanupInterval=24*60*60*1000,deliveryRetention=90*24*60*60*1000;
+let lastCleanup=0;
 
 function configure(){
  if(!configured())return false;
@@ -29,6 +31,11 @@ export async function removePushSubscription(client,userId,endpoint){
 
 export async function deliverPendingPushes(client){
  if(!configure())return {enabled:false,sent:0};
+ if(Date.now()-lastCleanup>=cleanupInterval){
+  const cutoff=new Date(Date.now()-deliveryRetention).toISOString();
+  const cleanup=await client.from('push_deliveries').delete().lt('delivered_at',cutoff);
+  if(!cleanup.error)lastCleanup=Date.now();
+ }
  const since=new Date(Date.now()-5*60*1000).toISOString();
  const notices=await client.from('notifications').select('id,tenant_id,title,message,kind,source_id,created_at').gte('created_at',since).order('created_at');
  if(notices.error)throw new HttpError(503,'Unable to prepare push notifications.');
