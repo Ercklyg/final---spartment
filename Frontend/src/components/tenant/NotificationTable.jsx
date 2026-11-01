@@ -5,7 +5,6 @@ import { markAllNotificationsRead, markNotificationsRead, updateNotificationEnga
 import { useNotificationFeed } from "../../lib/useNotificationFeed.js";
 import { closeFromBackdrop } from "../../lib/dialog.js";
 import { api } from "../../lib/api.js";
-import NotificationPreferences from './NotificationPreferences.jsx';
 
 const billingNotice = item => ["bill", "payment", "payment_reminder"].includes(item.kind);
 const category = item => billingNotice(item) ? "Payments" : item.kind === "request" ? "Requests" : "Account";
@@ -79,7 +78,6 @@ export default function NotificationTable({ onNavigate }) {
       {error&&<p role="alert" className="mt-3 text-sm text-rose-700">{error} <button onClick={reload} className="underline">Retry</button></p>}
       {!loading&&total>3&&<p className="mt-3 text-xs text-slate-500">Showing 3 of {total} notifications. Select View all to see the rest.</p>}
       {saveError&&<p role="alert" className="mt-3 text-sm text-rose-700">{saveError}</p>}
-      <NotificationPreferences/>
     </section>
     {allOpen&&<NoticeDialog title="All notifications" onClose={()=>setAllOpen(false)}>{content}</NoticeDialog>}
     {selected&&<NoticeDialog title={selected.title} onClose={()=>setSelected(null)}>
