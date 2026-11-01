@@ -124,6 +124,7 @@ api.get=get;
 api.post=(path,body,options={})=>request(path,{...options,method:'POST',body:JSON.stringify(body)});
 api.patch=(path,body,options={})=>request(path,{...options,method:'PATCH',body:JSON.stringify(body)});
 api.delete=(path,options={})=>request(path,{...options,method:'DELETE',body:'{}'});
+api.upload=(path,file,options={})=>request(path,{...options,method:'POST',body:file,headers:{...options.headers,'Content-Type':file.type}});
 api.withSignal=(signal,{force=false}={})=>({
   get:(path,options={})=>get(path,{...options,signal,force:force||options.force}),
   post:(path,body,options={})=>api.post(path,body,{...options,signal}),

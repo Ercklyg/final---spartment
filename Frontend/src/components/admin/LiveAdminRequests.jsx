@@ -4,6 +4,7 @@ import PageSkeleton from "../PageSkeleton.jsx";
 import { api } from "../../lib/api.js";
 import { useRemoteData } from "../../lib/useRemoteData.js";
 import { useSessionState } from "../../lib/useSessionState.js";
+import MaintenanceAttachments from "../requests/MaintenanceAttachments.jsx";
 
 const loadWorkspace = client => client.get("/requests/workspace");
 const inquiryStatuses = ["New", "Contacted", "Resolved"];
@@ -89,6 +90,7 @@ function RequestInformation({ request, inquiry, onClose, onSaved }) {
         </div>
         <div className="border-t border-slate-200 bg-white p-4"><strong className="text-xs font-semibold uppercase tracking-wide text-slate-500">Message</strong><p className="mt-1 whitespace-pre-wrap break-words leading-6 text-slate-700">{request.message || "No message provided."}</p></div>
       </div>
+      {!inquiry && request.kind === "maintenance" && <MaintenanceAttachments requestId={request.id} attachments={request.maintenance_attachments}/>}
       <form onSubmit={save} className="mt-5 border-t border-slate-100 pt-5"><fieldset disabled={saving} className="space-y-4">
         <label className="block text-sm font-medium">Status <span className="font-normal text-slate-500">· Resolved means done</span><select value={status} onChange={event => setStatus(event.target.value)} className="mt-1.5 block h-11 w-full rounded-xl border border-slate-200 bg-white px-3">{(inquiry ? inquiryStatuses : requestStatuses).map(value => <option key={value} value={value}>{value === "Resolved" ? "Resolved (Done)" : value}</option>)}</select></label>
         {!inquiry && <label className="block text-sm font-medium">Update visible to tenant<textarea maxLength={4000} value={note} onChange={event => setNote(event.target.value)} className="mt-1.5 min-h-24 w-full rounded-xl border border-slate-200 p-3" /></label>}

@@ -1,7 +1,7 @@
 import { api } from "../../lib/api.js";
-import { submitTenantRequest } from "../../lib/requests.js";
+import { submitTenantRequest, uploadRequestAttachment } from "../../lib/requests.js";
 
-import { ArrowLeft, Send } from "lucide-react";
+import { ArrowLeft, FileImage, Send, X } from "lucide-react";
 import { useRef, useState } from "react";
 
 const inputClass =
@@ -10,7 +10,7 @@ const labelClass = "mb-1.5 block text-xs font-semibold text-slate-700";
 
 function MaintenanceForm({ onBack, prefilledRoom = "" }) {
 
-  const busy=useRef(false); const attempt=useRef(null); const [saving,setSaving]=useState(false); const [submitError,setSubmitError]=useState(""); const [sent,setSent]=useState(false);
+  const busy=useRef(false); const attempt=useRef(null); const [saving,setSaving]=useState(false); const [submitError,setSubmitError]=useState(""); const [sent,setSent]=useState(false); const [files,setFiles]=useState([]); const [progress,setProgress]=useState("");
   const [formData, setFormData] = useState({
     roomNumber: prefilledRoom,
     issue: "",
@@ -27,11 +27,13 @@ function MaintenanceForm({ onBack, prefilledRoom = "" }) {
     event.preventDefault();
     if(busy.current)return;
     busy.current=true;setSaving(true);setSubmitError("");
-    const signature=JSON.stringify(formData);if(attempt.current?.signature!==signature)attempt.current={signature,id:crypto.randomUUID()};
-    try{await submitTenantRequest(api,'maintenance',formData,attempt.current.id);setSent(true);}catch(error){setSubmitError(error.message);}finally{busy.current=false;setSaving(false);}
+    const signature=JSON.stringify([formData,files.map(file=>[file.name,file.size,file.type,file.lastModified])]);if(attempt.current?.signature!==signature)attempt.current={signature,id:crypto.randomUUID(),uploaded:new Set(),requestSaved:false};
+    try{await submitTenantRequest(api,'maintenance',formData,attempt.current.id);attempt.current.requestSaved=true;for(let index=0;index<files.length;index++){const file=files[index],key=`${file.name}:${file.size}:${file.lastModified}`;if(attempt.current.uploaded.has(key))continue;setProgress(`Uploading ${index+1} of ${files.length}: ${file.name}`);await uploadRequestAttachment(api,attempt.current.id,file);attempt.current.uploaded.add(key);}setSent(true);}catch(error){setSubmitError(attempt.current?.requestSaved&&attempt.current.uploaded.size<files.length?`Your request was saved, but an attachment needs retrying: ${error.message}`:error.message);}finally{busy.current=false;setSaving(false);setProgress("");}
   }
 
-  if(sent)return <div role="status" className="p-5"><h3 className="font-bold">Request submitted</h3><p className="mt-2 text-sm">Your message has been saved for the administrator.</p><button type="button" onClick={onBack} className="mt-4 text-blue-600 underline">Back to menu</button></div>;
+  function chooseFiles(event){const chosen=[...event.target.files];const allowed=new Set(['image/jpeg','image/png','image/webp','application/pdf']);if(files.length+chosen.length>5){setSubmitError('You can attach up to 5 files.');event.target.value='';return;}const invalid=chosen.find(file=>!allowed.has(file.type)||file.size>10*1024*1024);if(invalid){setSubmitError(`${invalid.name} must be a JPG, PNG, WebP, or PDF no larger than 10 MB.`);event.target.value='';return;}setFiles(previous=>[...previous,...chosen]);setSubmitError('');event.target.value='';}
+
+  if(sent)return <div role="status" className="p-5"><h3 className="font-bold">Request submitted</h3><p className="mt-2 text-sm">Your message{files.length?` and ${files.length} attachment${files.length===1?'':'s'}`:''} has been saved for the administrator.</p><button type="button" onClick={onBack} className="mt-4 text-blue-600 underline">Back to menu</button></div>;
   return (
     <div className="flex flex-col p-4">
       <div className="mb-3 flex items-center gap-2.5">
@@ -120,6 +122,8 @@ function MaintenanceForm({ onBack, prefilledRoom = "" }) {
           />
         </div>
 
+        <div><label htmlFor="maintenance-files" className={labelClass}>Photos or documents <span className="font-normal text-slate-500">(optional)</span></label><label htmlFor="maintenance-files" className="flex min-h-11 cursor-pointer items-center justify-center gap-2 rounded-xl border border-dashed border-blue-300 bg-blue-50 px-3 text-sm font-semibold text-blue-700 hover:bg-blue-100"><FileImage size={17}/>Add JPG, PNG, WebP, or PDF</label><input id="maintenance-files" type="file" multiple accept="image/jpeg,image/png,image/webp,application/pdf" onChange={chooseFiles} className="sr-only"/><p className="mt-1 text-[11px] text-slate-500">Up to 5 files, 10 MB each.</p>{files.length>0&&<ul className="mt-2 space-y-1.5">{files.map((file,index)=><li key={`${file.name}-${file.lastModified}`} className="flex items-center gap-2 rounded-lg bg-slate-100 px-2.5 py-2 text-xs"><span className="min-w-0 flex-1 truncate">{file.name}</span><button type="button" aria-label={`Remove ${file.name}`} onClick={()=>setFiles(items=>items.filter((_,itemIndex)=>itemIndex!==index))} className="rounded p-1 text-slate-500 hover:bg-white"><X size={14}/></button></li>)}</ul>}</div>
+
         <button
           type="submit"
           className="mt-1 flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-blue-600 text-sm font-semibold text-white shadow-[0_8px_20px_-6px_rgba(37,99,235,0.5)] transition hover:bg-blue-700 active:scale-[0.99]"
@@ -127,7 +131,7 @@ function MaintenanceForm({ onBack, prefilledRoom = "" }) {
           <Send size={16} />
           Submit request
         </button>
-      {submitError&&<p role="alert" className="text-sm text-rose-700">{submitError}</p>}{saving&&<p role="status" className="text-sm">Submitting...</p>}</fieldset></form>
+      {submitError&&<p role="alert" className="text-sm text-rose-700">{submitError}</p>}{saving&&<p role="status" className="text-sm">{progress||'Submitting request...'}</p>}</fieldset></form>
     </div>
   );
 }

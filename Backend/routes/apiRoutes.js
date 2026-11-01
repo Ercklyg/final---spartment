@@ -1,4 +1,5 @@
 import { Router } from 'express';
+import express from 'express';
 import { authenticate,requireAdmin } from '../middleware/auth.js';
 import * as controller from '../controllers/resourceController.js';
 import * as app from '../controllers/appController.js';
@@ -38,6 +39,8 @@ router.get('/payments/:id/corrections',requireAdmin,app.correctionHistory);
 router.get('/requests',app.requests);
 router.get('/requests/workspace',requireAdmin,app.requestWorkspace);
 router.post('/requests/submit',app.requestCreate);
+router.post('/requests/:id/attachments',express.raw({type:['image/jpeg','image/png','image/webp','application/pdf'],limit:'10mb'}),app.requestAttachment);
+router.get('/requests/:id/attachments/:attachmentId',app.requestAttachmentUrl);
 router.patch('/inquiries/:id',requireAdmin,app.inquiryUpdate);
 router.get('/notifications',app.notifications);
 router.get('/notifications/admin',requireAdmin,app.adminNotifications);

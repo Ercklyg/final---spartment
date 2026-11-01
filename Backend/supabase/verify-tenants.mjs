@@ -13,6 +13,7 @@ import { loadRequests, submitInquiry, submitTenantRequest } from '../models/requ
 import { analyticsSnapshot, loadAdminAnalytics, periodSeries } from '../models/adminAnalytics.js';
 import { loadNotifications, markNotificationsRead } from '../models/notifications.js';
 import { loadPaymentReceipt, receiptHtml } from '../models/paymentReceipt.js';
+import { maintenanceAttachmentUrl, maintenanceBucket, uploadMaintenanceAttachment } from '../models/maintenanceAttachments.js';
 
 const env = parseEnv(readFileSync('.env', 'utf8'));
 const url = env.SUPABASE_URL;
@@ -39,6 +40,7 @@ const emails = new Set();
 let buildingId;
 const roomIds = [];
 const inquiryIds = [];
+const attachmentPaths = [];
 const checked = (result, label) => { assert.equal(result.error, null, `${label}: ${result.error?.message}`); return result.data; };
 const invoke = async (token, body) => {
   const response = await fetch(`${url}/functions/v1/create-tenant`, {
@@ -168,6 +170,16 @@ try {
   const forbidden=await tenantClient.from('tenant_requests').update({status:'Resolved'}).eq('id',requestId).select('id');
   assert.ok(forbidden.error || forbidden.data.length===0);
   assert.equal((await loadRequests(tenantClient)).find(r=>r.id===requestId).status,'Scheduled');
+  const attachment=await uploadMaintenanceAttachment(tenantClient,created.body.id,requestId,Buffer.from([137,80,78,71,13,10,26,10,0]),'image/png','temporary-leak.png');
+  attachmentPaths.push(`${requestId}/${attachment.id}.png`);
+  const tenantAttachment=(await loadRequests(tenantClient)).find(r=>r.id===requestId).maintenance_attachments[0];
+  assert.equal(tenantAttachment.original_name,'temporary-leak.png');
+  assert.equal((await loadRequests(adminClient)).find(r=>r.id===requestId).maintenance_attachments.length,1);
+  assert.equal((await loadRequests(otherClient)).find(r=>r.id===requestId),undefined);
+  assert.match((await maintenanceAttachmentUrl(tenantClient,requestId,attachment.id)).url,/maintenance-attachments/);
+  assert.match((await maintenanceAttachmentUrl(adminClient,requestId,attachment.id)).url,/maintenance-attachments/);
+  await assert.rejects(maintenanceAttachmentUrl(otherClient,requestId,attachment.id),/not found/i);
+  console.log('PASS: private maintenance attachment upload, owner/admin access, signed viewing and other-tenant denial');
   await assert.rejects(submitTenantRequest(unassignedClient,'maintenance',requestForm,crypto.randomUUID()),/active room/);
   await submitTenantRequest(unassignedClient,'other',{subject:'Temporary general message',message:'Testing without a lease'},crypto.randomUUID());
   const inquiryId=crypto.randomUUID();inquiryIds.push(inquiryId);
@@ -241,6 +253,7 @@ try {
   if (ids.size) {
     const testLeases=checked(await server.from('leases').select('id').in('tenant_id',[...ids]),'Find test leases');
     if(testLeases.length)checked(await server.from('bills').delete().in('lease_id',testLeases.map(l=>l.id)), 'Remove test bills and payments');
+    if(attachmentPaths.length)checked(await server.storage.from(maintenanceBucket).remove(attachmentPaths),'Remove test maintenance attachments');
     checked(await server.from('leases').delete().in('tenant_id', [...ids]), 'Remove test leases');
     for (const id of ids) checked(await server.auth.admin.deleteUser(id), 'Remove test account');
   }

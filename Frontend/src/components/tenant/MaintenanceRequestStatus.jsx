@@ -2,6 +2,7 @@ import PageSkeleton from "../PageSkeleton.jsx";
 import { CheckCircle2, Clock3 } from "lucide-react";
 import { loadRequests } from "../../lib/requests.js";
 import { useRemoteData } from "../../lib/useRemoteData.js";
+import MaintenanceAttachments from "../requests/MaintenanceAttachments.jsx";
 
 export default function MaintenanceRequestStatus({ onOpenChat }) {
   const { data, loading, error, reload } = useRemoteData(loadRequests);
@@ -17,6 +18,7 @@ export default function MaintenanceRequestStatus({ onOpenChat }) {
             <p className="mt-0.5 whitespace-pre-wrap text-sm text-slate-500">{request.message}</p>
             <p className="mt-1 text-[11px] text-slate-400">{request.kind === "maintenance" ? "Maintenance" : "Other request"} · Submitted {new Date(request.created_at).toLocaleDateString("en-PH")}</p>
             {request.admin_note && <p className="mt-2 whitespace-pre-wrap rounded-lg bg-blue-50 px-3 py-2 text-xs text-blue-800">Admin update: {request.admin_note}</p>}
+            {request.kind === "maintenance" && <MaintenanceAttachments requestId={request.id} attachments={request.maintenance_attachments}/>}
           </div>
         </article>;
       })}
