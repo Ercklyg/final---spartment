@@ -7,11 +7,14 @@ const listeners=new Set(),pendingAuth=new Set(),responseCache=new Map(),inflight
 let session,refreshing,restoring;
 let revision=0;
 const changeKey='spartment-auth-change';
+const navigationCacheMs=5*60*1000;
+const revalidateAfterMs=10*1000;
+const refreshedEvent='spartment:data-refreshed';
 // Retire credentials written by the former localStorage-based implementation.
 try{localStorage.removeItem('spartment-session');}catch{/* Storage may be disabled. */}
 function publish(value){session=value;if(value?.user?.id&&!value.offline)saveOfflineSession(value);listeners.forEach(fn=>fn(value));}
 function broadcast(){try{localStorage.setItem(changeKey,crypto.randomUUID());}catch{/* Other tabs recheck on their next request. */}}
-function clearData(){responseCache.clear();for(const request of inflight.values())request.controller.abort();inflight.clear();}
+function clearData(){responseCache.clear();for(const request of inflight.values())request.controller.abort();inflight.clear();window.dispatchEvent(new Event('spartment:data-cleared'));}
 function clearLocalSession(){revision++;cancelAuth();clearData();clearSessionUiState();void clearOfflineData();publish(null);try{localStorage.removeItem('spartment-session');}catch{/* No credential is retained. */}broadcast();}
 function cancelAuth(){for(const controller of pendingAuth)controller.abort();pendingAuth.clear();}
 async function authRequest(path,body={}){
@@ -96,8 +99,14 @@ function get(path,{signal,cacheMs=0,force=false,timeoutMs=30000}={}){
   if(signal?.aborted)return Promise.reject(signal.reason);
   const key=`${revision}:${session?.user?.id||'public'}:${path}`;
   const cached=responseCache.get(key);
-  if(!force&&cached?.expiresAt>Date.now())return Promise.resolve(cached.data);
-  if(cached)responseCache.delete(key);
+  if(!force&&cached?.expiresAt>Date.now()){
+    if(Date.now()-cached.savedAt>revalidateAfterMs&&!cached.revalidating){
+      cached.revalidating=true;
+      queueMicrotask(()=>get(path,{cacheMs,force:true,timeoutMs}).then(()=>window.dispatchEvent(new CustomEvent(refreshedEvent,{detail:{path}}))).catch(()=>{cached.revalidating=false;}));
+    }
+    return Promise.resolve(cached.data);
+  }
+  if(cached&&!force)responseCache.delete(key);
   let record=inflight.get(key);
   // React StrictMode mounts, cleans up, and mounts effects again in development.
   // The first cleanup can abort the shared request before its promise has
@@ -111,7 +120,7 @@ function get(path,{signal,cacheMs=0,force=false,timeoutMs=30000}={}){
     record={controller,consumers:0,settled:false,promise:null};
     record.promise=retryingGet(path,{signal:controller.signal,timeoutMs}).then(data=>{
       void saveOfflineResponse(session?.user?.id,path,data);
-      if(cacheMs>0)responseCache.set(key,{data,expiresAt:Date.now()+cacheMs});
+      responseCache.set(key,{data,expiresAt:Date.now()+Math.max(cacheMs,navigationCacheMs),savedAt:Date.now(),revalidating:false});
       return data;
     }).catch(async error=>{
       if(!navigator.onLine&&session?.user?.id){const cached=await loadOfflineResponse(session.user.id,path);if(cached){window.dispatchEvent(new CustomEvent('spartment:offline-cache-used',{detail:{savedAt:cached.savedAt}}));return cached.data;}}
@@ -130,8 +139,8 @@ api.post=(path,body,options={})=>request(path,{...options,method:'POST',body:JSO
 api.patch=(path,body,options={})=>request(path,{...options,method:'PATCH',body:JSON.stringify(body)});
 api.delete=(path,options={})=>request(path,{...options,method:'DELETE',body:'{}'});
 api.upload=(path,file,options={})=>request(path,{...options,method:'POST',body:file,headers:{...options.headers,'Content-Type':file.type}});
-api.withSignal=(signal,{force=false}={})=>({
-  get:(path,options={})=>get(path,{...options,signal,force:force||options.force}),
+api.withSignal=(signal,{force=false,onGet}={})=>({
+  get:(path,options={})=>{onGet?.(path);return get(path,{...options,signal,force:force||options.force});},
   post:(path,body,options={})=>api.post(path,body,{...options,signal}),
   patch:(path,body,options={})=>api.patch(path,body,{...options,signal}),
   delete:(path,options={})=>api.delete(path,{...options,signal}),
