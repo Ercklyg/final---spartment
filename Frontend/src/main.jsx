@@ -9,6 +9,8 @@ import PageSkeleton from "./components/PageSkeleton.jsx";
 import ConnectionStatus from "./components/ConnectionStatus.jsx";
 import "./components/ActionFeedback.css";
 
+if ('serviceWorker' in navigator && import.meta.env.PROD) window.addEventListener('load',()=>navigator.serviceWorker.register('/sw.js').catch(()=>undefined));
+
 createRoot(document.getElementById("root")).render(
   <StrictMode>
     <Suspense fallback={<PageSkeleton variant={isRecoveryPage ? 'password' : 'auth'} label="Loading application..." fullPage/>}>

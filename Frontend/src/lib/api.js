@@ -2,16 +2,17 @@ import { actionConfirmation, showFeedback } from './actionFeedback.js';
 import { browserRequest } from './http.js';
 import { clearIdleMarker, resetIdleMarker } from './useIdleLogout.js';
 import { clearSessionUiState } from './useSessionState.js';
+import { clearOfflineData, loadOfflineResponse, loadOfflineSession, saveOfflineResponse, saveOfflineSession } from './offlineCache.js';
 const listeners=new Set(),pendingAuth=new Set(),responseCache=new Map(),inflight=new Map();
 let session,refreshing,restoring;
 let revision=0;
 const changeKey='spartment-auth-change';
 // Retire credentials written by the former localStorage-based implementation.
 try{localStorage.removeItem('spartment-session');}catch{/* Storage may be disabled. */}
-function publish(value){session=value;listeners.forEach(fn=>fn(value));}
+function publish(value){session=value;if(value?.user?.id&&!value.offline)saveOfflineSession(value);listeners.forEach(fn=>fn(value));}
 function broadcast(){try{localStorage.setItem(changeKey,crypto.randomUUID());}catch{/* Other tabs recheck on their next request. */}}
 function clearData(){responseCache.clear();for(const request of inflight.values())request.controller.abort();inflight.clear();}
-function clearLocalSession(){revision++;cancelAuth();clearData();clearSessionUiState();publish(null);try{localStorage.removeItem('spartment-session');}catch{/* No credential is retained. */}broadcast();}
+function clearLocalSession(){revision++;cancelAuth();clearData();clearSessionUiState();void clearOfflineData();publish(null);try{localStorage.removeItem('spartment-session');}catch{/* No credential is retained. */}broadcast();}
 function cancelAuth(){for(const controller of pendingAuth)controller.abort();pendingAuth.clear();}
 async function authRequest(path,body={}){
   const controller=new AbortController();pendingAuth.add(controller);
@@ -22,7 +23,7 @@ async function restoreSession(){
   if(restoring)return restoring;
   const current=revision;
   restoring=authRequest('/auth/session').then(value=>{if(current===revision)publish(value);})
-    .catch(error=>{if(current===revision&&error.name!=='AbortError')publish({error:error.message});})
+    .catch(error=>{if(current===revision&&error.name!=='AbortError'){if(error.status===401)void clearOfflineData();const offline=!navigator.onLine&&loadOfflineSession();publish(offline||{error:error.message});}})
     .finally(()=>{restoring=null;});
   return restoring;
 }
@@ -51,7 +52,7 @@ async function request(path,options={}){
   const requestOptions={...fetchOptions,signal,headers:{...fetchOptions.headers,...(userId?{'X-Spartment-User':userId}:{})}};
   const unchanged=()=>current===revision&&session?.user?.id===userId;
   try{
-    if(session?.user&&session.expires_at*1000<Date.now()+30000)await refresh();
+    if(session?.user&&!session.offline&&session.expires_at*1000<Date.now()+30000)await refresh();
     if(!unchanged())throw new Error('Your session changed. Please retry after signing in.');
     let data;
     try{data=await browserRequest(path,requestOptions);}catch(error){
@@ -109,8 +110,12 @@ function get(path,{signal,cacheMs=0,force=false,timeoutMs=30000}={}){
     const controller=new AbortController();
     record={controller,consumers:0,settled:false,promise:null};
     record.promise=retryingGet(path,{signal:controller.signal,timeoutMs}).then(data=>{
+      void saveOfflineResponse(session?.user?.id,path,data);
       if(cacheMs>0)responseCache.set(key,{data,expiresAt:Date.now()+cacheMs});
       return data;
+    }).catch(async error=>{
+      if(!navigator.onLine&&session?.user?.id){const cached=await loadOfflineResponse(session.user.id,path);if(cached){window.dispatchEvent(new CustomEvent('spartment:offline-cache-used',{detail:{savedAt:cached.savedAt}}));return cached.data;}}
+      throw error;
     }).finally(()=>{record.settled=true;if(inflight.get(key)===record)inflight.delete(key);});
     inflight.set(key,record);
   }
@@ -137,17 +142,20 @@ export const auth={
   restore:restoreSession,
   subscribe(callback){listeners.add(callback);queueMicrotask(()=>callback(session));if(session===undefined)void restoreSession();return ()=>listeners.delete(callback);},
   async signIn(email,password){
-    const current=++revision;cancelAuth();clearData();clearSessionUiState();
+    const current=++revision;cancelAuth();clearData();clearSessionUiState();await clearOfflineData();
     try{const value=await authRequest('/auth/login',{email,password});if(current!==revision)return;publish(value);resetIdleMarker(value?.user?.id);broadcast();showFeedback('You are now signed in.');}
     catch(error){if(error.name!=='AbortError')showFeedback(error.message,'error');throw error;}
   },
   async signOut(message){
     revision++;cancelAuth();
-    // Only report local sign-out once the server has cleared its HttpOnly cookies.
-    const result=await browserRequest('/auth/logout',{method:'POST',body:'{}'});
+    // Always clear private offline copies, even when the server cannot be reached.
+    let result;
+    try{result=await browserRequest('/auth/logout',{method:'POST',body:'{}'});}catch(error){
+      if(error.code!=='network'&&error.code!=='timeout')throw error;
+    }
     clearIdleMarker();
     clearLocalSession();
-    showFeedback(message||(result.revoked?'You have been signed out.':'Signed out on this device. Server session revocation could not be confirmed.'),result.revoked?'success':'info');
+    showFeedback(message||(result?.revoked?'You have been signed out.':'Signed out on this device. Server session revocation could not be confirmed.'),result?.revoked?'success':'info');
   },
 };
 window.addEventListener('storage',event=>{

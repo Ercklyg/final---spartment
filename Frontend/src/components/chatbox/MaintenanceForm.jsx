@@ -11,7 +11,7 @@ const labelClass = "mb-1.5 block text-xs font-semibold text-slate-700";
 
 function MaintenanceForm({ onBack, prefilledRoom = "" }) {
   const online=useOnlineStatus();
-  const draftKey='spartment:maintenance-draft';
+  const draftKey='spartment-ui:maintenance-draft';
   const busy=useRef(false); const attempt=useRef(null); const [saving,setSaving]=useState(false); const [submitError,setSubmitError]=useState(""); const [sent,setSent]=useState(false); const [files,setFiles]=useState([]); const [progress,setProgress]=useState("");
   const [formData, setFormData] = useState(()=>{
     try {
