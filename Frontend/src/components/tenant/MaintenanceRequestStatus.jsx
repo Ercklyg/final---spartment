@@ -1,8 +1,32 @@
 import PageSkeleton from "../PageSkeleton.jsx";
-import { CheckCircle2, Clock3 } from "lucide-react";
-import { loadRequests } from "../../lib/requests.js";
+import { CheckCircle2, Clock3, Paperclip } from "lucide-react";
+import { useRef, useState } from "react";
+import { api } from "../../lib/api.js";
+import { loadRequests, uploadRequestAttachment } from "../../lib/requests.js";
 import { useRemoteData } from "../../lib/useRemoteData.js";
 import MaintenanceAttachments from "../requests/MaintenanceAttachments.jsx";
+
+function AddRequestAttachments({request,onUploaded}){
+  const input=useRef(null),busy=useRef(false);
+  const [uploading,setUploading]=useState(false),[message,setMessage]=useState('');
+  const count=request.maintenance_attachments?.length||0;
+  const choose=async event=>{
+    const files=[...event.target.files];event.target.value='';
+    if(!files.length||busy.current)return;
+    if(count+files.length>5){setMessage(`You can add ${5-count} more attachment${5-count===1?'':'s'} to this request.`);return;}
+    const allowed=new Set(['image/jpeg','image/png','image/webp','application/pdf']);
+    const invalid=files.find(file=>!allowed.has(file.type)||file.size>10*1024*1024);
+    if(invalid){setMessage(`${invalid.name} must be a JPG, PNG, WebP, or PDF no larger than 10 MB.`);return;}
+    busy.current=true;setUploading(true);setMessage('');
+    try{
+      for(let index=0;index<files.length;index++){setMessage(`Uploading ${index+1} of ${files.length}: ${files[index].name}`);const saved=await uploadRequestAttachment(api,request.id,files[index]);if(!saved?.id)throw new Error('The server did not confirm the attachment. Please retry.');}
+      await onUploaded();setMessage(`${files.length} attachment${files.length===1?'':'s'} uploaded successfully.`);
+    }catch(error){setMessage(error.message||'Unable to upload the attachment. Please retry.');}
+    finally{busy.current=false;setUploading(false);}
+  };
+  if(count>=5)return <p className="mt-2 text-xs text-slate-500">Maximum of 5 attachments reached.</p>;
+  return <div className="mt-2"><input ref={input} type="file" multiple accept="image/jpeg,image/png,image/webp,application/pdf" onChange={choose} className="sr-only"/><button type="button" disabled={uploading} onClick={()=>input.current?.click()} className="inline-flex min-h-9 items-center gap-1.5 rounded-lg border border-blue-200 bg-blue-50 px-3 text-xs font-semibold text-blue-700 hover:bg-blue-100 disabled:cursor-wait disabled:opacity-60"><Paperclip size={14}/>{uploading?'Uploading…':count?'Add more attachments':'Add attachment'}</button>{message&&<p role="status" className={`mt-1.5 text-xs ${message.includes('successfully')?'text-emerald-700':uploading?'text-blue-700':'text-rose-700'}`}>{message}</p>}</div>;
+}
 
 export default function MaintenanceRequestStatus({ onOpenChat }) {
   const { data, loading, error, reload } = useRemoteData(loadRequests);
@@ -20,6 +44,7 @@ export default function MaintenanceRequestStatus({ onOpenChat }) {
             {request.admin_note && <p className="mt-2 whitespace-pre-wrap rounded-lg bg-blue-50 px-3 py-2 text-xs text-blue-800">Admin update: {request.admin_note}</p>}
             <div className="mt-3 flex items-center" aria-label={`Request progress: ${request.status}`}>{['New','Scheduled','In progress','Resolved'].map((step,index)=>{const current=['New','Scheduled','In progress','Resolved'].indexOf(request.status);return <div key={step} className="flex min-w-0 flex-1 items-center last:flex-none"><span title={step} className={`h-2.5 w-2.5 shrink-0 rounded-full ${index<=current?'bg-blue-600':'bg-slate-200'}`}/>{index<3&&<span className={`h-0.5 min-w-4 flex-1 ${index<current?'bg-blue-600':'bg-slate-200'}`}/>}</div>})}</div>
             {request.kind === "maintenance" && <MaintenanceAttachments requestId={request.id} attachments={request.maintenance_attachments}/>}
+            {request.kind === "maintenance" && <AddRequestAttachments request={request} onUploaded={reload}/>}
           </div>
         </article>;
       })}
