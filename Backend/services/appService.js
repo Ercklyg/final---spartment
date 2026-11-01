@@ -19,6 +19,8 @@ import * as validate from './validation.js';
 import { readSessionCookie } from './sessionCookies.js';
 import { createHash } from 'node:crypto';
 import { updateLoginLimit } from '../middleware/loginLimit.js';
+import { pushPublicKey, savePushSubscription, removePushSubscription, deliverPendingPushes } from '../models/webPush.js';
+const deliverPush=async client=>{try{return await deliverPendingPushes(client);}catch(error){console.error('Push delivery failed:',error.message);return {enabled:true,sent:0,error:true};}};
 const checked=result=>{if(result.error)throw new HttpError(400,result.error.message);return result.data;};
 const DEFAULT_IDLE_TIMEOUT_MINUTES=15;
 export const config=()=>{
@@ -86,13 +88,13 @@ export const password=async(req)=>{
 export const profile=async(req)=>(checked(await req.db.from('profiles').select('id,role,full_name').eq('id',req.user.id).single()));
 export const account=async(req)=>(await loadTenantAccount(req.db,req.user));
 export const bills=async(req)=>{const bills=await loadBills(req.db);return req.query.view==='overview'?{bills,summary:billingOverview(bills)}:bills;};
-export const billCreate=async(req)=>(await createBill(req.db,req.body));
+export const billCreate=async(req)=>{const result=await createBill(req.db,req.body);await deliverPush(req.db);return result;};
 export const paymentCreate=async(req)=>{
   const body=validate.object(req.body),form=validate.object(body.form,'Payment details');
   const payment={amount:validate.amount(form.amount),date:validate.date(form.date,'payment date'),reference:validate.text(form.reference,'reference',254,true)};
-  await recordPayment(req.db,{id:validate.uuid(body.billId,'bill ID')},payment,validate.uuid(body.id,'payment ID'));return ({ok:true});
+  await recordPayment(req.db,{id:validate.uuid(body.billId,'bill ID')},payment,validate.uuid(body.id,'payment ID'));await deliverPush(req.db);return ({ok:true});
 };
-export const paymentReminder=async(req)=>sendPaymentReminder(req.db,validate.uuid(req.body?.billId,'bill ID'));
+export const paymentReminder=async(req)=>{const result=await sendPaymentReminder(req.db,validate.uuid(req.body?.billId,'bill ID'));await deliverPush(req.db);return result;};
 export const receipt=async(req)=>(await loadPaymentReceipt(req.db,validate.uuid(req.params.id,'payment ID')));
 export const requests=async(req)=>(await loadRequests(req.db));
 export const requestCreate=async(req)=>{
@@ -128,6 +130,10 @@ export const saveNotificationPreferences=async(req)=>{
   const values={user_id:req.user.id};for(const field of fields){if(typeof req.body?.[field]!=='boolean')throw new HttpError(400,'Invalid notification preference.');values[field]=req.body[field];}
   const {data,error}=await req.db.from('notification_preferences').upsert(values).select().single();if(error)throw new HttpError(503,'Unable to save notification preferences.');return data;
 };
+export const pushKey=async()=>pushPublicKey();
+export const pushSubscribe=async(req)=>savePushSubscription(req.db,req.user.id,req.body,req.get('User-Agent'));
+export const pushUnsubscribe=async(req)=>removePushSubscription(req.db,req.user.id,req.body?.endpoint);
+export const flushPushNotifications=deliverPush;
 export const rooms=async(req)=>readAll(()=>req.db.from('rooms').select(roomColumns).order('floor').order('room_number').order('id'));
 export const publicRooms=async()=>{const db=createUserClient();return readAll(()=>db.from('rooms').select('id,room_number,floor,status,size_sqm,capacity,monthly_rate,description,buildings(name)').eq('status','available').order('floor').order('room_number').order('id'));};
 export const roomCreate=async(req)=>createRoom(req.db,req.body);

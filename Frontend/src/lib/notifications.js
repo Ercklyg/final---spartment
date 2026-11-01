@@ -4,3 +4,6 @@ export const markAllNotificationsRead=(client,before)=>client.post('/notificatio
 export const updateNotificationEngagement=(client,ids,action)=>client.post('/notifications/engagement',{ids,action});
 export const loadNotificationPreferences=client=>client.get('/notifications/preferences',{force:true});
 export const saveNotificationPreferences=(client,preferences)=>client.put('/notifications/preferences',preferences);
+export const loadPushKey=client=>client.get('/notifications/push-key',{force:true});
+export const savePushSubscription=(client,subscription)=>client.post('/notifications/push-subscriptions',subscription);
+export const removePushSubscription=(client,endpoint)=>client.delete('/notifications/push-subscriptions',{body:JSON.stringify({endpoint})});

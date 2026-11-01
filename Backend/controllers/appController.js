@@ -31,6 +31,9 @@ export const readNotifications=async(req,res)=>res.status(200).json(await servic
 export const notificationEngagement=async(req,res)=>res.status(200).json(await service.notificationEngagement(req));
 export const notificationPreferences=async(req,res)=>res.status(200).json(await service.notificationPreferences(req));
 export const saveNotificationPreferences=async(req,res)=>res.status(200).json(await service.saveNotificationPreferences(req));
+export const pushKey=async(req,res)=>res.status(200).json(await service.pushKey(req));
+export const pushSubscribe=async(req,res)=>res.status(201).json(await service.pushSubscribe(req));
+export const pushUnsubscribe=async(req,res)=>res.status(200).json(await service.pushUnsubscribe(req));
 export const rooms=async(req,res)=>res.status(200).json(await service.rooms(req));
 export const publicRooms=async(req,res)=>res.status(200).json(await service.publicRooms(req));
 export const roomCreate=async(req,res)=>res.status(201).json(await service.roomCreate(req));

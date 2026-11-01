@@ -21,7 +21,9 @@ export function useNotificationFeed() {
     const refresh=()=>{if(document.visibilityState==='visible'&&navigator.onLine)setRevision(n=>n+1);};
     // Keep the open dashboard close to real time without maintaining a fragile
     // long-lived connection through a serverless deployment.
-    const timer=setInterval(refresh,5000);
+    let last=0;
+    const scheduled=()=>{const delay=localStorage.getItem('spartment-push-enabled')==='1'?60000:15000;if(Date.now()-last>=delay){last=Date.now();refresh();}};
+    const timer=setInterval(scheduled,5000);
     const visible=()=>{if(document.visibilityState==='visible')refresh();};
     document.addEventListener('visibilitychange',visible);
     window.addEventListener('focus',refresh);
