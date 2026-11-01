@@ -5,6 +5,8 @@ import { api, auth } from "./lib/api.js";
 import { DEFAULT_IDLE_TIMEOUT_MINUTES, formatIdleTimeout, useIdleLogout } from "./lib/useIdleLogout.js";
 import { uiStatePrefix } from "./lib/useSessionState.js";
 import LandingPage from "./pages/LandingPage.jsx";
+import AdminHeader from "./components/admin/AdminHeader.jsx";
+import AdminSidebar from "./components/admin/AdminSidebar.jsx";
 
 const GuestPage = lazy(() => import("./pages/GuestPage.jsx"));
 const TenantDashboardPage = lazy(() => import("./pages/TenantDashboardPage.jsx"));
@@ -39,6 +41,18 @@ function LazyPage({ Page, variant, ...props }) {
   return <Suspense fallback={<PageSkeleton variant={variant} label="Loading page..." fullPage/>}>
     <Page {...props}/>
   </Suspense>;
+}
+
+function AdminPageFallback({ activePage, variant, onNavigate, onLogout }) {
+  return <main className="flex min-h-screen bg-[#f6f9fd] text-slate-900">
+    <AdminSidebar activePage={activePage} onNavigate={onNavigate}/>
+    <div className="min-w-0 flex-1">
+      <AdminHeader onLogout={onLogout}/>
+      <div className="mx-auto max-w-[1280px] px-4 pb-24 pt-6 sm:px-6 lg:pb-10 xl:px-8">
+        <PageSkeleton variant={variant} label={`Loading ${activePage.toLowerCase()}...`}/>
+      </div>
+    </div>
+  </main>;
 }
 
 export default function App() {
@@ -125,7 +139,11 @@ export default function App() {
   if (profile?.id !== userId || error) return <main className="p-8"><p role={error ? "alert" : "status"}>{error || "Loading your account..."}</p><div className="mt-4 flex gap-4">{error && <button onClick={() => window.location.reload()}>Retry</button>}<button onClick={logout}>Sign out</button></div></main>;
   if (profile?.role === "admin") {
     const Page = adminPages[page] || AdminDashboardPage;
-    return <LazyPage key={userId} Page={Page} variant={skeletons[page] || 'dashboard'} onNavigate={navigate} onLogout={logout} />;
+    const activePage = page === 'admin' ? 'Dashboard' : page;
+    const variant = skeletons[page] || 'dashboard';
+    return <Suspense key={userId} fallback={<AdminPageFallback activePage={activePage} variant={variant} onNavigate={navigate} onLogout={logout}/>}>
+      <Page onNavigate={navigate} onLogout={logout}/>
+    </Suspense>;
   }
   if (profile?.role === "tenant") {
     const Page = tenantPages[page] || TenantDashboardPage;
