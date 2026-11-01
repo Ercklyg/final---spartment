@@ -18,6 +18,7 @@ function DashboardContent({ account, onNavigate, onOpenChat, requestRevision }) 
   const nextBill = bills?.filter(bill => bill.balance > 0).sort((a, b) => a.due_date.localeCompare(b.due_date))[0];
   const currentBill = nextBill || bills?.toSorted((a, b) => b.billing_period.localeCompare(a.billing_period))[0];
   return <>
+    {nextBill&&<div role="status" className={`mt-4 rounded-xl border px-4 py-3 text-sm ${nextBill.displayStatus==='Late'?'border-rose-200 bg-rose-50 text-rose-800':'border-amber-200 bg-amber-50 text-amber-900'}`}><strong>{nextBill.displayStatus==='Late'?'Payment overdue':'Payment reminder'}</strong><span className="ml-2">A {nextBill.bill_type} balance is due {new Date(nextBill.due_date+'T00:00:00').toLocaleDateString('en-PH',{dateStyle:'medium'})}.</span><button type="button" onClick={()=>onNavigate?.('billing')} className="ml-2 font-semibold underline">View billing</button></div>}
     <NotificationTable key={requestRevision} onNavigate={onNavigate} />
     <div className="mt-4 space-y-4">
       <SummaryCards account={account} />

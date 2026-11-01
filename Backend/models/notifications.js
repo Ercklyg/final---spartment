@@ -8,7 +8,7 @@ function cutoff(value) {
 export async function loadNotifications(client,userId,{p_offset,p_limit},before) {
   const asOf=before?cutoff(before):new Date().toISOString();
   const [rows,unread]=await Promise.all([
-    client.from('notifications').select('id,title,message,is_read,created_at,kind,source_id',{count:'exact'}).eq('tenant_id',userId).lte('created_at',asOf).order('is_read',{ascending:true}).order('created_at',{ascending:false}).order('id').range(p_offset,p_offset+p_limit-1),
+    client.from('notifications').select('id,title,message,is_read,seen_at,acknowledged_at,created_at,kind,source_id',{count:'exact'}).eq('tenant_id',userId).lte('created_at',asOf).order('is_read',{ascending:true}).order('created_at',{ascending:false}).order('id').range(p_offset,p_offset+p_limit-1),
     client.from('notifications').select('id',{count:'exact',head:true}).eq('tenant_id',userId).eq('is_read',false).lte('created_at',asOf),
   ]);
   if(rows.error||unread.error)throw new HttpError(503,'Unable to load notifications. Please retry.');
@@ -25,6 +25,12 @@ export async function loadNotifications(client,userId,{p_offset,p_limit},before)
     }
   }
   return {data:rows.data.map(item=>({...item,alert:item.kind==='bill'?alerts.get(item.source_id)||null:null})),total:rows.count,unreadCount:unread.count,asOf,offset:p_offset,limit:p_limit};
+}
+export async function updateNotificationEngagement(client,userId,ids,action) {
+  const values=action==='seen'?{seen_at:new Date().toISOString()}:action==='acknowledged'?{seen_at:new Date().toISOString(),acknowledged_at:new Date().toISOString(),is_read:true}:null;
+  if(!values)throw new HttpError(400,'Invalid notification action.');
+  const {error}=await client.from('notifications').update(values).eq('tenant_id',userId).in('id',ids);
+  if(error)throw new HttpError(503,'Unable to update the notification. Please retry.');
 }
 export async function markNotificationsRead(client,ids,userId) {
   for(let offset=0;offset<ids.length;offset+=100){

@@ -6,7 +6,7 @@ import { report } from '../models/reports.js';
 import { loadBills, createBill, recordPayment, billingOverview, loadBillingLeases, today } from '../models/billing.js';
 import { loadRequests, submitInquiry, submitTenantRequest } from '../models/requests.js';
 import { uploadMaintenanceAttachment, maintenanceAttachmentUrl } from '../models/maintenanceAttachments.js';
-import { loadNotifications, markNotificationsRead, markAllNotificationsRead, sendPaymentReminder, addReminderTimes } from '../models/notifications.js';
+import { loadNotifications, markNotificationsRead, markAllNotificationsRead, updateNotificationEngagement, sendPaymentReminder, addReminderTimes } from '../models/notifications.js';
 import { loadAdminNotifications } from '../models/adminNotifications.js';
 import { loadPaymentReceipt } from '../models/paymentReceipt.js';
 import { analyticsCsv, comparisonTotals } from '../models/adminAnalytics.js';
@@ -116,6 +116,17 @@ export const readNotifications=async(req)=>{
   if(req.body?.all===true)await markAllNotificationsRead(req.db,req.user.id,req.body.before);
   else await markNotificationsRead(req.db,validate.ids(req.body?.ids),req.user.id);
   return {ok:true};
+};
+export const notificationEngagement=async(req)=>{await updateNotificationEngagement(req.db,req.user.id,validate.ids(req.body?.ids),validate.choice(req.body?.action,['seen','acknowledged'],'notification action'));return {ok:true};};
+export const notificationPreferences=async(req)=>{
+  const {data,error}=await req.db.from('notification_preferences').select('*').eq('user_id',req.user.id).maybeSingle();
+  if(error)throw new HttpError(503,'Unable to load notification preferences.');
+  return data||{user_id:req.user.id,sound_enabled:false,browser_enabled:false,billing_enabled:true,payment_enabled:true,request_enabled:true,account_enabled:true};
+};
+export const saveNotificationPreferences=async(req)=>{
+  const fields=['sound_enabled','browser_enabled','billing_enabled','payment_enabled','request_enabled','account_enabled'];
+  const values={user_id:req.user.id};for(const field of fields){if(typeof req.body?.[field]!=='boolean')throw new HttpError(400,'Invalid notification preference.');values[field]=req.body[field];}
+  const {data,error}=await req.db.from('notification_preferences').upsert(values).select().single();if(error)throw new HttpError(503,'Unable to save notification preferences.');return data;
 };
 export const rooms=async(req)=>readAll(()=>req.db.from('rooms').select(roomColumns).order('floor').order('room_number').order('id'));
 export const publicRooms=async()=>{const db=createUserClient();return readAll(()=>db.from('rooms').select('id,room_number,floor,status,size_sqm,capacity,monthly_rate,description,buildings(name)').eq('status','available').order('floor').order('room_number').order('id'));};

@@ -60,6 +60,9 @@ function NoticeList({ items, seen, onView }) {
 
 export default function AdminNotifications() {
   const { data, error, loading, reload } = useRemoteData(load);
+  const reloadRef=useRef(reload);
+  useEffect(()=>{reloadRef.current=reload;},[reload]);
+  useEffect(()=>{const timer=setInterval(()=>{if(document.visibilityState==='visible'&&navigator.onLine)reloadRef.current();},30000);return()=>clearInterval(timer);},[]);
   const notices = data || [];
   const [isAllOpen, setIsAllOpen] = useState(false);
   const [category, setCategory] = useState('All');

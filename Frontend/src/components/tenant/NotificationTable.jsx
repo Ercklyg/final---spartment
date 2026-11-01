@@ -1,10 +1,11 @@
 import PageSkeleton from "../PageSkeleton.jsx";
 import { useEffect, useRef, useState } from "react";
 import { ArrowRight, ArrowUpRight, BellRing, CheckCheck, RefreshCw, Wallet, Wrench, X } from "lucide-react";
-import { markAllNotificationsRead, markNotificationsRead } from "../../lib/notifications.js";
+import { markAllNotificationsRead, markNotificationsRead, updateNotificationEngagement } from "../../lib/notifications.js";
 import { useNotificationFeed } from "../../lib/useNotificationFeed.js";
 import { closeFromBackdrop } from "../../lib/dialog.js";
 import { api } from "../../lib/api.js";
+import NotificationPreferences from './NotificationPreferences.jsx';
 
 const billingNotice = item => ["bill", "payment", "payment_reminder"].includes(item.kind);
 const category = item => billingNotice(item) ? "Payments" : item.kind === "request" ? "Requests" : "Account";
@@ -50,6 +51,7 @@ export default function NotificationTable({ onNavigate }) {
   const [selected,setSelected]=useState(null);
   const busy=useRef(false);
   const notices=data||[];
+  const view=item=>{setSelected(item);if(!item.seen_at)updateNotificationEngagement(api,[item.id],'seen').catch(()=>undefined);};
   const mark=async ids=>{
     if(busy.current)return;
     busy.current=true;setSaving(true);setSaveError("");
@@ -61,7 +63,7 @@ export default function NotificationTable({ onNavigate }) {
     }catch(e){setSaveError(e.message);}
     finally{busy.current=false;setSaving(false);}
   };
-  const content=<>{loading&&!data?<PageSkeleton variant="list" label="Loading notifications..."/>:<NoticeRows items={notices} onView={setSelected}/>}
+  const content=<>{loading&&!data?<PageSkeleton variant="list" label="Loading notifications..."/>:<NoticeRows items={notices} onView={view}/>}
     {error&&<p role="alert" className="mt-3 text-sm text-rose-700">{error} <button onClick={reload} className="underline">Retry</button></p>}
     {notices.length<total&&<button disabled={loadingMore||loading} onClick={more} className="mt-4 rounded-lg border border-blue-200 px-4 py-2 text-sm font-semibold text-blue-700 disabled:opacity-50">{loadingMore?"Loading…":"Load more notifications"}</button>}</>;
   return <>
@@ -73,10 +75,11 @@ export default function NotificationTable({ onNavigate }) {
         <button type="button" disabled={!total} onClick={()=>setAllOpen(true)} className="inline-flex items-center gap-1.5 rounded-lg bg-blue-600 px-3 py-2.5 text-xs font-semibold text-white hover:bg-blue-700 disabled:opacity-50">View all <ArrowUpRight size={15}/></button>
       </div>
       <div className="my-4 flex flex-wrap items-center justify-between gap-2 rounded-xl bg-slate-50 px-3 py-2 ring-1 ring-slate-100"><span className="text-xs font-medium text-slate-600">{unreadCount} unread</span><button type="button" disabled={saving||loading||!unreadCount} onClick={()=>mark(null)} className="inline-flex min-h-9 items-center gap-1.5 text-xs font-semibold text-blue-700 disabled:opacity-40"><CheckCheck size={15}/>Mark all as read</button></div>
-      {loading&&!data?<PageSkeleton variant="list" label="Loading notifications..."/>:<NoticeRows items={notices.slice(0,3)} onView={setSelected}/>}
+      {loading&&!data?<PageSkeleton variant="list" label="Loading notifications..."/>:<NoticeRows items={notices.slice(0,3)} onView={view}/>}
       {error&&<p role="alert" className="mt-3 text-sm text-rose-700">{error} <button onClick={reload} className="underline">Retry</button></p>}
       {!loading&&total>3&&<p className="mt-3 text-xs text-slate-500">Showing 3 of {total} notifications. Select View all to see the rest.</p>}
       {saveError&&<p role="alert" className="mt-3 text-sm text-rose-700">{saveError}</p>}
+      <NotificationPreferences/>
     </section>
     {allOpen&&<NoticeDialog title="All notifications" onClose={()=>setAllOpen(false)}>{content}</NoticeDialog>}
     {selected&&<NoticeDialog title={selected.title} onClose={()=>setSelected(null)}>
@@ -86,7 +89,7 @@ export default function NotificationTable({ onNavigate }) {
       <p className="mt-4 text-xs text-slate-500">{timestamp(selected)}</p>
       {saveError&&<p role="alert" className="mt-3 text-sm text-rose-700">{saveError}</p>}
       <div className="mt-5 flex flex-wrap items-center justify-between gap-3 border-t border-slate-100 pt-4">
-        {selected.is_read?<span className="inline-flex items-center gap-1.5 text-xs text-slate-500"><CheckCheck size={16}/>Read</span>:<button disabled={saving} onClick={()=>mark([selected.id])} className="rounded-lg border border-slate-200 px-3 py-2 text-sm font-medium text-slate-600 disabled:opacity-50">{saving?"Saving…":"Mark as read"}</button>}
+        <div className="flex flex-wrap items-center gap-2">{selected.is_read?<span className="inline-flex items-center gap-1.5 text-xs text-slate-500"><CheckCheck size={16}/>Read</span>:<button disabled={saving} onClick={()=>mark([selected.id])} className="rounded-lg border border-slate-200 px-3 py-2 text-sm font-medium text-slate-600 disabled:opacity-50">{saving?"Saving…":"Mark as read"}</button>}{selected.alert&&!selected.acknowledged_at&&<button disabled={saving} onClick={async()=>{setSaving(true);try{await updateNotificationEngagement(api,[selected.id],'acknowledged');setSelected(item=>({...item,is_read:true,acknowledged_at:new Date().toISOString()}));reload();}catch(e){setSaveError(e.message);}finally{setSaving(false);}}} className="rounded-lg bg-amber-600 px-3 py-2 text-sm font-semibold text-white">Acknowledge</button>}{selected.acknowledged_at&&<span className="text-xs font-semibold text-emerald-700">Acknowledged</span>}</div>
         {billingNotice(selected)&&<button onClick={()=>{setSelected(null);setAllOpen(false);onNavigate?.("billing");}} className="inline-flex items-center gap-1.5 rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white">View billing <ArrowRight size={15}/></button>}
       </div>
     </NoticeDialog>}
