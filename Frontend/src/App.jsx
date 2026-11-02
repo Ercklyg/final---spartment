@@ -1,4 +1,4 @@
-import { lazy, Suspense, useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
+import { lazy, Suspense, useCallback, useEffect, useLayoutEffect, useState } from "react";
 import PageSkeleton from './components/PageSkeleton.jsx';
 import { showFeedback } from "./lib/actionFeedback.js";
 import { api, auth } from "./lib/api.js";
@@ -61,13 +61,11 @@ export default function App() {
   const [profile, setProfile] = useState(null);
   const [error, setError] = useState("");
   const [idleTimeoutMinutes, setIdleTimeoutMinutes] = useState(DEFAULT_IDLE_TIMEOUT_MINUTES);
-  const scrollPositions = useRef(new Map());
   const userId = session?.user?.id;
   const navigate = useCallback(nextPage => {
-    scrollPositions.current.set(page, window.scrollY);
     if (userId) saveLastPage(userId, nextPage);
     setPage(nextPage);
-  }, [page, userId]);
+  }, [userId]);
   useEffect(() => {
     return auth.subscribe(setSession);
   }, []);
@@ -97,13 +95,12 @@ export default function App() {
     return () => controller.abort();
   }, [userId]);
   useLayoutEffect(() => {
-    const frame = requestAnimationFrame(() => window.scrollTo({top:scrollPositions.current.get(page) || 0,behavior:'auto'}));
+    const frame = requestAnimationFrame(() => window.scrollTo({ top: 0, behavior: 'auto' }));
     return () => cancelAnimationFrame(frame);
   }, [page]);
   const logout = async () => {
     try {
       await auth.signOut();
-      scrollPositions.current.clear();
       setProfile(null); setError(""); setPage("landing");
     } catch { setError("Logout failed. Please retry."); }
   };
@@ -115,7 +112,6 @@ export default function App() {
       auth.clearLocalSession();
       showFeedback(message, "info");
     }
-    scrollPositions.current.clear();
     setProfile(null); setError(""); setPage("landing");
   }, [idleTimeoutMinutes]);
   useIdleLogout({
@@ -125,7 +121,6 @@ export default function App() {
     timeoutMs: idleTimeoutMinutes * 60 * 1000,
   });
   const signIn = async (email, password) => {
-    scrollPositions.current.clear();
     setProfile(null); setError("");
     await auth.signIn(email, password);
   };
