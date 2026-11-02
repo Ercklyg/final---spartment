@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { mockAdminApi } from './helpers/mockApi.js';
+import { mockAdminApi, mockTenantApi } from './helpers/mockApi.js';
 
 const adminNavigationButton=(page,name)=>page.locator(`button[aria-label="${name}"]:visible`);
 
@@ -47,4 +47,63 @@ test('an administrator can save a maintenance request update',async({page})=>{
   await expect(page.getByRole('dialog')).toHaveCount(0);
   const update=api.calls.find(call=>call.method==='PATCH'&&call.path.startsWith('/requests/'));
   expect(update?.body).toEqual({status:'Scheduled',admin_note:'A plumber is scheduled for tomorrow.'});
+});
+
+test('an administrator can create a tenant account',async({page})=>{
+  const api=await mockAdminApi(page,{startAuthenticated:true});
+  await page.goto('/');
+  await adminNavigationButton(page,'Tenants').click();
+  await page.getByRole('button',{name:'Add Tenant'}).click();
+  await page.getByLabel('Full name',{exact:true}).fill('New Test Tenant');
+  await page.getByLabel('Email / sign-in address').fill('new.tenant@example.test');
+  await page.getByLabel('Phone number',{exact:true}).fill('09123456789');
+  await page.getByLabel('Assigned room').selectOption('33333333-3333-4333-8333-333333333333');
+  await page.getByLabel('Move-in date').fill('2026-11-02');
+  await page.getByLabel('Contact full name').fill('Emergency Contact');
+  await page.getByLabel('Contact phone number').fill('09987654321');
+  await page.getByLabel('Relationship to tenant').fill('Sibling');
+  await page.getByRole('button',{name:'Create tenant account'}).click();
+  await expect(page.getByRole('dialog')).toHaveCount(0);
+  const create=api.calls.find(call=>call.method==='POST'&&call.path==='/tenants');
+  expect(create?.body).toMatchObject({name:'New Test Tenant',email:'new.tenant@example.test',phone:'09123456789',room:'33333333-3333-4333-8333-333333333333',rent:2500});
+});
+
+test('an administrator can record a payment and open its receipt',async({page})=>{
+  const api=await mockAdminApi(page,{startAuthenticated:true});
+  await page.goto('/');
+  await adminNavigationButton(page,'Billing').click();
+  await page.locator('button:visible',{hasText:'Record payment'}).first().click();
+  await page.getByLabel('Amount',{exact:true}).fill('500');
+  await page.getByLabel('Reference note').fill('E2E payment');
+  await page.getByRole('button',{name:'Save payment'}).click();
+  await expect.poll(()=>api.calls.some(call=>call.method==='POST'&&call.path==='/billing/payments')).toBeTruthy();
+  await page.locator('button:visible',{hasText:'Payments / receipts'}).first().click();
+  await page.getByRole('button',{name:'Open receipt'}).click();
+  await expect(page.getByTitle('Printable payment receipt')).toBeVisible();
+});
+
+test('a tenant can submit maintenance with a photo attachment',async({page})=>{
+  const api=await mockTenantApi(page);
+  await page.goto('/');
+  await page.getByRole('button',{name:'Open Spartment Assistant'}).click();
+  await page.getByRole('button',{name:/Maintenance Request/}).click();
+  await page.getByLabel('Issue type').fill('Leaking faucet');
+  await page.getByLabel('High').check();
+  await page.getByLabel('Describe the problem').fill('Water is leaking under the kitchen sink.');
+  await page.getByLabel(/Photos or documents/).setInputFiles({name:'leak.png',mimeType:'image/png',buffer:Buffer.from([137,80,78,71,13,10,26,10])});
+  await expect(page.getByAltText('Preview of leak.png')).toBeVisible();
+  await page.getByRole('button',{name:'Submit request'}).click();
+  await expect(page.getByText('Request submitted',{exact:true})).toBeVisible();
+  expect(api.calls.some(call=>call.method==='POST'&&call.path==='/requests/submit')).toBeTruthy();
+  expect(api.calls.some(call=>call.method==='POST'&&/\/requests\/[^/]+\/attachments$/.test(call.path))).toBeTruthy();
+});
+
+test('password recovery confirms a reset request without exposing account status',async({page})=>{
+  const api=await mockAdminApi(page);
+  await page.goto('/');
+  await page.getByRole('button',{name:'Forgot password?'}).click();
+  await page.getByLabel('Email').fill('person@example.test');
+  await page.getByRole('button',{name:'Send reset link'}).click();
+  await expect(page.locator('form [role="status"]')).toContainText('If an account matches that email');
+  expect(api.calls.find(call=>call.path==='/auth/forgot-password')?.body).toEqual({email:'person@example.test'});
 });
