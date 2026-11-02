@@ -36,7 +36,7 @@ function LoginCard({ onContinueAsGuest, onSignIn }) {
 
   return (
     <div className="w-full max-w-[570px]">
-      <div className="mb-5">
+      <div className="mb-4">
         <p className="mb-2 text-[11px] font-bold uppercase tracking-[0.28em] text-blue-600 sm:text-xs">
           Welcome back
         </p>
@@ -45,14 +45,14 @@ function LoginCard({ onContinueAsGuest, onSignIn }) {
           Sign in to Spartment
         </h2>
 
-        <p className="mt-2 text-sm text-slate-500 sm:text-base">
+        <p className="mt-1.5 text-sm leading-6 text-slate-600 sm:text-base">
           Access your dashboard and manage your properties effortlessly.
         </p>
       </div>
 
-      <div className="rounded-[26px] border border-slate-200/80 bg-white p-6 shadow-[0_25px_70px_rgba(15,23,42,0.08)] sm:p-7">
+      <div className="rounded-[24px] border border-slate-200/80 bg-white p-5 shadow-[0_22px_60px_rgba(15,23,42,0.075)] sm:p-6">
         <form
-          className="space-y-5"
+          className="space-y-4"
           onSubmit={handleSignIn}
         >
           <div>
@@ -83,7 +83,7 @@ function LoginCard({ onContinueAsGuest, onSignIn }) {
                 required
                 disabled={isSigningIn}
                 placeholder="Enter your email address"
-                className="h-14 w-full rounded-xl border border-slate-200 bg-slate-50 pl-12 pr-4 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-500/10"
+                className="h-12 w-full rounded-xl border border-slate-200 bg-white pl-12 pr-4 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 hover:border-slate-300 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10"
               />
             </div>
           </div>
@@ -116,7 +116,7 @@ function LoginCard({ onContinueAsGuest, onSignIn }) {
                 required
                 disabled={isSigningIn}
                 placeholder="Enter your password"
-                className="h-14 w-full rounded-xl border border-slate-200 bg-slate-50 pl-12 pr-12 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-500/10"
+                className="h-12 w-full rounded-xl border border-slate-200 bg-white pl-12 pr-12 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 hover:border-slate-300 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10"
               />
 
               <button
@@ -146,7 +146,7 @@ function LoginCard({ onContinueAsGuest, onSignIn }) {
           )}
 
           <div className="flex items-center justify-between">
-            <span className="text-xs text-slate-500">Sign out when using a shared device.</span>
+            <span className="text-xs text-slate-600">Sign out when using a shared device.</span>
 
             <button
               type="button"
@@ -161,13 +161,13 @@ function LoginCard({ onContinueAsGuest, onSignIn }) {
           <button
             type="submit"
             disabled={isSigningIn}
-            className="flex h-14 w-full items-center justify-center gap-3 rounded-xl bg-blue-600 text-sm font-semibold text-white shadow-[0_10px_25px_rgba(37,99,235,0.22)] transition duration-200 hover:bg-blue-700 hover:shadow-[0_12px_30px_rgba(37,99,235,0.3)] active:scale-[0.99] disabled:cursor-wait disabled:opacity-80"
+            className="flex h-12 w-full items-center justify-center gap-3 rounded-xl bg-blue-600 text-sm font-semibold text-white shadow-[0_10px_25px_rgba(37,99,235,0.22)] transition duration-200 hover:bg-blue-700 hover:shadow-[0_12px_30px_rgba(37,99,235,0.3)] active:scale-[0.99] disabled:cursor-wait disabled:opacity-80 motion-reduce:transform-none motion-reduce:transition-none"
           >
             {isSigningIn ? <><LoaderCircle size={19} className="animate-spin" />Signing in...</> : <>Sign in<ArrowRight size={19} strokeWidth={1.9} /></>}
           </button>
         </form>
 
-        <div className="my-5 flex items-center gap-4">
+        <div className="my-4 flex items-center gap-3">
           <div className="h-px flex-1 bg-slate-200" />
 
           <span className="text-xs font-medium text-slate-600">
@@ -180,7 +180,7 @@ function LoginCard({ onContinueAsGuest, onSignIn }) {
         <button
           type="button"
           onClick={onContinueAsGuest}
-          className="flex h-14 w-full items-center justify-center gap-3 rounded-xl border border-slate-200 bg-white text-sm font-semibold text-slate-800 transition hover:border-blue-200 hover:bg-blue-50/50"
+          className="flex h-12 w-full items-center justify-center gap-3 rounded-xl border border-slate-200 bg-white text-sm font-semibold text-slate-800 transition hover:border-blue-200 hover:bg-blue-50/50 motion-reduce:transition-none"
         >
           <UserRound
             size={19}
@@ -191,7 +191,7 @@ function LoginCard({ onContinueAsGuest, onSignIn }) {
           Continue as Guest
         </button>
 
-        <p className="mt-5 text-center text-[11px] leading-5 text-slate-400 sm:text-xs">By continuing, you agree to our{" "}<button type="button" className="font-medium text-blue-600 hover:underline">Terms of Service</button>{" "}and{" "}<button type="button" className="font-medium text-blue-600 hover:underline">Privacy Policy</button>.</p>
+        <p className="mt-4 text-center text-[11px] leading-5 text-slate-500 sm:text-xs">By continuing, you agree to our{" "}<button type="button" className="font-medium text-blue-600 hover:underline">Terms of Service</button>{" "}and{" "}<button type="button" className="font-medium text-blue-600 hover:underline">Privacy Policy</button>.</p>
       </div>
     </div>
   );

@@ -19,7 +19,7 @@ function BrandPanel() {
 
       <div className="absolute inset-0 bg-[#071b43]/45" />
 
-      <div className="absolute inset-0 bg-gradient-to-r from-[#06183c]/90 via-[#0b2d6b]/65 to-[#1268c9]/20" />
+      <div className="absolute inset-0 bg-gradient-to-r from-[#06183c]/95 via-[#0b2d6b]/72 to-[#1268c9]/28" />
 
       <div className="relative z-10 flex h-full flex-col px-6 py-5 sm:px-10 sm:py-7 xl:px-12">
         <header className="flex shrink-0 items-center justify-between">
@@ -42,7 +42,7 @@ function BrandPanel() {
             </div>
           </div>
 
-          <nav className="hidden items-center gap-7 text-sm md:flex">
+          <nav className="hidden items-center gap-6 rounded-full border border-white/10 bg-[#06183c]/35 px-4 py-2 text-sm backdrop-blur-md md:flex">
             <a
               href="#features"
               className="border-b border-white pb-1 text-white"
@@ -68,7 +68,7 @@ function BrandPanel() {
 
         <div className="flex min-h-0 flex-1 flex-col justify-center">
           <div className="max-w-2xl">
-            <h2 className="text-[clamp(2.25rem,10vw,5rem)] font-extrabold leading-[0.94] tracking-[-0.045em]">
+            <h2 className="text-[clamp(2.25rem,5vw,4.5rem)] font-extrabold leading-[0.94] tracking-[-0.045em]">
               Simpler
               <br />
               Management.
@@ -78,7 +78,7 @@ function BrandPanel() {
               </span>
             </h2>
 
-            <p className="mt-3 max-w-xl text-xs leading-5 text-blue-50/80 sm:mt-5 sm:text-base sm:leading-7">
+            <p className="mt-3 max-w-xl text-xs leading-5 text-blue-50/85 sm:mt-4 sm:text-sm sm:leading-6 xl:text-base xl:leading-7">
               Spartment helps property owners and tenants stay connected —
               from room management and billing to maintenance requests and
               real-time updates, all in one secure platform.
@@ -86,7 +86,7 @@ function BrandPanel() {
 
             <div
               id="features"
-              className="mt-5 hidden max-w-2xl grid-cols-2 gap-3 sm:grid"
+              className="mt-4 hidden max-w-2xl grid-cols-2 gap-3 sm:grid"
             >
               <FeatureCard
                 icon={
@@ -133,7 +133,7 @@ function BrandPanel() {
               />
             </div>
 
-            <div className="mt-4 hidden items-center gap-3 sm:flex sm:mt-6">
+            <div className="mt-4 hidden items-center gap-3 xl:flex">
               <div className="h-px w-12 bg-white/50" />
 
               <p className="text-xs font-medium text-blue-100/70 sm:text-sm">
@@ -141,7 +141,7 @@ function BrandPanel() {
               </p>
             </div>
 
-            <div className="mt-4 hidden items-start gap-3 sm:flex">
+            <div className="mt-3 hidden items-start gap-3 xl:flex">
               <span className="text-4xl leading-none text-blue-400">
                 “
               </span>

@@ -1,7 +1,7 @@
 function FeatureCard({ icon, title, description }) {
   return (
-    <div className="flex min-h-[82px] items-center gap-3 rounded-2xl border border-white/15 bg-white/10 px-3 py-3 backdrop-blur-md transition duration-200 hover:-translate-y-0.5 hover:bg-white/15">
-      <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-white/15 bg-white/10 text-blue-100">
+    <div className="flex min-h-[72px] items-center gap-3 rounded-2xl border border-white/15 bg-white/10 px-3 py-2.5 backdrop-blur-md transition duration-200 hover:-translate-y-0.5 hover:bg-white/15 motion-reduce:transform-none motion-reduce:transition-none">
+      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-white/15 bg-white/10 text-blue-100">
         {icon}
       </div>
 
