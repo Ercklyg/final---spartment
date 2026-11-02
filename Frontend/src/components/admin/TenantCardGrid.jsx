@@ -7,10 +7,10 @@ import MoveOutDialog from "./MoveOutDialog.jsx";
 import { closeFromBackdrop } from "../../lib/dialog.js";
 
 const tone = {
-  Paid: "bg-emerald-50 text-emerald-600",
+  Paid: "bg-emerald-50 text-emerald-800",
   Pending: "bg-amber-50 text-amber-700",
   "Partially paid": "bg-orange-50 text-orange-700",
-  Late: "bg-rose-50 text-rose-600",
+  Late: "bg-rose-50 text-rose-800",
 };
 const cardAccent = {
   Paid: "bg-emerald-500",
@@ -81,7 +81,7 @@ export default function TenantCardGrid({ addedTenants = [], onChanged, search = 
         const status = tenant.billing?.status || "Unavailable";
         const balance = Number(tenant.billing?.balance || 0);
         const overdue = Number(tenant.billing?.overdue || 0);
-        const balanceColor = overdue > 0 ? "text-rose-600" : balance > 0 ? "text-amber-700" : "text-emerald-600";
+        const balanceColor = overdue > 0 ? "text-rose-600" : balance > 0 ? "text-amber-700" : "text-emerald-800";
         return <article key={tenant.id} className="relative flex min-w-0 flex-col overflow-hidden rounded-2xl border border-slate-300 bg-white p-4 shadow-sm transition duration-200 hover:border-slate-400 hover:shadow-md sm:p-5">
           <span className={`absolute inset-x-0 top-0 h-1 ${cardAccent[status] || cardAccent.Unavailable}`} aria-hidden="true" />
           <div className="flex min-w-0 items-start gap-3">

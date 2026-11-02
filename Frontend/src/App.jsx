@@ -4,10 +4,10 @@ import { showFeedback } from "./lib/actionFeedback.js";
 import { api, auth } from "./lib/api.js";
 import { DEFAULT_IDLE_TIMEOUT_MINUTES, formatIdleTimeout, useIdleLogout } from "./lib/useIdleLogout.js";
 import { uiStatePrefix } from "./lib/useSessionState.js";
-import LandingPage from "./pages/LandingPage.jsx";
 import AdminHeader from "./components/admin/AdminHeader.jsx";
 import AdminSidebar from "./components/admin/AdminSidebar.jsx";
 
+const LandingPage = lazy(() => import("./pages/LandingPage.jsx"));
 const GuestPage = lazy(() => import("./pages/GuestPage.jsx"));
 const TenantDashboardPage = lazy(() => import("./pages/TenantDashboardPage.jsx"));
 const TenantBillingPage = lazy(() => import("./pages/TenantBillingPage.jsx"));
@@ -40,6 +40,12 @@ function saveLastPage(userId, page) {
 function LazyPage({ Page, variant, ...props }) {
   return <Suspense fallback={<PageSkeleton variant={variant} label="Loading page..." fullPage/>}>
     <Page {...props}/>
+  </Suspense>;
+}
+
+function PublicLanding({ onContinueAsGuest, onSignIn }) {
+  return <Suspense fallback={<PageSkeleton label="Loading sign-in..." fullPage/>}>
+    <LandingPage onContinueAsGuest={onContinueAsGuest} onSignIn={onSignIn}/>
   </Suspense>;
 }
 
@@ -127,9 +133,9 @@ export default function App() {
   // Resolve the HttpOnly session before choosing the landing page or the
   // signed-in UI so an authenticated reload never flashes the public website.
   if (session === undefined) return <PageSkeleton label="Restoring your session..." fullPage/>;
-  if (session?.error) return <LandingPage onContinueAsGuest={() => navigate("guest")} onSignIn={signIn} />;
+  if (session?.error) return <PublicLanding onContinueAsGuest={() => navigate("guest")} onSignIn={signIn} />;
   if (page === "guest" && !userId) return <LazyPage Page={GuestPage} variant={skeletons.guest} onExit={() => navigate("landing")} />;
-  if (!userId) return <LandingPage onContinueAsGuest={() => navigate("guest")} onSignIn={signIn} />;
+  if (!userId) return <PublicLanding onContinueAsGuest={() => navigate("guest")} onSignIn={signIn} />;
   if (profile?.id !== userId && !error) return <PageSkeleton label="Loading your account..." fullPage/>;
   if (profile?.id !== userId || error) return <main className="p-8"><p role={error ? "alert" : "status"}>{error || "Loading your account..."}</p><div className="mt-4 flex gap-4">{error && <button onClick={() => window.location.reload()}>Retry</button>}<button onClick={logout}>Sign out</button></div></main>;
   if (profile?.role === "admin") {
@@ -144,5 +150,5 @@ export default function App() {
     const Page = tenantPages[page] || TenantDashboardPage;
     return <LazyPage key={userId} Page={Page} variant={skeletons[page] || 'dashboard'} onNavigate={navigate} onLogout={logout} />;
   }
-  return <LandingPage onContinueAsGuest={() => navigate("guest")} onSignIn={signIn} />;
+  return <PublicLanding onContinueAsGuest={() => navigate("guest")} onSignIn={signIn} />;
 }

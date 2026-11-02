@@ -57,7 +57,7 @@ export default function AdminTenantsPage({ onNavigate, onLogout }) {
         <TenantsToolbar count={data?.total ?? null} search={search} onSearch={value => { setSearch(value); setOffset(0); }} onAdd={() => setIsAddOpen(true)} onRefresh={reload} loading={loading} />
         {loading&&!data ? <PageSkeleton variant="tenants" label="Loading tenants and billing balances..."/>
           : error&&!data ? <p role="alert" className="mb-4 text-rose-700">{error} <button onClick={reload} className="underline">Retry</button></p>
-            : <>{error&&<p role="alert" className="mb-3 text-sm text-rose-700">{error} <button onClick={reload} className="underline">Retry</button></p>}<p className="mb-4 text-sm text-slate-500">Balances include all issued rent and utility bills.</p><TenantCardGrid addedTenants={data.tenants} search={search} onClearSearch={() => { setSearch(""); setOffset(0); }} onChanged={reload} /><PageControls disabled={loading} offset={offset} limit={TENANTS_PER_PAGE} total={data.total} onChange={setOffset}/></>}
+            : <>{error&&<p role="alert" className="mb-3 text-sm text-rose-700">{error} <button onClick={reload} className="underline">Retry</button></p>}<p className="mb-4 text-sm text-slate-600">Balances include all issued rent and utility bills.</p><TenantCardGrid addedTenants={data.tenants} search={search} onClearSearch={() => { setSearch(""); setOffset(0); }} onChanged={reload} /><PageControls disabled={loading} offset={offset} limit={TENANTS_PER_PAGE} total={data.total} onChange={setOffset}/></>}
       </div>
     </div>
     {isAddOpen && <TenantModal tenants={data?.tenants || []} onAdd={addTenant} onClose={() => setIsAddOpen(false)} />}
