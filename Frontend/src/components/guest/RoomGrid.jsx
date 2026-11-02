@@ -3,6 +3,7 @@ import RoomCard from "./RoomCard.jsx";
 import PageSkeleton from '../PageSkeleton.jsx';
 import { api } from "../../lib/api.js";
 import { useSessionState } from "../../lib/useSessionState.js";
+import RoomDetailsDialog from "./RoomDetailsDialog.jsx";
 
 function RoomGrid({ onInquire }) {
   const [selectedFloor, setSelectedFloor] = useSessionState("guest-room-floor-v2","all");
@@ -10,6 +11,7 @@ function RoomGrid({ onInquire }) {
   const [rooms, setRooms] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState("");
+  const [selectedRoom, setSelectedRoom] = useState(null);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -29,7 +31,7 @@ function RoomGrid({ onInquire }) {
         status: room.status[0].toUpperCase() + room.status.slice(1),
         building: room.buildings?.name || "Building",
         size: `${Number(room.size_sqm)} m²`,
-        capacity: room.capacity,
+        capacity: String(room.capacity||"2–3").replace(/\s*persons?$/i,""),
         description: room.description,
         price: Number(room.monthly_rate),
       })));
@@ -67,9 +69,10 @@ function RoomGrid({ onInquire }) {
       </div>
       {isLoading && <PageSkeleton variant="rooms" label="Loading available units..."/>}
       <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-        {filteredRooms.map((room) => <RoomCard key={room.id} room={room} onInquire={onInquire} />)}
+        {filteredRooms.map((room) => <RoomCard key={room.id} room={room} onInquire={onInquire} onView={setSelectedRoom} />)}
       </div>
       {!isLoading && filteredRooms.length === 0 && <div className="rounded-2xl border border-dashed border-slate-300 bg-white px-6 py-16 text-center"><p className="text-base font-semibold text-slate-700">{loadError || "No available rooms found"}</p><p className="mt-1 text-sm text-slate-400">{loadError ? "Please refresh the page and try again." : "Try selecting another building or floor."}</p></div>}
+      {selectedRoom&&<RoomDetailsDialog room={selectedRoom} onClose={()=>setSelectedRoom(null)} onInquire={room=>{setSelectedRoom(null);onInquire(room);}}/>}
     </div>
   </section>;
 }

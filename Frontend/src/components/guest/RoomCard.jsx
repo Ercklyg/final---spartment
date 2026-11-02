@@ -1,4 +1,4 @@
-import { Building2, MessageCircle, UsersRound } from "lucide-react";
+import { ArrowRight, Building2, MessageCircle, UsersRound } from "lucide-react";
 
 const buildingThemes=[
   "from-blue-700 via-blue-600 to-cyan-500",
@@ -7,7 +7,7 @@ const buildingThemes=[
 ];
 const themeFor=value=>buildingThemes[[...String(value)].reduce((sum,character)=>sum+character.charCodeAt(0),0)%buildingThemes.length];
 
-function RoomCard({ room, onInquire }) {
+function RoomCard({ room, onInquire, onView }) {
   const isAvailable=room.status==="Available";
   const statusStyles={Available:"border-emerald-200 bg-emerald-50 text-emerald-700",Occupied:"border-slate-200 bg-slate-100 text-slate-600",Reserved:"border-amber-200 bg-amber-50 text-amber-700"};
   return <article className="group flex h-full flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-[0_8px_26px_-20px_rgba(15,23,42,0.3)] transition duration-200 hover:border-blue-200 hover:shadow-[0_16px_34px_-22px_rgba(37,99,235,0.38)] motion-reduce:transition-none">
@@ -26,6 +26,7 @@ function RoomCard({ room, onInquire }) {
       </div>
       <div className="mt-3 flex items-center gap-2 border-y border-slate-100 py-2.5 text-xs font-medium text-slate-600"><UsersRound size={15} className="text-blue-600"/>Good for {room.capacity||"2–3"} {Number(room.capacity)===1?'person':'people'}</div>
       <p className="mt-3 line-clamp-3 min-h-[60px] text-sm leading-5 text-slate-600">{room.description||"Contact management for complete room details."}</p>
+      <button type="button" onClick={()=>onView(room)} className="mt-2 inline-flex w-fit items-center gap-1 text-xs font-semibold text-blue-700 hover:text-blue-800 hover:underline">View details <ArrowRight size={14}/></button>
       <button type="button" disabled={!isAvailable} onClick={()=>isAvailable&&onInquire(room)} className={`mt-4 flex h-11 w-full items-center justify-center gap-2 rounded-xl text-sm font-semibold transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600 ${isAvailable?"bg-blue-600 text-white shadow-sm hover:bg-blue-700":"cursor-not-allowed border border-slate-200 bg-slate-50 text-slate-500"}`}><MessageCircle size={17} strokeWidth={1.8}/>{isAvailable?"Inquire":room.status}</button>
     </div>
   </article>;
