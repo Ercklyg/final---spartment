@@ -7,7 +7,6 @@ import { Activity, Building2, Download, TrendingUp, TriangleAlert, Wallet } from
 import AdminHeader from "../components/admin/AdminHeader.jsx";
 import AdminSidebar from "../components/admin/AdminSidebar.jsx";
 import { loadAdminAnalytics } from "../lib/adminAnalytics.js";
-import { generateAnalyticsPdf } from "../lib/analyticsPdf.js";
 import { closeFromBackdrop } from "../lib/dialog.js";
 import { money, today } from "../lib/billing.js";
 import { useRemoteData } from "../lib/useRemoteData.js";
@@ -204,6 +203,7 @@ export default function AdminAnalyticsPage({ onNavigate, onLogout }) {
     setExporting(true);
     try {
       const report = await api.get("/analytics?" + new URLSearchParams({ month, period, export: "pdf" }));
+      const { generateAnalyticsPdf } = await import("../lib/analyticsPdf.js");
       const pdf = generateAnalyticsPdf(report, month, period);
       const url = URL.createObjectURL(new Blob([pdf], { type: "application/pdf" }));
       const link = document.createElement("a");

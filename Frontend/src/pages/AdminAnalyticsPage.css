@@ -16,7 +16,7 @@
 .analytics-export:hover { background:#1e40af; }
 .analytics-refresh { min-height:44px; padding:8px 12px; border:1px solid #dbe3ed; border-radius:7px; background:white; color:#334155; font-size:14px; }
 .analytics-controls button:disabled { opacity:.5; cursor:not-allowed; }
-.analytics-updated { color:#64748b; font-size:11px; white-space:nowrap; }
+.analytics-updated { color:#475569; font-size:11px; white-space:nowrap; }
 .analytics-page button:focus-visible,.analytics-page input:focus-visible,.analytics-page select:focus-visible,.analytics-page summary:focus-visible { outline:2px solid #2563eb; outline-offset:2px; }
 
 /* Report layout */
@@ -30,7 +30,7 @@
 .analytics-full-width { grid-column:1/-1; min-width:0; }
 .analytics-vacancy-analysis { display:grid; grid-template-columns:160px minmax(0,1fr); align-items:center; gap:28px; margin-top:24px; }
 .analytics-vacancy-analysis > .analytics-vacancy-chart { display:flex; flex-direction:column; align-items:center; gap:14px; min-width:0; }
-.analytics-vacancy-legend { display:flex; justify-content:center; flex-wrap:wrap; gap:8px 12px; font-size:10px; color:#64748b; }
+.analytics-vacancy-legend { display:flex; justify-content:center; flex-wrap:wrap; gap:8px 12px; font-size:10px; color:#475569; }
 .analytics-vacancy-legend span { display:flex; align-items:center; gap:8px; }
 .analytics-vacancy-legend i { width:8px; height:8px; border-radius:50%; background:#2563eb; }
 .analytics-vacancy-legend span:last-child i { background:#e2e8f0; }
@@ -60,7 +60,7 @@
 .analytics-notes .analytics-section-icon { background:#f1f5f9; color:#475569; }
 .analytics-room .analytics-section-icon { background:#d1fae5; color:#047857; }
 .analytics-status .analytics-section-icon { background:#fef3c7; color:#b45309; }
-.analytics-footnote { margin-top:18px; color:#64748b; font-size:12px; line-height:1.7; }
+.analytics-footnote { margin-top:18px; color:#475569; font-size:12px; line-height:1.7; }
 
 /* Revenue chart */
 .analytics-chart-legend { display:flex; align-items:center; flex-wrap:wrap; gap:12px; color:#475569; font-size:12px; white-space:nowrap; }
@@ -88,7 +88,7 @@
 .analytics-bar-label { display:block; margin-top:5px; color:#475569; font-size:13px; }
 .analytics-revenue-summary { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:10px; margin-top:18px; }
 .analytics-revenue-summary > div { padding:12px 14px; border:1px solid #dbeafe; border-radius:10px; background:#ffffffb8; }
-.analytics-revenue-summary span { display:block; color:#64748b; font-size:11px; }
+.analytics-revenue-summary span { display:block; color:#475569; font-size:11px; }
 .analytics-revenue-summary strong { display:block; margin-top:3px; font-size:18px; font-weight:750; font-variant-numeric:tabular-nums; }
 
 /* Forecast */
@@ -110,7 +110,7 @@
 .analytics-table-actions button:hover { background:#dbeafe; }
 .analytics-table-scroll { overflow-x:auto; margin-top:20px; }
 .analytics-table-scroll table { width:100%; min-width:680px; border-collapse:collapse; font-size:14px; }
-.analytics-table-scroll th { padding:11px 12px; background:#f1f5f9; color:#64748b; font-size:13px; text-align:left; font-weight:600; }
+.analytics-table-scroll th { padding:11px 12px; background:#f1f5f9; color:#475569; font-size:13px; text-align:left; font-weight:600; }
 .analytics-table-scroll td { padding:12px; border-top:1px solid #e2e8f0; color:#334155; line-height:1.5; }
 .analytics-table-scroll .analytics-numeric { text-align:right; }
 .analytics-table-scroll tbody tr:hover { background:#f8fafc; }
@@ -136,7 +136,7 @@
 .analytics-rate-ring { display:grid; place-items:center; width:82px; height:82px; padding:8px; border-radius:50%; }
 .analytics-rate-ring > span { display:grid; place-items:center; width:100%; height:100%; border-radius:50%; background:#fff; font-size:17px; font-weight:800; font-variant-numeric:tabular-nums; }
 .analytics-rate-card p { font-size:12px; font-weight:700; line-height:1.4; }
-.analytics-rate-card small { color:#64748b; font-size:11px; line-height:1.45; }
+.analytics-rate-card small { color:#475569; font-size:11px; line-height:1.45; }
 .analytics-subheading { margin-top:18px; color:#9a3412; font-size:11px; font-weight:700; letter-spacing:.1em; text-transform:uppercase; }
 .analytics-aging-bar { display:flex; gap:2px; height:12px; margin-top:8px; border-radius:99px; overflow:hidden; background:#f1f5f9; }
 .analytics-aging-bar span { min-width:0; }
@@ -144,7 +144,7 @@
 .analytics-aging-legend li { display:grid; grid-template-columns:9px minmax(0,1fr) auto; align-items:center; gap:8px; color:#475569; font-size:12px; }
 .analytics-aging-legend i { width:8px; height:8px; border-radius:2px; }
 .analytics-aging-legend strong { color:#334155; font-variant-numeric:tabular-nums; }
-.analytics-aging-legend small { grid-column:2/-1; color:#64748b; font-size:11px; }
+.analytics-aging-legend small { grid-column:2/-1; color:#475569; font-size:11px; }
 .analytics-overdue-alert { display:flex; align-items:center; justify-content:space-between; gap:10px; margin-top:14px; padding:11px 12px; border:1px solid #fecaca; border-radius:10px; background:#fff1f2; color:#9f1239; font-size:12px; }
 .analytics-overdue-alert strong { font-size:15px; font-variant-numeric:tabular-nums; }
 
@@ -156,10 +156,10 @@
 .analytics-status-row-head { display:flex; align-items:center; justify-content:space-between; gap:8px; color:#334155; font-size:12px; }
 .analytics-status-row-head > span { display:flex; align-items:center; gap:6px; font-weight:700; }
 .analytics-status-row-head i { width:8px; height:8px; border-radius:2px; }
-.analytics-status-row-head strong { color:#64748b; font-size:11px; white-space:nowrap; }
+.analytics-status-row-head strong { color:#475569; font-size:11px; white-space:nowrap; }
 .analytics-status-money { display:grid; grid-template-columns:1fr 1fr; gap:6px 10px; margin-top:8px; }
 .analytics-status-money span { display:block; }
-.analytics-status-money small { display:block; color:#64748b; font-size:10px; }
+.analytics-status-money small { display:block; color:#475569; font-size:10px; }
 .analytics-status-money strong { display:block; margin-top:1px; color:#334155; font-size:12px; font-variant-numeric:tabular-nums; }
 .analytics-status-balance { grid-column:1/-1; padding-top:6px; border-top:1px solid #f1f5f9; }
 .analytics-status-total { display:grid; gap:2px; margin-top:12px; padding:12px; border:1px solid #bfdbfe; border-radius:10px; background:#eff6ff; color:#1e3a8a; }
@@ -181,7 +181,7 @@
 .analytics-rows > div > span:first-child { flex:1; display:flex; align-items:center; gap:10px; }
 .analytics-rows i { display:inline-block; width:8px; height:8px; border-radius:2px; }
 .analytics-rows strong { font-weight:600; font-variant-numeric:tabular-nums; }
-.analytics-rows small { color:#526176; font-size:13px; font-weight:400; }
+.analytics-rows small { color:#475569; font-size:13px; font-weight:400; }
 .analytics-percent { width:44px; color:#475569; text-align:right; }
 
 /* Notes and actions */
@@ -247,13 +247,13 @@
   .analytics-mobile-card-head { display:flex; align-items:flex-start; justify-content:space-between; gap:10px; }
   .analytics-mobile-card-head > div { min-width:0; }
   .analytics-mobile-card-title { font-size:14px; font-weight:700; line-height:1.45; overflow-wrap:anywhere; }
-  .analytics-mobile-card-subtitle { margin-top:2px; color:#64748b; font-size:12px; line-height:1.5; overflow-wrap:anywhere; }
+  .analytics-mobile-card-subtitle { margin-top:2px; color:#475569; font-size:12px; line-height:1.5; overflow-wrap:anywhere; }
   .analytics-mobile-card-fields { display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); gap:10px 14px; margin:12px 0 0; padding-top:12px; border-top:1px solid #f1f5f9; }
-  .analytics-mobile-card-fields dt { color:#64748b; font-size:11px; line-height:1.45; }
+  .analytics-mobile-card-fields dt { color:#475569; font-size:11px; line-height:1.45; }
   .analytics-mobile-card-fields dd { margin:2px 0 0; color:#334155; font-size:13px; font-weight:600; line-height:1.5; overflow-wrap:anywhere; }
   .analytics-mobile-card-wide { grid-column:1/-1; }
   .analytics-mobile-card-head .analytics-payment-status,.analytics-mobile-card-head .analytics-risk-badge { flex-shrink:0; }
-  .analytics-mobile-empty { padding:24px 14px; border:1px dashed #cbd5e1; border-radius:12px; background:#fff; color:#64748b; font-size:13px; line-height:1.6; text-align:center; }
+  .analytics-mobile-empty { padding:24px 14px; border:1px dashed #cbd5e1; border-radius:12px; background:#fff; color:#475569; font-size:13px; line-height:1.6; text-align:center; }
   .analytics-table-pagination { flex-direction:column; align-items:stretch; gap:10px; }
   .analytics-table-pagination > div { justify-content:space-between; }
   .analytics-table-pagination button { min-height:44px; }
