@@ -12,7 +12,9 @@ function Chatbox({ onClose, initialView = "menu", prefilledRoom = "", hideInquir
   useEffect(() => {
     const previous = document.activeElement;
     const element = dialog.current;
-    const focusable = () => [...element.querySelectorAll('button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [href], [tabindex]:not([tabindex="-1"])')];
+    if (!element) return undefined;
+    const focusable = () => [...element.querySelectorAll('button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [href], [tabindex]:not([tabindex="-1"])')]
+      .filter(item => item instanceof HTMLElement);
     const keydown = event => {
       if (event.key === "Escape") { event.preventDefault(); onClose(); return; }
       if (event.key !== "Tab") return;
@@ -26,7 +28,10 @@ function Chatbox({ onClose, initialView = "menu", prefilledRoom = "", hideInquir
     (focusable()[0] || element).focus();
     return () => {
       element.removeEventListener("keydown", keydown);
-      requestAnimationFrame(() => (previous?.isConnected ? previous : document.querySelector('[aria-label^="Open Spartment Assistant"]'))?.focus());
+      requestAnimationFrame(() => {
+        const target = previous?.isConnected ? previous : document.querySelector('[aria-label^="Open Spartment Assistant"]');
+        if (target instanceof HTMLElement) target.focus();
+      });
     };
   }, [onClose]);
   function handleSelect(type) {
