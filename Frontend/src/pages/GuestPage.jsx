@@ -44,7 +44,7 @@ function GuestPage({ onExit }) {
             © 2026 Spartment. All rights reserved.
           </p>
 
-          <div className="flex items-center gap-5"><span>Ask management about privacy and tenancy policies.</span><button type="button" onClick={handleOpenChat} className="underline">Support</button></div>
+          <div className="flex flex-wrap items-center gap-x-5 gap-y-2"><span className="text-slate-500">Ask management about privacy and tenancy policies.</span><button type="button" onClick={handleOpenChat} className="font-medium text-slate-600 underline decoration-slate-300 underline-offset-4 hover:text-blue-700">Support</button></div>
         </div>
       </footer>
 

@@ -15,13 +15,13 @@ function GuestHero() {
         className="absolute inset-0 h-full w-full object-cover object-center"
       />
 
-      <div className="absolute inset-0 bg-gradient-to-r from-[#06235a]/95 via-[#0b4ca3]/80 to-[#1877e8]/35" />
+      <div className="absolute inset-0 bg-gradient-to-r from-[#051c49]/95 via-[#0a428f]/82 to-[#146fd7]/45" />
 
       <div className="absolute inset-0 bg-gradient-to-t from-[#06265d]/60 via-transparent to-transparent" />
 
-      <div className="relative mx-auto max-w-[1240px] px-5 py-8 sm:px-8 sm:py-10 lg:py-12">
+      <div className="relative mx-auto max-w-[1240px] px-5 py-9 sm:px-8 sm:py-11 lg:py-14">
         <div className="max-w-3xl">
-          <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-4 py-2 text-xs font-bold tracking-wide backdrop-blur-md">
+          <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-3 py-1.5 text-[11px] font-bold tracking-[0.12em] backdrop-blur-md">
             <span className="h-2 w-2 rounded-full bg-blue-300" />
             GUEST VIEW
           </div>
@@ -38,8 +38,8 @@ function GuestHero() {
             space that fits your needs.
           </p>
 
-          <div className="mt-6 grid max-w-3xl grid-cols-1 gap-2 sm:grid-cols-3 sm:gap-3">
-            <div className="flex items-center gap-3 rounded-xl border border-white/15 bg-white/10 px-3 py-2 sm:py-3">
+          <div className="mt-6 grid max-w-3xl grid-cols-1 gap-2 sm:grid-cols-3">
+            <div className="flex items-center gap-2.5 rounded-xl border border-white/15 bg-white/[0.08] px-3 py-2.5 backdrop-blur-sm">
               <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-white/10">
                 <Home size={20} strokeWidth={1.8} />
               </div>
@@ -55,7 +55,7 @@ function GuestHero() {
               </div>
             </div>
 
-            <div className="flex items-center gap-3 rounded-xl border border-white/15 bg-white/10 px-3 py-2 sm:py-3">
+            <div className="flex items-center gap-2.5 rounded-xl border border-white/15 bg-white/[0.08] px-3 py-2.5 backdrop-blur-sm">
               <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-white/10">
                 <ShieldCheck size={20} strokeWidth={1.8} />
               </div>
@@ -71,7 +71,7 @@ function GuestHero() {
               </div>
             </div>
 
-            <div className="flex items-center gap-3 rounded-xl border border-white/15 bg-white/10 px-3 py-2 sm:py-3">
+            <div className="flex items-center gap-2.5 rounded-xl border border-white/15 bg-white/[0.08] px-3 py-2.5 backdrop-blur-sm">
               <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-white/10">
                 <UsersRound size={20} strokeWidth={1.8} />
               </div>

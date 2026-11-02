@@ -48,18 +48,18 @@ function RoomGrid({ onInquire }) {
 
   return <section className="bg-[#f5f8fc] px-5 py-10 sm:px-8 sm:py-12">
     <div className="mx-auto max-w-[1240px]">
-      <div className="mb-7 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+      <div className="mb-7 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
         <div>
           <p className="mb-1 text-xs font-bold uppercase tracking-[0.2em] text-blue-600">Available Units</p>
           <h2 className="text-2xl font-extrabold tracking-tight text-slate-950 sm:text-3xl">{selectedBuilding === "all" ? "All Buildings" : selectedBuilding}{selectedFloor === "all" ? "" : ` · Floor ${selectedFloor}`}</h2>
           <p className="mt-1 text-sm text-slate-500">{isLoading ? "Loading available units..." : `${filteredRooms.length} unit${filteredRooms.length !== 1 ? "s" : ""} currently available`}</p>
         </div>
-        <div className="grid grid-cols-2 gap-3 sm:flex sm:items-center">
-          <select aria-label="Filter by floor" value={selectedFloor} onChange={(event) => setSelectedFloor(event.target.value)} className="h-11 min-w-0 rounded-xl border border-slate-200 bg-white px-4 text-sm font-medium text-slate-700 outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10">
+        <div className="grid grid-cols-2 gap-2 rounded-2xl border border-slate-200 bg-white p-1.5 shadow-sm">
+          <select aria-label="Filter by floor" value={selectedFloor} onChange={(event) => setSelectedFloor(event.target.value)} className="h-10 min-w-0 rounded-xl border-0 bg-slate-50 px-3 text-sm font-semibold text-slate-700 outline-none transition focus:bg-white focus:ring-2 focus:ring-blue-500/20">
             <option value="all">All Floors</option>
             {floors.map((floor) => <option key={floor} value={floor}>Floor {floor}</option>)}
           </select>
-          <select value={selectedBuilding} onChange={(event) => setSelectedBuilding(event.target.value)} className="h-11 min-w-0 rounded-xl border border-slate-200 bg-white px-4 text-sm font-medium text-slate-700 outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10" aria-label="Filter by building">
+          <select value={selectedBuilding} onChange={(event) => setSelectedBuilding(event.target.value)} className="h-10 min-w-0 rounded-xl border-0 bg-slate-50 px-3 text-sm font-semibold text-slate-700 outline-none transition focus:bg-white focus:ring-2 focus:ring-blue-500/20" aria-label="Filter by building">
             <option value="all">All Buildings</option>
             {buildings.map((building) => <option key={building} value={building}>{building}</option>)}
           </select>
