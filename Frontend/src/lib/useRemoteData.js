@@ -29,6 +29,6 @@ export function useRemoteData(loader,{keepPrevious=false}={}) {
       .catch(error=>{if(controller.signal.aborted||error?.name==='AbortError')return;setState(previous=>({data:keepPrevious||previous.loader===loader?previous.data:null,error:error.message,loading:false,loader}));if(manual.current){manual.current=false;showFeedback(error.message,'error');}});
     return ()=>controller.abort();
   },[keepPrevious,loader,revision]);
-  const reload=event=>{manual.current=Boolean(event?.type);force.current=true;setState(previous=>({...previous,error:'',loading:true}));setRevision(n=>n+1);};
+  const reload=event=>{manual.current=Boolean(event?.type);force.current=true;if(!event?.silent)setState(previous=>({...previous,error:'',loading:true}));setRevision(n=>n+1);};
   return state.loader!==loader?{data:keepPrevious?state.data:null,error:'',loading:true,reload}:{...state,reload};
 }

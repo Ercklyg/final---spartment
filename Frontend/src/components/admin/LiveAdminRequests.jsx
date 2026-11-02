@@ -105,7 +105,7 @@ export default function LiveAdminRequests() {
   const { data, error, loading, reload } = useRemoteData(loadWorkspace, { keepPrevious: true });
   const reloadRef=useRef(reload);
   useEffect(()=>{reloadRef.current=reload;},[reload]);
-  useEffect(()=>{const refresh=()=>{if(document.visibilityState==='visible'&&navigator.onLine)reloadRef.current();};const timer=setInterval(refresh,5000);window.addEventListener('focus',refresh);window.addEventListener('online',refresh);return()=>{clearInterval(timer);window.removeEventListener('focus',refresh);window.removeEventListener('online',refresh);};},[]);
+  useEffect(()=>{const refresh=()=>{if(document.visibilityState==='visible'&&navigator.onLine)reloadRef.current({silent:true});};const timer=setInterval(refresh,30000);window.addEventListener('focus',refresh);window.addEventListener('online',refresh);return()=>{clearInterval(timer);window.removeEventListener('focus',refresh);window.removeEventListener('online',refresh);};},[]);
   const [filter, setFilter] = useSessionState("admin-requests-filter", "All");
   const [selected, setSelected] = useState(null);
   const requests = data?.requests || [];
