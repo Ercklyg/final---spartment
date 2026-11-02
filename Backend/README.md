@@ -140,3 +140,16 @@ Account and notification operations reuse the middleware's verified user. All
 database operations continue to use the caller's token and RLS. No report data
 is cached across users. The older unfiltered billing workspace remains compatible
 with existing clients, while the admin screen uses the paged endpoint.
+
+## Browser workflow tests
+
+Run `npm run test:e2e` from `Backend/` to exercise critical browser flows in
+installed Chrome at desktop and mobile viewport sizes. The suite intercepts API
+requests with deterministic fixtures, so it never changes hosted tenants, bills,
+requests or authentication accounts.
+
+Current coverage verifies invalid and successful administrator sign-in,
+authenticated navigation, server-side request filtering and pagination, and
+saving a maintenance-request status update. Use `npm run test:e2e:headed` to
+watch the browser. Failure screenshots, videos, traces and HTML reports remain
+local and are excluded from Git.
