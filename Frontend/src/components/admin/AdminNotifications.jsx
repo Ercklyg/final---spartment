@@ -12,16 +12,15 @@ const icons = { All: Layers, Payments: Wallet, Leases: CalendarClock, Requests: 
 const noticeVersion = item => JSON.stringify([item.id, item.title, item.text, item.priority, item.deadline, item.time]);
 
 function CategoryButtons({ notices, selected, onSelect, disabled, seen }) {
-  return <div role="group" aria-label="Notification categories" className="mt-5 flex flex-wrap gap-1.5 rounded-xl bg-slate-50 p-1.5 ring-1 ring-slate-100">
+  return <div role="group" aria-label="Notification categories" className="notification-category-scroll mt-5 grid auto-cols-[minmax(112px,1fr)] grid-flow-col gap-1.5 overflow-x-auto rounded-xl border border-slate-200 bg-slate-50/80 p-1.5 sm:grid-flow-row sm:grid-cols-6">
     {categories.map(category => {
       const count = category === 'All' ? notices.length : notices.filter(item => item.category === category).length;
       const active = selected === category;
       const Icon = icons[category];
       const hasNew = category !== 'All' && notices.some(item => item.category === category && seen[item.id] !== noticeVersion(item));
       return <button key={category} type="button" aria-pressed={active} disabled={disabled} onClick={() => onSelect(category)}
-        className={`inline-flex flex-1 items-center justify-center gap-2 rounded-lg border px-3 py-2.5 text-xs font-semibold transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600 disabled:opacity-50 ${active ? 'border-blue-100 bg-white text-blue-700 shadow-sm' : count ? 'border-transparent text-slate-600 hover:bg-white hover:text-slate-900' : 'border-transparent text-slate-400 hover:bg-white'}`}>
-        <Icon size={15} aria-hidden="true" />{category}<span className={`min-w-5 rounded-md px-1.5 py-0.5 text-center text-[10px] tabular-nums ${active ? 'bg-blue-600 text-white' : 'bg-slate-200/60 text-slate-500'}`}>{count}</span>
-        {hasNew && <span className="h-2 w-2 shrink-0 rounded-full bg-red-500 ring-2 ring-white"><span className="sr-only">New notifications</span></span>}
+        className={`inline-flex min-h-11 snap-start items-center justify-center gap-2 rounded-lg border px-3 py-2 text-xs font-semibold transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600 disabled:opacity-50 ${active ? 'border-blue-200 bg-blue-50 text-blue-700 shadow-sm' : count ? 'border-transparent text-slate-600 hover:border-slate-200 hover:bg-white hover:text-slate-900' : 'border-transparent text-slate-400 hover:bg-white'}`}>
+        <Icon size={15} aria-hidden="true" /><span>{category}</span>{count>0&&<span className="relative"><span className={`inline-flex min-w-5 items-center justify-center rounded-md px-1.5 py-0.5 text-[10px] tabular-nums ${active ? 'bg-blue-600 text-white' : 'bg-slate-200/70 text-slate-600'}`}>{count}</span>{hasNew&&<span className="absolute -right-1.5 -top-1.5 h-2 w-2 rounded-full bg-red-500 ring-2 ring-white"><span className="sr-only">New notifications</span></span>}</span>}
       </button>;
     })}
   </div>;
