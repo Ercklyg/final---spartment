@@ -25,19 +25,18 @@ function NoticeDialog({ title, onClose, children }) {
 }
 
 function NoticeRows({ items, onView }) {
-  return items.length ? <div className="space-y-2">{items.map(item=>{
+  return items.length ? <div className="space-y-2.5">{items.map(item=>{
     const Icon=billingNotice(item)?Wallet:category(item)==="Requests"?Wrench:BellRing;
     return <button key={item.id} type="button" onClick={()=>onView(item)} aria-label={`View notification: ${item.title}`}
-      className={`group flex w-full items-start gap-3 rounded-xl border border-l-4 p-3 text-left transition-colors sm:items-center sm:gap-4 ${item.is_read?"border-slate-200 bg-white hover:bg-slate-50":"border-blue-200 bg-blue-50/80 hover:bg-blue-100/70"} ${item.alert?"border-l-amber-400":"border-l-blue-600"}`}>
-      <span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${item.alert?"bg-amber-50 text-amber-700":"bg-blue-50 text-blue-600"}`}><Icon size={21}/></span>
+      className={`group flex w-full items-start gap-3 rounded-xl border border-l-[3px] px-3.5 py-3 text-left shadow-sm transition-[border-color,background-color,box-shadow] sm:items-center sm:gap-4 sm:px-4 ${item.is_read?"border-slate-200 border-l-slate-300 bg-white hover:border-slate-300 hover:bg-slate-50":"border-blue-200 bg-blue-50/60 hover:border-blue-300 hover:bg-blue-50 hover:shadow-md"} ${item.alert?"!border-l-amber-400":!item.is_read?"border-l-blue-600":""}`}>
+      <span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-lg ring-1 ring-inset ${item.alert?"bg-amber-50 text-amber-700 ring-amber-100":item.is_read?"bg-slate-50 text-slate-500 ring-slate-200":"bg-blue-100/70 text-blue-600 ring-blue-200"}`}><Icon size={20}/></span>
       <span className="min-w-0 flex-1">
-        <span className="flex flex-wrap items-center gap-2"><span className={`text-sm leading-5 text-slate-900 ${item.is_read?"font-semibold":"font-bold"}`}>{item.title}</span><span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-slate-500">{category(item)}</span></span>
+        <span className="flex flex-wrap items-center gap-1.5"><span className={`text-sm leading-5 text-slate-900 ${item.is_read?"font-semibold":"font-bold"}`}>{item.title}</span>{!item.is_read&&<span className="rounded-full bg-blue-600 px-2 py-0.5 text-[9px] font-bold uppercase tracking-[0.08em] text-white">Unread</span>}<span className="rounded-full bg-slate-100 px-2 py-0.5 text-[9px] font-bold uppercase tracking-[0.08em] text-slate-500">{category(item)}</span></span>
         <span className="mt-1 block line-clamp-2 break-words text-xs leading-5 text-slate-600">{item.message}</span>
-        <span className="mt-1 block text-[11px] text-slate-500">{timestamp(item)}{item.alert && <span className="ml-2 font-semibold text-amber-700">{item.alert}</span>}</span>
-        <span className="mt-2 inline-flex items-center gap-1 rounded-lg border border-blue-100 bg-blue-50 px-2.5 py-1.5 text-xs font-semibold text-blue-700 sm:hidden">View <ArrowRight size={14}/></span>
+        <span className="mt-1.5 block text-[11px] text-slate-500">{timestamp(item)}{item.alert && <span className="ml-2 font-semibold text-amber-700">{item.alert}</span>}</span>
+        <span className="mt-2.5 inline-flex items-center gap-1 rounded-lg bg-blue-600 px-3 py-1.5 text-xs font-semibold text-white shadow-sm sm:hidden">View details <ArrowRight size={14}/></span>
       </span>
-      {!item.is_read && <span className="mt-3 h-2.5 w-2.5 shrink-0 rounded-full bg-blue-600 ring-4 ring-blue-100 sm:mt-0"><span className="sr-only">Unread</span></span>}
-      <span className="hidden shrink-0 items-center gap-1 rounded-lg border border-blue-100 bg-blue-50 px-2.5 py-1.5 text-xs font-semibold text-blue-700 group-hover:bg-blue-100 sm:inline-flex">View <ArrowRight size={14}/></span>
+      <span className="hidden shrink-0 items-center gap-1 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-blue-700 shadow-sm transition group-hover:border-blue-200 group-hover:bg-blue-600 group-hover:text-white sm:inline-flex">View <ArrowRight size={14}/></span>
     </button>;
   })}</div> : <div className="rounded-xl border border-dashed border-slate-200 px-4 py-8 text-center"><CheckCheck size={24} className="mx-auto mb-2 text-emerald-600"/><p className="text-sm font-semibold text-slate-700">No notifications yet</p><p className="mt-1 text-xs text-slate-500">Account updates will appear here.</p></div>;
 }
@@ -68,12 +67,12 @@ export default function NotificationTable({ onNavigate }) {
   return <>
     <section aria-labelledby="notifications-heading" className="mt-5 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
       <div className="flex flex-wrap items-center gap-3">
-        <BellRing size={25} className="shrink-0 text-blue-600"/>
+        <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-blue-50 text-blue-600 ring-1 ring-inset ring-blue-100"><BellRing size={22}/></span>
         <div className="min-w-0 flex-1"><h2 id="notifications-heading" className="text-lg font-bold text-slate-900">Notifications</h2><p className="text-xs text-slate-500">Your latest account updates</p></div>
         <button type="button" title="Refresh notifications" aria-label="Refresh notifications" disabled={loading||saving} onClick={reload} className="rounded-lg border border-slate-200 p-2.5 text-slate-500 hover:bg-slate-50 disabled:opacity-50"><RefreshCw size={16} className={loading?"animate-spin":""}/></button>
         <button type="button" disabled={!total} onClick={()=>setAllOpen(true)} className="inline-flex items-center gap-1.5 rounded-lg bg-blue-600 px-3 py-2.5 text-xs font-semibold text-white hover:bg-blue-700 disabled:opacity-50">View all <ArrowUpRight size={15}/></button>
       </div>
-      <div className="my-4 flex flex-wrap items-center justify-between gap-2 rounded-xl bg-slate-50 px-3 py-2 ring-1 ring-slate-100"><span className="text-xs font-medium text-slate-600">{unreadCount} unread</span><button type="button" disabled={saving||loading||!unreadCount} onClick={()=>mark(null)} className="inline-flex min-h-9 items-center gap-1.5 text-xs font-semibold text-blue-700 disabled:opacity-40"><CheckCheck size={15}/>Mark all as read</button></div>
+      <div className="my-4 flex min-h-10 flex-wrap items-center justify-between gap-2 rounded-xl border border-slate-200 bg-slate-50/70 px-3 py-1.5"><span className="inline-flex items-center gap-2 text-xs font-semibold text-slate-700"><span className="h-2 w-2 rounded-full bg-blue-600"/>{unreadCount} unread</span><button type="button" disabled={saving||loading||!unreadCount} onClick={()=>mark(null)} className="inline-flex min-h-8 items-center gap-1.5 rounded-lg px-2 text-xs font-semibold text-blue-700 transition hover:bg-blue-50 disabled:opacity-40"><CheckCheck size={15}/>Mark all as read</button></div>
       {loading&&!data?<PageSkeleton variant="list" label="Loading notifications..."/>:<NoticeRows items={notices.slice(0,3)} onView={view}/>}
       {error&&<p role="alert" className="mt-3 text-sm text-rose-700">{error} <button onClick={reload} className="underline">Retry</button></p>}
       {!loading&&total>3&&<p className="mt-3 text-xs text-slate-500">Showing 3 of {total} notifications. Select View all to see the rest.</p>}
