@@ -1,9 +1,10 @@
-import { useEffect, useRef, useState } from 'react';
+import { lazy, Suspense, useEffect, useRef, useState } from 'react';
 import { FileText, X } from 'lucide-react';
 import { money } from '../../lib/billing.js';
 import { formatTenantDate } from '../../lib/tenantAccount.js';
-import PaymentReceiptDialog from '../tenant/PaymentReceiptDialog.jsx';
 import { closeFromBackdrop } from '../../lib/dialog.js';
+
+const PaymentReceiptDialog = lazy(() => import('../tenant/PaymentReceiptDialog.jsx'));
 
 export default function BillPaymentsDialog({ bill, onClose, onCorrection }) {
   const dialog = useRef(null);
@@ -24,6 +25,6 @@ export default function BillPaymentsDialog({ bill, onClose, onCorrection }) {
         <div className="mt-3 flex flex-wrap gap-4"><button type="button" onClick={() => setReceiptId(payment.id)} className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-blue-200 bg-blue-50 px-4 py-2 text-sm font-semibold text-blue-700 transition-colors hover:bg-blue-100"><FileText size={16} />Open receipt</button>{onCorrection && <button type="button" onClick={() => { onClose(); onCorrection(payment); }} className="min-h-11 rounded-xl border border-amber-200 px-3 py-2 text-sm font-medium text-amber-800 hover:bg-amber-50">Correct payment / history</button>}</div>
       </article>)}</div>}
     </dialog>
-    {receiptId && <PaymentReceiptDialog key={receiptId} paymentId={receiptId} onClose={() => setReceiptId(null)} />}
+    {receiptId && <Suspense fallback={<div role="status" className="fixed inset-0 z-[90] flex items-center justify-center bg-slate-950/40 p-4"><p className="rounded-xl bg-white px-5 py-4 text-sm font-medium text-slate-700">Opening receipt…</p></div>}><PaymentReceiptDialog key={receiptId} paymentId={receiptId} onClose={() => setReceiptId(null)} /></Suspense>}
   </>;
 }

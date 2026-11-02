@@ -1,15 +1,15 @@
 import PageSkeleton from "../PageSkeleton.jsx";
-import PaymentCorrectionDialog from "./PaymentCorrectionDialog.jsx";
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { lazy, Suspense, useCallback, useEffect, useRef, useState } from 'react';
 import { api } from '../../lib/api.js';
-import { createBill, money, monthEnd, recordPayment, sendPaymentReminder, today } from '../../lib/billing.js';
+import { createBill, monthEnd, sendPaymentReminder, today } from '../../lib/billing.js';
 import { useRemoteData } from '../../lib/useRemoteData.js';
 import { useSessionState } from '../../lib/useSessionState.js';
 import BillingLedger from './BillingLedger.jsx';
 import { ChevronDown, Search } from 'lucide-react';
-import { closeFromBackdrop } from '../../lib/dialog.js';
-import { useOnlineStatus } from '../../lib/useOnlineStatus.js';
 const field='mt-1 w-full rounded-lg border border-slate-300 bg-white p-2.5';
+const PaymentCorrectionDialog = lazy(() => import('./PaymentCorrectionDialog.jsx'));
+const RecordPaymentForm = lazy(() => import('./RecordPaymentForm.jsx'));
+const DialogLoading = ({ label }) => <div role="status" className="fixed inset-0 z-[80] flex items-center justify-center bg-slate-950/40 p-4"><p className="rounded-xl bg-white px-5 py-4 text-sm font-medium text-slate-700">{label}</p></div>;
 function LeasePicker({ leases, value, includeAll, disabled, onChange }) {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState('');
@@ -38,16 +38,6 @@ function LeasePicker({ leases, value, includeAll, disabled, onChange }) {
       </div>
     </div>}
   </div>;
-}
-function PaymentForm({bill,onClose,onSaved}) {
-  const online=useOnlineStatus();
-  const [form,setForm]=useState({amount:String(bill.balance),date:today(),reference:''});
-  const [error,setError]=useState('');const [saving,setSaving]=useState(false);
-  const attempt=useRef(null); const busy=useRef(false);
-  const submit=async event=>{event.preventDefault();if(!online){setError('You are offline. Reconnect before recording a payment.');return;}if(busy.current)return;busy.current=true;setSaving(true);setError('');
-    const signature=JSON.stringify(form);if(attempt.current?.signature!==signature)attempt.current={signature,id:crypto.randomUUID()};
-    try{await recordPayment(api,bill,form,attempt.current.id);onSaved();}catch(e){setError(e.message);}finally{busy.current=false;setSaving(false);}};
-  return <div onMouseDown={event=>closeFromBackdrop(event,onClose,saving)} className="fixed inset-0 z-[70] flex items-center justify-center bg-slate-950/40 p-4"><form onSubmit={submit} role="dialog" aria-modal="true" aria-label="Record payment" className="w-full max-w-md rounded-xl bg-white p-5 sm:p-6"><h2 className="text-xl font-bold">Record payment</h2><p className="mt-1 text-sm">Remaining balance: {money(bill.balance)}</p><fieldset disabled={saving} className="mt-4 space-y-3">{[['amount','Amount','number'],['date','Payment date','date'],['reference','Reference note','text']].map(([key,label,type])=><label key={key} className="block text-sm">{label}<input type={type} required={key!=='reference'} min={key==='amount'?'0.01':undefined} max={key==='amount'?bill.balance:key==='date'?today():undefined} step={key==='amount'?'0.01':undefined} maxLength={254} value={form[key]} onChange={e=>setForm({...form,[key]:e.target.value})} className={field}/></label>)}{error&&<p role="alert" className="text-rose-700">{error}</p>}<div className="grid grid-cols-2 gap-2 text-sm sm:flex sm:justify-end sm:gap-3"><button type="button" onClick={onClose}>Cancel</button><button disabled={!online||saving} className="rounded-lg bg-blue-600 px-3 py-2 text-white disabled:cursor-not-allowed disabled:opacity-50 sm:px-4">{saving?'Saving...':online?'Save payment':'Reconnect to save'}</button></div></fieldset></form></div>;
 }
 export default function LiveAdminBilling({ type }) {
   const [month, setMonth] = useSessionState(`admin-billing-${type}-month`,today().slice(0, 7));
@@ -132,7 +122,7 @@ export default function LiveAdminBilling({ type }) {
 
   const remind=async bill=>{await sendPaymentReminder(api,bill);reloadWorkspace();};
   return <>{error && <p role="alert" className="mb-3 text-sm text-rose-700">{error} Showing previously loaded records. <button onClick={reloadAll} className="underline">Retry</button></p>}<BillingLedger type={type} bills={data.bills} summary={data.summary} month={month} onMonthChange={changeMonth} page={data} loading={page.loading||search!==filters.search} filters={filters} onFiltersChange={setFilters} createForm={createForm} onRefresh={reloadAll} onPayment={setPayment} onReminder={remind} onCorrection={setCorrection} />
-    {correction && <PaymentCorrectionDialog payment={correction} onClose={() => setCorrection(null)} onSaved={() => { setCorrection(null); reloadWorkspace(); }} />}
-    {payment && <PaymentForm bill={payment} onClose={() => setPayment(null)} onSaved={() => { setPayment(null); reloadWorkspace(); }} />}
+    {correction && <Suspense fallback={<DialogLoading label="Opening payment correction…"/>}><PaymentCorrectionDialog payment={correction} onClose={() => setCorrection(null)} onSaved={() => { setCorrection(null); reloadWorkspace(); }} /></Suspense>}
+    {payment && <Suspense fallback={<DialogLoading label="Opening payment form…"/>}><RecordPaymentForm bill={payment} onClose={() => setPayment(null)} onSaved={() => { setPayment(null); reloadWorkspace(); }} /></Suspense>}
   </>;
 }
