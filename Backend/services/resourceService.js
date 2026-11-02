@@ -27,5 +27,6 @@ export async function changeRequest(db,id,body){
 }
 export async function createTenant(db,body){
   if(!body||typeof body!=='object'||Array.isArray(body))throw new HttpError(400,'Tenant details are required.');
+  if(!/^\d{11}$/.test(String(body.phone||''))||!/^\d{11}$/.test(String(body.emergencyPhone||'')))throw new HttpError(400,'Tenant and emergency phone numbers must contain exactly 11 digits.');
   return model.invokeTenantCreation(db,body);
 }
