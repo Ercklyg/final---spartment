@@ -3,7 +3,6 @@ import {
   ChevronRight,
   FileText,
   MessagesSquare,
-  ShieldCheck,
   Wrench,
 } from "lucide-react";
 
@@ -39,7 +38,7 @@ function ChatboxMenu({ onSelect, hideInquiry = false }) {
           <Building2 size={15} strokeWidth={1.8} />
         </div>
 
-        <div className="max-w-[85%] rounded-2xl rounded-tl-md border border-slate-200/70 bg-white px-3.5 py-3 shadow-[0_2px_12px_-4px_rgba(15,23,42,0.12)]">
+        <div className="max-w-[85%] rounded-2xl rounded-tl-md border border-slate-200/70 bg-white px-3.5 py-2.5 shadow-[0_2px_12px_-4px_rgba(15,23,42,0.12)]">
           <p className="text-[13.5px] font-semibold leading-snug text-slate-900">
             Hi, welcome to Spartment
           </p>
@@ -58,7 +57,7 @@ function ChatboxMenu({ onSelect, hideInquiry = false }) {
               key={option.id}
               type="button"
               onClick={() => onSelect(option.id)}
-              className="group flex w-full items-center gap-3 rounded-2xl border border-slate-200/80 bg-white p-3 text-left transition duration-150 hover:-translate-y-px hover:border-blue-200 hover:shadow-[0_10px_28px_-10px_rgba(37,99,235,0.35)] active:translate-y-0"
+              className="group flex w-full items-center gap-3 rounded-2xl border border-slate-200/80 bg-white p-3 text-left transition duration-150 hover:border-blue-300 hover:bg-blue-50/50 hover:shadow-[0_8px_22px_-12px_rgba(37,99,235,0.45)] active:bg-blue-50"
             >
               <span
                 className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border ${option.iconWrap}`}
@@ -70,7 +69,7 @@ function ChatboxMenu({ onSelect, hideInquiry = false }) {
                 <span className="block truncate text-sm font-semibold text-slate-900">
                   {option.title}
                 </span>
-                <span className="mt-0.5 block truncate text-xs text-slate-500">
+                <span className="mt-0.5 block text-xs leading-4 text-slate-500">
                   {option.description}
                 </span>
               </span>
@@ -84,10 +83,6 @@ function ChatboxMenu({ onSelect, hideInquiry = false }) {
         })}
       </div>
 
-      <p className="flex items-center justify-center gap-1.5 pt-1 text-[11px] text-slate-400">
-        <ShieldCheck size={13} className="text-slate-300" />
-        Your details stay private with us
-      </p>
     </div>
   );
 }

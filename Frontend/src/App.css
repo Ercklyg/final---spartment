@@ -154,10 +154,13 @@ a {
   }
 
   .chatbox-enter {
-    bottom: 12px;
-    right: 12px;
-    height: min(620px, calc(100dvh - 24px));
-    border-radius: 18px;
+    right: 8px;
+    bottom: max(8px, env(safe-area-inset-bottom));
+    width: calc(100vw - 16px);
+    max-width: none;
+    height: calc(100dvh - max(16px, env(safe-area-inset-bottom)));
+    max-height: none;
+    border-radius: 16px;
   }
 }
 

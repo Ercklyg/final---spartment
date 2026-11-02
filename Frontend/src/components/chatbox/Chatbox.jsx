@@ -17,7 +17,7 @@ function Chatbox({ onClose, initialView = "menu", prefilledRoom = "", hideInquir
   }
 
   return (
-    <div className="chatbox-enter fixed bottom-5 right-5 z-50 flex h-[620px] max-h-[calc(100dvh-48px)] w-[400px] max-w-[calc(100vw-24px)] flex-col overflow-hidden rounded-[22px] border border-slate-200/70 bg-white shadow-[0_24px_80px_-16px_rgba(7,27,67,0.35),0_8px_24px_-8px_rgba(15,23,42,0.15)] sm:bottom-6 sm:right-6">
+    <div role="dialog" aria-modal="true" aria-label="Spartment customer service" className="chatbox-enter fixed bottom-5 right-5 z-50 flex h-[620px] max-h-[calc(100dvh-48px)] w-[400px] max-w-[calc(100vw-24px)] flex-col overflow-hidden rounded-[22px] border border-slate-200/70 bg-white shadow-[0_24px_80px_-16px_rgba(7,27,67,0.35),0_8px_24px_-8px_rgba(15,23,42,0.15)] sm:bottom-6 sm:right-6">
       <ChatboxHeader onClose={onClose} />
 
       <div className="min-h-0 flex-1 overflow-y-auto bg-[#f7f9fc]">
