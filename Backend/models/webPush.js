@@ -43,7 +43,7 @@ export async function deliverPendingPushes(client){
  const users=[...new Set(notices.data.map(item=>item.tenant_id))];
  const [devices,preferences,deliveries]=await Promise.all([
   client.from('push_subscriptions').select('id,user_id,endpoint,p256dh,auth').in('user_id',users),
-  client.from('notification_preferences').select('*').in('user_id',users),
+  client.from('notification_preferences').select('user_id,browser_enabled,billing_enabled,payment_enabled,request_enabled,account_enabled').in('user_id',users),
   client.from('push_deliveries').select('notification_id,subscription_id').in('notification_id',notices.data.map(item=>item.id)),
  ]);
  if(devices.error||preferences.error||deliveries.error)throw new HttpError(503,'Unable to prepare push notifications.');

@@ -10,7 +10,7 @@ export function summarizeBill(bill) {
     displayStatus:paidCents>=totalCents?'Paid':bill.due_date<today()?'Late':paidCents>0?'Partially paid':'Pending'};
 }
 export async function loadBills(client) {
-  const bills=await readAll(()=>client.from('bills').select('*, payments(id,amount,payment_date,reference_note), leases(tenant_id, profiles(full_name), rooms(room_number, buildings(name)))')
+  const bills=await readAll(()=>client.from('bills').select('id,lease_id,bill_type,billing_period,due_date,rent_amount,electricity_amount,water_amount,status,created_at, payments(id,amount,payment_date,reference_note), leases(tenant_id, profiles(full_name), rooms(room_number, buildings(name)))')
     .order('billing_period',{ascending:false}).order('created_at',{ascending:false}).order('id'));
   return bills.map(summarizeBill);
 }

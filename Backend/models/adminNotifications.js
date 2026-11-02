@@ -69,7 +69,7 @@ export async function loadAdminNotifications(client) {
   const [bills, leases, rooms, requests, inquiries] = await Promise.all([
     loadBills(client),
     all('leases', 'id,status,lease_end_date,profiles(full_name),rooms(room_number)'),
-    all('rooms', '*,buildings(name)'),
+    all('rooms', 'id,room_number,status,monthly_rate,created_at,updated_at,buildings(name)'),
     all('tenant_requests', 'id,kind,status,priority,subject,created_at'),
     all('inquiries', 'id,status,created_at'),
   ]);

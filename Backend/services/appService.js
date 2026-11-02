@@ -1,7 +1,6 @@
 import { createUserClient } from '../config/supabase.js';
 import { HttpError, serviceError } from '../middleware/errors.js';
 import { loadTenantAccount } from '../models/tenantAccount.js';
-import { loadTenantDirectory } from '../models/tenantDirectory.js';
 import { report } from '../models/reports.js';
 import { loadBills, createBill, recordPayment, billingOverview, loadBillingLeases, today } from '../models/billing.js';
 import { loadRequests, submitInquiry, submitTenantRequest } from '../models/requests.js';
@@ -121,7 +120,7 @@ export const readNotifications=async(req)=>{
 };
 export const notificationEngagement=async(req)=>{await updateNotificationEngagement(req.db,req.user.id,validate.ids(req.body?.ids),validate.choice(req.body?.action,['seen','acknowledged'],'notification action'));return {ok:true};};
 export const notificationPreferences=async(req)=>{
-  const {data,error}=await req.db.from('notification_preferences').select('*').eq('user_id',req.user.id).maybeSingle();
+  const {data,error}=await req.db.from('notification_preferences').select('user_id,sound_enabled,browser_enabled,billing_enabled,payment_enabled,request_enabled,account_enabled').eq('user_id',req.user.id).maybeSingle();
   if(error)throw new HttpError(503,'Unable to load notification preferences.');
   return data||{user_id:req.user.id,sound_enabled:false,browser_enabled:false,billing_enabled:true,payment_enabled:true,request_enabled:true,account_enabled:true};
 };
@@ -143,11 +142,7 @@ export const roomStatus=async(req)=>{validate.uuid(req.params.id,'room ID');vali
 export const tenants=async(req)=>{
   const search=validate.text(req.query.search,'search',160,true).trim().toLowerCase();
   const page=validate.page(req.query);
-  if(!search)return report(req.db,'tenant_directory_page',page);
-  const rows=await loadTenantDirectory(req.db);
-  const filtered=rows.filter(tenant=>[tenant.full_name,tenant.email,tenant.phone,tenant.rooms?.room_number]
-    .some(value=>String(value||'').toLowerCase().includes(search)));
-  return {data:filtered.slice(page.p_offset,page.p_offset+page.p_limit),total:filtered.length,offset:page.p_offset,limit:page.p_limit};
+  return report(req.db,'tenant_directory_search_page',{p_search:search,...page});
 };
 export const billingLeases=async(req)=>{
   const {month,type}=req.query;
@@ -165,7 +160,10 @@ export const billingWorkspace=async(req)=>{
   const [bills,leases]=await Promise.all([loadBills(req.db),loadBillingLeases(req.db)]);
   return ({bills:await addReminderTimes(req.db,bills),summary:billingOverview(bills),leases});
 };
-export const requestWorkspace=async(req)=>({requests:await loadRequests(req.db),inquiries:await readAll(()=>req.db.from('inquiries').select('*').order('created_at',{ascending:false}).order('id'))});
+export const requestWorkspace=async(req)=>report(req.db,'request_workspace_page',{
+  p_filter:validate.choice(req.query.filter??'All',['All','Maintenance','Other','Inquiry'],'request filter'),
+  ...validate.page(req.query),
+});
 export const inquiryUpdate=async(req)=>{validate.uuid(req.params.id,'inquiry ID');validate.choice(req.body?.status,['New','Contacted','Resolved'],'status');return (checked(await req.db.from('inquiries').update({status:req.body.status}).eq('id',req.params.id).select('id').single()));};
 export const correctionHistory=async(req)=>{validate.uuid(req.params.id,'payment ID');return readAll(()=>req.db.from('payment_corrections').select('id,reason,previous_values,corrected_values,created_at,corrected_by').eq('payment_id',req.params.id).order('created_at',{ascending:false}).order('id'));};
 export const analytics=async(req)=>{

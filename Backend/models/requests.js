@@ -11,5 +11,5 @@ export async function submitInquiry(client,form,id) {
   if(error&&error.code!=='23505')throw new Error('Unable to submit inquiry. Please retry.');
 }
 export async function loadRequests(client) {
-  return readAll(()=>client.from('tenant_requests').select('*, profiles(full_name), rooms(room_number,buildings(name)), maintenance_attachments(id,original_name,mime_type,size_bytes,created_at,uploaded_by)').order('created_at',{ascending:false}).order('id'));
+  return readAll(()=>client.from('tenant_requests').select('id,tenant_id,room_id,kind,subject,message,priority,status,admin_note,created_at,updated_at, profiles(full_name), rooms(room_number,buildings(name)), maintenance_attachments(id,original_name,mime_type,size_bytes,created_at,uploaded_by)').order('created_at',{ascending:false}).order('id'));
 }

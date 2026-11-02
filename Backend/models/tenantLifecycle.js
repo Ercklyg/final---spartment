@@ -8,4 +8,4 @@ export async function changeOccupancy(db, args) {
     : serviceError(400,'Unable to update the tenant assignment. Please retry.',error);
   return data;
 }
-export const leaseHistory=(db,id)=>readAll(()=>db.from('leases').select('*,rooms(room_number,buildings(name))').eq('tenant_id',id).order('move_in_date',{ascending:false}).order('id'));
+export const leaseHistory=(db,id)=>readAll(()=>db.from('leases').select('id,tenant_id,room_id,move_in_date,lease_end_date,status,created_at,rooms(room_number,buildings(name))').eq('tenant_id',id).order('move_in_date',{ascending:false}).order('id'));

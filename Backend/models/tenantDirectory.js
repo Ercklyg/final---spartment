@@ -25,7 +25,7 @@ function attachBilling(tenants, bills) {
 }
 
 export async function loadTenantDirectory(client) {
-  const loadAssignments = () => readAll(()=>client.from('tenant_assignments').select('*,rooms(room_number,buildings(name))').eq('status','active')
+  const loadAssignments = () => readAll(()=>client.from('tenant_assignments').select('id,email,full_name,phone,emergency_name,emergency_phone,relationship,room_id,monthly_rent,move_in,lease_end,status,created_at,rooms(room_number,buildings(name))').eq('status','active')
     .order('created_at', { ascending: false }).order('id'));
   // Match bills across leases by tenant ID, never by name or room number.
   const [tenants, bills] = await Promise.all([loadAssignments(), loadBills(client)]);
