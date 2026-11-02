@@ -1,10 +1,12 @@
-import { useState } from "react";
+import { lazy, Suspense, useState } from "react";
 import { MessagesSquare } from "lucide-react";
 
 import BrandPanel from "../components/landing/BrandPanel.jsx";
 import LoginCard from "../components/landing/LoginCard.jsx";
-import Chatbox from "../components/chatbox/Chatbox.jsx";
 import BuildingViewer from "../components/guest/BuildingViewer.jsx";
+
+const Chatbox = lazy(() => import("../components/chatbox/Chatbox.jsx"));
+const ChatLoading = () => <div role="status" className="fixed bottom-5 right-5 z-50 rounded-2xl bg-white px-4 py-3 text-sm font-medium text-slate-600 shadow-xl sm:bottom-6 sm:right-6 lg:right-8">Loading assistant…</div>;
 
 function LandingPage({ onContinueAsGuest, onSignIn }) {
   const [isChatOpen, setIsChatOpen] = useState(false);
@@ -49,9 +51,11 @@ function LandingPage({ onContinueAsGuest, onSignIn }) {
       </section>
 
       {isChatOpen && (
-        <Chatbox
-          onClose={() => setIsChatOpen(false)}
-        />
+        <Suspense fallback={<ChatLoading/>}>
+          <Chatbox
+            onClose={() => setIsChatOpen(false)}
+          />
+        </Suspense>
       )}
 
       {!isChatOpen && (

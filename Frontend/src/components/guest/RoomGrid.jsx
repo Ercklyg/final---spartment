@@ -1,9 +1,11 @@
-import { useEffect, useMemo, useState } from "react";
+import { lazy, Suspense, useEffect, useMemo, useState } from "react";
 import RoomCard from "./RoomCard.jsx";
 import PageSkeleton from '../PageSkeleton.jsx';
 import { api } from "../../lib/api.js";
 import { useSessionState } from "../../lib/useSessionState.js";
-import RoomDetailsDialog from "./RoomDetailsDialog.jsx";
+
+const RoomDetailsDialog = lazy(() => import("./RoomDetailsDialog.jsx"));
+const DialogLoading = () => <div role="status" className="fixed inset-0 z-[70] flex items-center justify-center bg-slate-950/40 p-4"><p className="rounded-xl bg-white px-5 py-4 text-sm font-medium text-slate-700">Opening room details…</p></div>;
 
 function RoomGrid({ onInquire }) {
   const [selectedFloor, setSelectedFloor] = useSessionState("guest-room-floor-v2","all");
@@ -72,7 +74,7 @@ function RoomGrid({ onInquire }) {
         {filteredRooms.map((room) => <RoomCard key={room.id} room={room} onInquire={onInquire} onView={setSelectedRoom} />)}
       </div>
       {!isLoading && filteredRooms.length === 0 && <div className="rounded-2xl border border-dashed border-slate-300 bg-white px-6 py-16 text-center"><p className="text-base font-semibold text-slate-700">{loadError || "No available rooms found"}</p><p className="mt-1 text-sm text-slate-400">{loadError ? "Please refresh the page and try again." : "Try selecting another building or floor."}</p></div>}
-      {selectedRoom&&<RoomDetailsDialog room={selectedRoom} onClose={()=>setSelectedRoom(null)} onInquire={room=>{setSelectedRoom(null);onInquire(room);}}/>}
+      {selectedRoom&&<Suspense fallback={<DialogLoading/>}><RoomDetailsDialog room={selectedRoom} onClose={()=>setSelectedRoom(null)} onInquire={room=>{setSelectedRoom(null);onInquire(room);}}/></Suspense>}
     </div>
   </section>;
 }

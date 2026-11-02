@@ -1,10 +1,12 @@
-import { useState } from "react";
+import { lazy, Suspense, useState } from "react";
 import { MessagesSquare } from "lucide-react";
 
 import GuestHeader from "../components/guest/GuestHeader.jsx";
 import GuestHero from "../components/guest/GuestHero.jsx";
 import RoomGrid from "../components/guest/RoomGrid.jsx";
-import Chatbox from "../components/chatbox/Chatbox.jsx";
+
+const Chatbox = lazy(() => import("../components/chatbox/Chatbox.jsx"));
+const ChatLoading = () => <div role="status" className="fixed bottom-5 right-5 z-50 rounded-2xl bg-white px-4 py-3 text-sm font-medium text-slate-600 shadow-xl sm:bottom-6 sm:right-6">Loading assistant…</div>;
 
 function GuestPage({ onExit }) {
   const [isChatOpen, setIsChatOpen] = useState(false);
@@ -49,12 +51,14 @@ function GuestPage({ onExit }) {
       </footer>
 
       {isChatOpen && (
-        <Chatbox
-          key={`${chatView}-${inquiryRoom}`}
-          onClose={() => setIsChatOpen(false)}
-          initialView={chatView}
-          prefilledRoom={inquiryRoom}
-        />
+        <Suspense fallback={<ChatLoading/>}>
+          <Chatbox
+            key={`${chatView}-${inquiryRoom}`}
+            onClose={() => setIsChatOpen(false)}
+            initialView={chatView}
+            prefilledRoom={inquiryRoom}
+          />
+        </Suspense>
       )}
 
       {!isChatOpen && (
