@@ -1,8 +1,10 @@
 import { api } from "../../lib/api.js";
 import { submitTenantRequest } from "../../lib/requests.js";
 
-import { ArrowLeft, CheckCircle2, Send } from "lucide-react";
+import { MessagesSquare, Send } from "lucide-react";
 import { useRef, useState } from "react";
+import FormHeader from "./FormHeader.jsx";
+import SubmissionSuccess from "./SubmissionSuccess.jsx";
 
 const inputClass =
   "h-11 w-full rounded-xl border border-slate-200 bg-white px-3.5 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-blue-600 focus:ring-4 focus:ring-blue-600/10";
@@ -29,25 +31,10 @@ function OtherForm({ onBack }) {
     try{await submitTenantRequest(api,'other',formData,attempt.current.id);setSent(true);}catch(error){setSubmitError(error.message);}finally{busy.current=false;setSaving(false);}
   }
 
-  if(sent)return <div role="status" className="flex min-h-full flex-col items-center justify-center px-6 py-10 text-center"><span className="flex h-14 w-14 items-center justify-center rounded-full bg-emerald-100 text-emerald-700 ring-8 ring-emerald-50"><CheckCircle2 size={28}/></span><h3 className="mt-5 text-lg font-bold text-slate-900">Request submitted</h3><p className="mt-2 max-w-xs text-sm leading-6 text-slate-500">Your message has been saved for the administrator.</p><button type="button" onClick={onBack} className="mt-6 inline-flex min-h-11 w-full max-w-xs items-center justify-center rounded-xl bg-blue-600 px-4 text-sm font-semibold text-white shadow-sm hover:bg-blue-700">Back to menu</button></div>;
+  if(sent)return <SubmissionSuccess title="Request submitted" message="Your message has been saved for the administrator." onBack={onBack}/>;
   return (
     <div className="flex flex-col p-4">
-      <div className="mb-3 flex items-center gap-2.5">
-        <button
-          type="button"
-          onClick={onBack}
-          aria-label="Back to menu"
-          className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-500 transition hover:bg-slate-50 hover:text-slate-800"
-        >
-          <ArrowLeft size={16} />
-        </button>
-        <div className="min-w-0">
-          <h3 className="text-sm font-bold text-slate-900">General Message</h3>
-          <p className="truncate text-xs text-slate-500">
-            Anything else — we&apos;re listening
-          </p>
-        </div>
-      </div>
+      <FormHeader icon={MessagesSquare} iconClass="border-violet-100 bg-violet-50 text-violet-600" title="General Message" subtitle="Anything else — we’re listening" onBack={onBack}/>
 
       <form onSubmit={handleSubmit}><fieldset disabled={saving} className="flex flex-col gap-3.5">
         <div>
@@ -87,9 +74,9 @@ function OtherForm({ onBack }) {
           className="mt-1 flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-blue-600 text-sm font-semibold text-white shadow-[0_8px_20px_-6px_rgba(37,99,235,0.5)] transition hover:bg-blue-700 active:scale-[0.99]"
         >
           <Send size={16} />
-          Send message
+          {saving ? "Submitting…" : "Send message"}
         </button>
-      {submitError&&<p role="alert" className="text-sm text-rose-700">{submitError}</p>}{saving&&<p role="status" className="text-sm">Submitting...</p>}</fieldset></form>
+      {submitError&&<p role="alert" className="rounded-xl border border-rose-200 bg-rose-50 px-3 py-2.5 text-xs leading-5 text-rose-700">{submitError}</p>}</fieldset></form>
     </div>
   );
 }

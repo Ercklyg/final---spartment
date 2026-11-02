@@ -1,9 +1,11 @@
 import { api } from "../../lib/api.js";
 import { submitTenantRequest, uploadRequestAttachment } from "../../lib/requests.js";
 
-import { ArrowLeft, CheckCircle2, FileImage, FileText, Send, X } from "lucide-react";
+import { FileImage, FileText, Send, Wrench, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { useOnlineStatus } from "../../lib/useOnlineStatus.js";
+import FormHeader from "./FormHeader.jsx";
+import SubmissionSuccess from "./SubmissionSuccess.jsx";
 
 const inputClass =
   "h-11 w-full rounded-xl border border-slate-200 bg-white px-3.5 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-blue-600 focus:ring-4 focus:ring-blue-600/10";
@@ -48,33 +50,13 @@ function MaintenanceForm({ onBack, prefilledRoom = "" }) {
 
   function chooseFiles(event){const chosen=[...event.target.files];const allowed=new Set(['image/jpeg','image/png','image/webp','application/pdf']);if(files.length+chosen.length>5){setSubmitError('You can attach up to 5 files.');event.target.value='';return;}const invalid=chosen.find(file=>!allowed.has(file.type)||file.size>10*1024*1024);if(invalid){setSubmitError(`${invalid.name} must be a JPG, PNG, WebP, or PDF no larger than 10 MB.`);event.target.value='';return;}setFiles(previous=>[...previous,...chosen]);setSent(false);setSubmitError('');event.target.value='';}
 
+  if(sent)return <SubmissionSuccess title="Request submitted" message="Your maintenance request was sent to the administrator." onBack={onBack}/>;
+
   return (
     <div className="flex flex-col p-4">
-      <div className="mb-3 flex items-center gap-2.5">
-        <button
-          type="button"
-          onClick={onBack}
-          aria-label="Back to menu"
-          className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-500 transition hover:bg-slate-50 hover:text-slate-800"
-        >
-          <ArrowLeft size={16} />
-        </button>
-        <div className="min-w-0">
-          <h3 className="text-sm font-bold text-slate-900">
-            Maintenance Request
-          </h3>
-          <p className="truncate text-xs text-slate-500">
-            We&apos;ll forward this to building admin
-          </p>
-        </div>
-        <span className="ml-auto shrink-0 rounded-full border border-amber-200 bg-amber-50 px-2.5 py-1 text-[11px] font-semibold text-amber-700">
-          {formData.priority} priority
-        </span>
-      </div>
-
-      {sent&&<div role="status" className="mb-3 flex items-start gap-2.5 rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-emerald-800"><CheckCircle2 size={19} className="mt-0.5 shrink-0"/><div><p className="text-sm font-bold">Request submitted</p><p className="text-xs leading-5">Your maintenance request was sent to the administrator. The form is ready for another request.</p></div></div>}
+      <FormHeader icon={Wrench} iconClass="border-amber-100 bg-amber-50 text-amber-600" title="Maintenance Request" subtitle="We’ll forward this to building admin" onBack={onBack} trailing={<span className="hidden shrink-0 rounded-full border border-amber-200 bg-amber-50 px-2 py-1 text-[10px] font-semibold text-amber-700 sm:inline-flex">{formData.priority}</span>}/>
       <form onSubmit={handleSubmit}><fieldset disabled={saving} className="flex flex-col gap-3.5">
-        <div className="grid grid-cols-2 gap-3.5">
+        <div className="grid grid-cols-1 gap-3.5 sm:grid-cols-2">
           <div>
             <label htmlFor="roomNumber" className={labelClass}>
               Room number
@@ -88,7 +70,7 @@ function MaintenanceForm({ onBack, prefilledRoom = "" }) {
               placeholder="e.g. 204"
               value={formData.roomNumber}
               onChange={handleChange}
-              className={inputClass}
+              className={`${inputClass} read-only:bg-slate-100 read-only:text-slate-600`}
             />
           </div>
           <div>
@@ -110,15 +92,15 @@ function MaintenanceForm({ onBack, prefilledRoom = "" }) {
 
         <fieldset>
           <legend className="mb-2 text-sm font-semibold text-slate-700">Maintenance priority</legend>
-          <div className="flex flex-wrap gap-2">
+          <div className="grid grid-cols-3 gap-2">
             {[['Normal', 'Routine repair', 'bg-slate-100 text-slate-800 border-slate-400'], ['High', 'Needs prompt attention', 'bg-orange-50 text-orange-800 border-orange-400'], ['Urgent', 'Immediate attention needed', 'bg-rose-50 text-rose-800 border-rose-400']].map(([level, description, color]) => (
-              <label key={level} className={`flex min-h-11 cursor-pointer items-center gap-2 rounded-xl border px-3 py-2 text-sm font-medium ${formData.priority === level ? color : 'border-slate-300 bg-white text-slate-700'}`}>
+              <label key={level} className={`flex min-h-11 cursor-pointer items-center justify-center gap-1.5 rounded-xl border px-2 py-2 text-xs font-semibold sm:text-sm ${formData.priority === level ? color : 'border-slate-300 bg-white text-slate-700'}`}>
                 <input type="radio" name="priority" value={level} checked={formData.priority === level} onChange={handleChange} aria-description={description} className="h-4 w-4 accent-blue-600"/>
                 {level}
               </label>
             ))}
           </div>
-          <p className="mt-2 text-sm text-slate-600">{formData.priority === 'Normal' ? 'Routine repairs that can be scheduled.' : formData.priority === 'High' ? 'A problem affecting daily use that needs prompt attention.' : 'A serious issue needing immediate attention. For immediate danger, contact emergency services and building staff directly; do not wait for chat.'}</p>
+          <p className={`mt-2 rounded-lg px-3 py-2 text-xs leading-5 ${formData.priority==='Urgent'?'bg-rose-50 text-rose-700':'bg-slate-100 text-slate-600'}`}>{formData.priority === 'Normal' ? 'Routine repairs that can be scheduled.' : formData.priority === 'High' ? 'A problem affecting daily use that needs prompt attention.' : 'Immediate attention needed. For danger, contact emergency services and building staff directly.'}</p>
         </fieldset>
 
         <div>
@@ -145,10 +127,10 @@ function MaintenanceForm({ onBack, prefilledRoom = "" }) {
           className="mt-1 flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-blue-600 text-sm font-semibold text-white shadow-[0_8px_20px_-6px_rgba(37,99,235,0.5)] transition hover:bg-blue-700 active:scale-[0.99] disabled:cursor-not-allowed disabled:bg-slate-400 disabled:shadow-none"
         >
           <Send size={16} />
-          {online?'Submit request':'Reconnect to submit'}
+          {saving?(progress||'Submitting…'):online?'Submit request':'Reconnect to submit'}
         </button>
-      {!online&&<p role="status" className="text-sm text-amber-800">Your typed details are saved for this browser session. Attachments must be selected again after a page reload.</p>}
-      {submitError&&<p role="alert" className="text-sm text-rose-700">{submitError}</p>}{saving&&<p role="status" className="text-sm">{progress||'Submitting request...'}</p>}</fieldset></form>
+      {!online&&<p role="status" className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2.5 text-xs leading-5 text-amber-800">Your typed details are saved for this browser session. Attachments must be selected again after a page reload.</p>}
+      {submitError&&<p role="alert" className="rounded-xl border border-rose-200 bg-rose-50 px-3 py-2.5 text-xs leading-5 text-rose-700">{submitError}</p>}</fieldset></form>
     </div>
   );
 }
