@@ -17,7 +17,7 @@ import { roomColumns, createRoom, updateRoom, deleteRoom } from '../models/rooms
 import * as validate from './validation.js';
 import { readSessionCookie } from './sessionCookies.js';
 import { createHash } from 'node:crypto';
-import { updateLoginLimit } from '../middleware/loginLimit.js';
+import { updateLoginLimit, loginNeedsSuccessClear } from '../middleware/loginLimit.js';
 import { pushPublicKey, savePushSubscription, removePushSubscription, deliverPendingPushes } from '../models/webPush.js';
 const deliverPush=async client=>{try{return await deliverPendingPushes(client);}catch(error){console.error('Push delivery failed:',error.message);return {enabled:true,sent:0,error:true};}};
 const checked=result=>{if(result.error)throw serviceError(400,'Unable to save the change. Please retry.',result.error);return result.data;};
@@ -31,7 +31,7 @@ export const login=async(req)=>{
   let result;
   try{result=await signInWithPassword(createUserClient(),req.body.email.trim().toLowerCase(),req.body.password);}
   catch(error){if(error.code==='invalid_credentials')await updateLoginLimit(req,'login-failure');throw error;}
-  await updateLoginLimit(req,'login-success');
+  if(loginNeedsSuccessClear(req))await updateLoginLimit(req,'login-success');
   return (result.session);
 };
 const refreshes=new Map();
@@ -80,11 +80,11 @@ export const password=async(req)=>{
   const client=createUserClient();
   try{await signInWithPassword(client,req.user.email,req.body.current,'Your current password is incorrect.');}
   catch(error){if(error.code==='invalid_credentials'){await updateLoginLimit(req,'login-failure');error.status=400;}throw error;}
-  await updateLoginLimit(req,'login-success');
+  if(loginNeedsSuccessClear(req))await updateLoginLimit(req,'login-success');
   try{await changePassword(client.auth,createUserClient().auth,req.body);return ({ok:true});}
   finally{await client.auth.signOut({scope:'local'});}
 };
-export const profile=async(req)=>(checked(await req.db.from('profiles').select('id,role,full_name').eq('id',req.user.id).single()));
+export const profile=async(req)=>req.profile;
 export const account=async(req)=>(await loadTenantAccount(req.db,req.user));
 export const bills=async(req)=>{const bills=await loadBills(req.db);return req.query.view==='overview'?{bills,summary:billingOverview(bills)}:bills;};
 export const billCreate=async(req)=>{const result=await createBill(req.db,req.body);await deliverPush(req.db);return result;};

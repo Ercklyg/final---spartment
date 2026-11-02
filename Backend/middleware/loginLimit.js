@@ -28,10 +28,13 @@ export async function updateLoginLimit(req,action) {
   }catch(error){throw error instanceof HttpError?error:new HttpError(503,'Authentication is temporarily unavailable.','auth_unavailable');}
 }
 
+// A missing count comes from an older limiter response; keep clearing in that case.
+export const loginNeedsSuccessClear=req=>req.loginLimit?.accountAttempts!==0;
+
 export async function loginLimit(req,res,next) {
   try {
     if(!req.user&&(typeof req.body?.password!=='string'||!req.body.password||req.body.password.length>128))throw new HttpError(400,'Email and password are required.');
-    await updateLoginLimit(req,'login-check');
+    req.loginLimit=await updateLoginLimit(req,'login-check');
     next();
   }catch(error){if(error.retryAfter)res.set('Retry-After',String(error.retryAfter));next(error);}
 }

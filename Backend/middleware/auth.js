@@ -13,10 +13,10 @@ export async function authenticate(req,res,next) {
     const expected=req.get('X-Spartment-User');
     if(expected&&expected!==data.user.id)throw new HttpError(409,'Your session changed. Refresh before trying again.','session_changed');
     req.user=data.user;
-    const profile=await req.db.from('profiles').select('role').eq('id',data.user.id).maybeSingle();
+    const profile=await req.db.from('profiles').select('id,role,full_name').eq('id',data.user.id).maybeSingle();
     if(profile.error)throw new HttpError(503,'Authentication is temporarily unavailable. Please try again later.','auth_unavailable');
     if(!profile.data || !['admin','tenant'].includes(profile.data.role))return res.status(403).json({error:'Account role is unavailable.'});
-    req.role=profile.data.role;next();
+    req.profile=profile.data;req.role=profile.data.role;next();
   }catch(error){next(error);}
 }
 export function requireAdmin(req,res,next){
