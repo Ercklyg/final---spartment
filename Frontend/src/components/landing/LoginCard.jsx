@@ -145,9 +145,7 @@ function LoginCard({ onContinueAsGuest, onSignIn }) {
             </p>
           )}
 
-          <div className="flex items-center justify-between">
-            <span className="text-xs text-slate-600">Sign out when using a shared device.</span>
-
+          <div className="flex justify-end">
             <button
               type="button"
               onClick={()=>setIsRecovering(true)}
