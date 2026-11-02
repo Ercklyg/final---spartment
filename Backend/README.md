@@ -153,3 +153,22 @@ authenticated navigation, server-side request filtering and pagination, and
 saving a maintenance-request status update. Use `npm run test:e2e:headed` to
 watch the browser. Failure screenshots, videos, traces and HTML reports remain
 local and are excluded from Git.
+
+## Production monitoring
+
+Render checks `GET /health` using `healthCheckPath` in the repository's
+`render.yaml`. The response contains only service status and process uptime; it
+does not query Supabase or expose configuration, so frequent platform checks stay
+cheap. Every response also receives an `X-Request-ID` correlation header.
+
+Requests taking at least `SLOW_REQUEST_MS` (1500 ms by default) produce a
+structured `[slow-request]` warning in Render logs. Unexpected or reportable
+provider failures produce `[request-error]` logs containing the same request ID
+and a separate public error reference. Search either value in Render logs to
+trace a failed request without logging credentials, cookies, request bodies or
+tenant data.
+
+For an external availability alert, create a free uptime monitor against the
+deployed backend `/health` URL at a five-minute interval. Keep database health
+out of that high-frequency check; Supabase failures are already captured by the
+request error logs and this avoids unnecessary database usage.

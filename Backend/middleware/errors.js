@@ -19,7 +19,7 @@ export function errorHandler(error,req,res,next) {
   const shouldReport=!(error instanceof HttpError)||error.report;
   const errorId=shouldReport?randomUUID().slice(0,8).toUpperCase():undefined;
   if(shouldReport)console.error('[request-error]',{
-    errorId,method:req.method,path:req.originalUrl,status,
+    errorId,requestId:req.requestId,method:req.method,path:req.originalUrl,status,
     name:error.cause?.name||error.name||'Error',
     providerCode:error.cause?.code||error.code||undefined,
   });
