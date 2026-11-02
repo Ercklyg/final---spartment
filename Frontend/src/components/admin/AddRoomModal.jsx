@@ -50,12 +50,12 @@ function AddRoomModal({ onClose, onAdd, initialRoom }) {
                 max={key === "size" ? "14" : key === "floor" ? "1000" : undefined}
                 step={key === "size" || key === "rate" ? "0.01" : undefined}
                 maxLength={key === "room" ? 40 : key === "building" ? 160 : undefined}
-                className="mt-1.5 h-11 w-full rounded-xl border border-slate-200 px-3 text-sm" placeholder={placeholder} />
+                className="mt-1.5 h-11 w-full rounded-xl border border-slate-200 px-3 text-sm placeholder:text-slate-500" placeholder={placeholder} />
             </label>)}
         </div>
         {editing && <p className="mt-3 text-xs text-slate-500">Changing the listing rate does not change an existing tenant&apos;s lease rent.</p>}
         <label className="mt-4 block text-sm font-medium text-slate-700">Room description &amp; amenities
-          <textarea value={form.notes} onChange={(e) => update("notes", e.target.value)} maxLength={4000} className="mt-1.5 min-h-20 w-full rounded-xl border border-slate-200 p-3 text-sm" placeholder="e.g. Private bathroom, compact kitchenette, double-deck bed, and storage." />
+          <textarea value={form.notes} onChange={(e) => update("notes", e.target.value)} maxLength={4000} className="mt-1.5 min-h-20 w-full rounded-xl border border-slate-200 p-3 text-sm placeholder:text-slate-500" placeholder="e.g. Private bathroom, compact kitchenette, double-deck bed, and storage." />
         </label>
         {error && <p role="alert" className="mt-3 text-sm text-rose-600">{error}</p>}
         <button className="mt-5 flex w-full items-center justify-center gap-2 rounded-xl bg-blue-600 py-3 text-sm font-semibold text-white disabled:opacity-50">
