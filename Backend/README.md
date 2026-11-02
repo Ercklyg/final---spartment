@@ -1,5 +1,8 @@
 ﻿# Spartment backend
 
+Operational backup, restoration, deployment and incident procedures are in
+[OPERATIONS.md](OPERATIONS.md).
+
 The application now uses this flow:
 
 Frontend React -> Express API -> Supabase Auth / database / protected functions

@@ -25,7 +25,7 @@ function AddRequestAttachments({request,onUploaded}){
     finally{busy.current=false;setUploading(false);}
   };
   if(count>=5)return <p className="mt-2 text-xs text-slate-500">Maximum of 5 attachments reached.</p>;
-  return <div className="mt-2"><input ref={input} type="file" multiple accept="image/jpeg,image/png,image/webp,application/pdf" onChange={choose} className="sr-only"/><button type="button" disabled={uploading} onClick={()=>input.current?.click()} className="inline-flex min-h-9 items-center gap-1.5 rounded-lg border border-blue-200 bg-blue-50 px-3 text-xs font-semibold text-blue-700 hover:bg-blue-100 disabled:cursor-wait disabled:opacity-60"><Paperclip size={14}/>{uploading?'Uploading…':count?'Add more attachments':'Add attachment'}</button>{message&&<p role="status" className={`mt-1.5 text-xs ${message.includes('successfully')?'text-emerald-700':uploading?'text-blue-700':'text-rose-700'}`}>{message}</p>}</div>;
+  return <div className="mt-2"><input ref={input} aria-label="Choose maintenance attachments" type="file" multiple accept="image/jpeg,image/png,image/webp,application/pdf" onChange={choose} className="sr-only"/><button type="button" disabled={uploading} onClick={()=>input.current?.click()} className="inline-flex min-h-9 items-center gap-1.5 rounded-lg border border-blue-200 bg-blue-50 px-3 text-xs font-semibold text-blue-700 hover:bg-blue-100 disabled:cursor-wait disabled:opacity-60"><Paperclip size={14}/>{uploading?'Uploading…':count?'Add more attachments':'Add attachment'}</button>{message&&<p role="status" className={`mt-1.5 text-xs ${message.includes('successfully')?'text-emerald-700':uploading?'text-blue-700':'text-rose-700'}`}>{message}</p>}</div>;
 }
 
 export default function MaintenanceRequestStatus({ onOpenChat }) {

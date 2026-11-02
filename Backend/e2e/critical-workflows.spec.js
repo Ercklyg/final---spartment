@@ -107,3 +107,15 @@ test('password recovery confirms a reset request without exposing account status
   await expect(page.locator('form [role="status"]')).toContainText('If an account matches that email');
   expect(api.calls.find(call=>call.path==='/auth/forgot-password')?.body).toEqual({email:'person@example.test'});
 });
+
+test('customer service dialog supports keyboard focus and Escape',async({page})=>{
+  await mockAdminApi(page);
+  await page.goto('/');
+  await page.getByRole('button',{name:/Open Spartment Assistant/}).click();
+  const dialog=page.getByRole('dialog',{name:'Spartment customer service'});
+  await expect(dialog).toBeVisible();
+  await expect(page.getByRole('button',{name:'Close chat'})).toBeFocused();
+  await page.keyboard.press('Escape');
+  await expect(dialog).toHaveCount(0);
+  await expect(page.getByRole('button',{name:/Open Spartment Assistant/})).toBeFocused();
+});
