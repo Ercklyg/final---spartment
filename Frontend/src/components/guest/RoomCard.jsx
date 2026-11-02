@@ -26,7 +26,7 @@ function RoomCard({ room, onInquire }) {
       </div>
       <div className="mt-3 flex items-center gap-2 border-y border-slate-100 py-2.5 text-xs font-medium text-slate-600"><UsersRound size={15} className="text-blue-600"/>Good for {room.capacity||"2–3"} {Number(room.capacity)===1?'person':'people'}</div>
       <p className="mt-3 line-clamp-3 min-h-[60px] text-sm leading-5 text-slate-600">{room.description||"Contact management for complete room details."}</p>
-      <button type="button" disabled={!isAvailable} onClick={()=>isAvailable&&onInquire(room)} className={`mt-4 flex h-11 w-full items-center justify-center gap-2 rounded-xl text-sm font-semibold transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600 ${isAvailable?"bg-blue-600 text-white shadow-sm hover:bg-blue-700":"cursor-not-allowed border border-slate-200 bg-slate-50 text-slate-500"}`}><MessageCircle size={17} strokeWidth={1.8}/>{isAvailable?"Inquire about this room":room.status}</button>
+      <button type="button" disabled={!isAvailable} onClick={()=>isAvailable&&onInquire(room)} className={`mt-4 flex h-11 w-full items-center justify-center gap-2 rounded-xl text-sm font-semibold transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600 ${isAvailable?"bg-blue-600 text-white shadow-sm hover:bg-blue-700":"cursor-not-allowed border border-slate-200 bg-slate-50 text-slate-500"}`}><MessageCircle size={17} strokeWidth={1.8}/>{isAvailable?"Inquire":room.status}</button>
     </div>
   </article>;
 }
