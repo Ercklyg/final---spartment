@@ -58,6 +58,9 @@ function validateBillForm(form) {
     && Number.isFinite(Date.parse(form.due)) && new Date(form.due).toISOString().slice(0, 10) === form.due;
   if (!form || !['rent', 'utility'].includes(form.type) || !/^\d{4}-(0[1-9]|1[0-2])$/.test(form.period || '') || !validDate)
     throw new HttpError(400, 'Select a bill type, billing month and valid due date.');
+  const [year,month]=form.period.split('-').map(Number);
+  const expectedDue=new Date(Date.UTC(year,month,0)).toISOString().slice(0,10);
+  if(form.due!==expectedDue)throw new HttpError(400,'The due date must be the final day of the billing month.');
   if (form.type === 'utility' && form.lease === 'all')
     throw new HttpError(400, 'Select one tenant / room for a utility bill. Utility charges must be entered individually.');
   if (form.lease !== 'all' && !/^[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i.test(form.lease || ''))
