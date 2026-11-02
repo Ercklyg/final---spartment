@@ -68,7 +68,7 @@ GET /api/payments/:id/receipt, GET /api/requests, POST /api/requests/submit,
 GET /api/notifications, POST /api/notifications/read.
 
 Administrator: GET/POST /api/tenants, GET/POST /api/rooms,
-POST /api/tenants/:id/move-out, POST /api/tenants/:id/transfer,
+POST /api/tenants/:id/move-out,
 GET /api/tenants/:id/leases,
 PATCH /api/rooms/:id/status, GET /api/billing/workspace,
 PATCH /api/rooms/:id, DELETE /api/rooms/:id,
@@ -98,7 +98,7 @@ See [supabase/SETUP.md](supabase/SETUP.md) for a complete fresh-project schema
 and the migration workflow for an existing database. `npm run db:schema` exports
 schema definitions only from the linked project; it does not export account data.
 
-Move-out and transfer endpoints require an administrator and the following JSON:
+The move-out endpoint requires an administrator and the following JSON:
 
 ```json
 {
@@ -108,13 +108,11 @@ Move-out and transfer endpoints require an administrator and the following JSON:
 }
 ```
 
-Transfers also require `roomId` (destination UUID) and `rent` (positive amount);
-`leaseEnd` is optional. The effective date cannot be in the future or before
-move-in. Reuse the same operation ID and payload when retrying an uncertain
-request. The transaction checks the expected active lease, reserves the target
-room, releases the previous room, records an audit event and notifies the tenant.
-Move-out archives the assignment; account, previous leases, bills and payments
-remain available. These endpoints are ready for future tenant-screen controls.
+The effective date cannot be in the future or before move-in. Reuse the same
+operation ID and payload when retrying an uncertain request. The transaction
+checks the expected active lease, releases the room, records an audit event and
+notifies the tenant. Move-out archives the assignment; account, previous leases,
+bills and payments remain available.
 
 Resource lists support `offset` and `limit` (up to 1000). Workspace readers fetch
 multiple database pages so room, inquiry, request and correction lists are not

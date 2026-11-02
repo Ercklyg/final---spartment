@@ -26,7 +26,6 @@ router.patch('/rooms/:id',requireAdmin,app.roomUpdate);
 router.delete('/rooms/:id',requireAdmin,app.roomDelete);
 router.get('/tenants',requireAdmin,app.tenants);
 router.post('/tenants/:id/move-out',requireAdmin,tenancy.moveOut);
-router.post('/tenants/:id/transfer',requireAdmin,tenancy.transfer);
 router.get('/tenants/:id/leases',requireAdmin,tenancy.history);
 router.get('/billing',app.bills);
 router.get('/billing/workspace',requireAdmin,app.billingWorkspace);
