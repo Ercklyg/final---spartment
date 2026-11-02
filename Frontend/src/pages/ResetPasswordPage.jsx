@@ -5,6 +5,8 @@ import { auth } from '../lib/api.js';
 import { beginRecovery, clearRecovery, saveRecoveredPassword } from '../lib/passwordRecovery.js';
 import ForgotPasswordForm from '../components/landing/ForgotPasswordForm.jsx';
 
+const signInUrl = import.meta.env.PROD ? 'https://final-spartment.vercel.app/' : '/';
+
 export default function ResetPasswordPage() {
   const [recovery, setRecovery] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -27,7 +29,7 @@ export default function ResetPasswordPage() {
     const timer = setTimeout(() => { clearRecovery(); setInvalid('Your reset session has expired. Request a new link.'); }, Math.max(0, recovery.expiresAt - Date.now()));
     return () => clearTimeout(timer);
   }, [recovery, done]);
-  const goBack = () => { clearRecovery(); window.location.assign('/'); };
+  const goBack = () => { clearRecovery(); window.location.assign(signInUrl); };
   const submit = async event => {
     event.preventDefault();
     if (busy.current || !recovery || invalid) return;

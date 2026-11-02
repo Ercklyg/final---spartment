@@ -5,10 +5,26 @@ import { authFailure } from './authErrors.js';
 import { recoveryKey, recoveryState, encryptSession, decryptSession } from './recoveryState.js';
 
 const lifetime = 10 * 60 * 1000;
+const hostedResetUrl = 'https://final-spartment.vercel.app/reset-password';
 const expired = () => new HttpError(401, 'This reset link has expired or has already been used. Request a new link.');
 
+function recoveryRedirectUrl() {
+  if (process.env.PASSWORD_RESET_URL) return process.env.PASSWORD_RESET_URL;
+
+  const origins = (process.env.FRONTEND_ORIGIN || '')
+    .split(',')
+    .map(origin => origin.trim())
+    .filter(Boolean);
+  const secureOrigin = origins.find(value => value.startsWith('https://'));
+  if (secureOrigin) return new URL('/reset-password', secureOrigin).toString();
+
+  if (process.env.NODE_ENV === 'production') return hostedResetUrl;
+  if (origins[0]) return new URL('/reset-password', origins[0]).toString();
+  return 'http://localhost:5173/reset-password';
+}
+
 export async function sendRecoveryEmail(email) {
-  const redirectTo = process.env.PASSWORD_RESET_URL || 'http://localhost:5173/reset-password';
+  const redirectTo = recoveryRedirectUrl();
   const { error } = await createUserClient().auth.resetPasswordForEmail(email, { redirectTo });
   if (error) {
     if (error.status === 429) throw new HttpError(429, 'Too many reset requests. Please wait before trying again.');
