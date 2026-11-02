@@ -1,7 +1,9 @@
-import { HttpError } from '../middleware/errors.js';
+import { HttpError, serviceError } from '../middleware/errors.js';
 export async function executeFunction(db,name,args){
   const {data,error}=await db.rpc(name,args);
-  if(error)throw new HttpError(error.code==='23505'?409:400,error.message);
+  if(error)throw error.code==='23505'
+    ? new HttpError(409,'This record already exists.')
+    : serviceError(400,'Unable to save the change. Please retry.',error);
   return data;
 }
 export async function updateRequest(db,id,status,note){

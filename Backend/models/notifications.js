@@ -1,4 +1,4 @@
-import { HttpError } from '../middleware/errors.js';
+import { HttpError, serviceError } from '../middleware/errors.js';
 import { summarizeBill, today } from './billing.js';
 
 function cutoff(value) {
@@ -45,7 +45,10 @@ export async function markAllNotificationsRead(client,userId,before) {
 
 export async function sendPaymentReminder(client,billId) {
   const {data,error}=await client.rpc('send_bill_reminder',{p_bill:billId});
-  if(error)throw new HttpError(error.message?.includes('wait before')?429:400,error.message || 'Unable to send the payment reminder.');
+  if(error){
+    if(error.message?.includes('wait before'))throw new HttpError(429,'Please wait before sending another payment reminder.');
+    throw serviceError(400,'Unable to send the payment reminder. Please retry.',error);
+  }
   return {ok:true,lastRemindedAt:data};
 }
 

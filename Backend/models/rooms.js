@@ -1,11 +1,11 @@
-import { HttpError } from '../middleware/errors.js';
+import { HttpError, serviceError } from '../middleware/errors.js';
 import * as validate from '../services/validation.js';
 
 export const roomColumns = 'id,room_number,floor,status,monthly_rate,description,size_sqm,capacity,buildings(name),tenant_assignments(full_name)';
 
 function checked(result) {
   if (result.error?.code === '23505') throw new HttpError(409, 'That room number already exists in this building.');
-  if (result.error) throw new HttpError(400, result.error.message);
+  if (result.error) throw serviceError(400,'Unable to save the room. Please retry.',result.error);
   return result.data;
 }
 

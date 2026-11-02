@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto';
-import { HttpError } from '../middleware/errors.js';
+import { HttpError, serviceError } from '../middleware/errors.js';
 
 export const maintenanceBucket='maintenance-attachments';
 export const maxAttachmentBytes=10*1024*1024;
@@ -25,7 +25,7 @@ export async function uploadMaintenanceAttachment(client,userId,requestId,buffer
  const uploaded=await client.storage.from(maintenanceBucket).upload(path,buffer,{contentType:mimeType,upsert:false,cacheControl:'3600'});
  if(uploaded.error)throw new HttpError(400,uploaded.error.message?.includes('row-level security')?'You cannot add files to this request.':'Unable to upload the attachment. Please retry.');
  const registered=await client.rpc('register_maintenance_attachment',{p_id:id,p_request:requestId,p_path:path,p_name:file.name,p_type:mimeType,p_size:buffer.length});
- if(registered.error){await client.storage.from(maintenanceBucket).remove([path]);throw new HttpError(400,registered.error.message||'Unable to save the attachment.');}
+ if(registered.error){await client.storage.from(maintenanceBucket).remove([path]);throw serviceError(400,'Unable to save the attachment. Please retry.',registered.error);}
  return {id,request_id:requestId,original_name:file.name,mime_type:mimeType,size_bytes:buffer.length,created_at:new Date().toISOString(),uploaded_by:userId};
 }
 export async function maintenanceAttachmentUrl(client,requestId,attachmentId){

@@ -7,16 +7,19 @@ import { ResetPasswordPage } from "./lazyEntrypoints.jsx";
 import ActionFeedback from "./components/ActionFeedback.jsx";
 import PageSkeleton from "./components/PageSkeleton.jsx";
 import ConnectionStatus from "./components/ConnectionStatus.jsx";
+import AppErrorBoundary from "./components/AppErrorBoundary.jsx";
 import "./components/ActionFeedback.css";
 
 if ('serviceWorker' in navigator && import.meta.env.PROD) window.addEventListener('load',()=>navigator.serviceWorker.register('/sw.js').catch(()=>undefined));
 
 createRoot(document.getElementById("root")).render(
   <StrictMode>
-    <Suspense fallback={<PageSkeleton variant={isRecoveryPage ? 'password' : 'auth'} label="Loading application..." fullPage/>}>
-      {isRecoveryPage ? <ResetPasswordPage /> : <App />}
-    </Suspense>
-    <ActionFeedback />
-    <ConnectionStatus />
+    <AppErrorBoundary>
+      <Suspense fallback={<PageSkeleton variant={isRecoveryPage ? 'password' : 'auth'} label="Loading application..." fullPage/>}>
+        {isRecoveryPage ? <ResetPasswordPage /> : <App />}
+      </Suspense>
+      <ActionFeedback />
+      <ConnectionStatus />
+    </AppErrorBoundary>
   </StrictMode>
 );

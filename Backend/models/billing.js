@@ -1,4 +1,4 @@
-import { HttpError } from '../middleware/errors.js';
+import { HttpError, serviceError } from '../middleware/errors.js';
 import { readAll } from './readAll.js';
 
 export const money = value => new Intl.NumberFormat('en-PH', { style:'currency', currency:'PHP' }).format(Number(value || 0));
@@ -86,8 +86,9 @@ export async function createBill(client, form) {
   validateBillForm(form);
   if (form.lease !== 'all') {
     const error = await insertBill(client, form);
-    if (error) throw new HttpError(error.code === '23505' ? 409 : 400, error.code === '23505'
-      ? 'This lease already has a bill of this type for that month.' : error.message);
+    if (error) throw error.code === '23505'
+      ? new HttpError(409,'This lease already has a bill of this type for that month.')
+      : serviceError(400,'Unable to create the bill. Please retry.',error);
     return { ok: true };
   }
 
@@ -102,11 +103,12 @@ export async function createBill(client, form) {
       validateBillForm(bill);
       const error = await insertBill(client, bill);
       if (error?.code === '23505') result.skipped += 1;
-      else if (error) throw new Error(error.message);
+      else if (error) throw error;
       else result.created += 1;
     } catch (error) {
       result.failures.push({ lease: lease.id, name: lease.profiles?.full_name || 'Tenant',
-        room: lease.rooms?.room_number || 'Unassigned', message: error.message || 'Unable to create this bill. Retry to check its status.' });
+        room: lease.rooms?.room_number || 'Unassigned', message: 'Unable to create this bill. Retry to check its status.' });
+      console.error('[bulk-billing-error]',{lease:lease.id,code:error?.code,name:error?.name||'Error'});
     }
   }
   return { ...result, ok: !result.failures.length,
@@ -114,5 +116,5 @@ export async function createBill(client, form) {
 }
 export async function recordPayment(client,bill,form,id) {
   const {error}=await client.rpc('record_bill_payment',{p_bill:bill.id,p_id:id,p_amount:Number(form.amount),p_date:form.date,p_reference:form.reference.trim()});
-  if(error)throw new HttpError(400,error.message);
+  if(error)throw serviceError(400,'Unable to record the payment. Please retry.',error);
 }

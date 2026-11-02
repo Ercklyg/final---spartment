@@ -16,6 +16,10 @@ export async function browserRequest(path,options={}) {
     const message=navigator.onLine?'Unable to reach the service. Please check your connection and retry.':'You are offline. Reconnect to the internet and try again.';
     const network=new Error(message,{cause:error});network.code='network';throw network;
   }
-  if(!response.ok){const error=new Error(data.error||'Request failed.');error.status=response.status;error.code=data.code;throw error;}
+  if(!response.ok){
+    const reference=data.errorId?` Reference: ${data.errorId}.`:'';
+    const error=new Error((data.error||'Request failed.')+reference);
+    error.status=response.status;error.code=data.code;error.errorId=data.errorId;throw error;
+  }
   return data;
 }

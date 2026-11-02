@@ -1,5 +1,5 @@
 import { createUserClient } from '../config/supabase.js';
-import { HttpError } from '../middleware/errors.js';
+import { HttpError, serviceError } from '../middleware/errors.js';
 import { loadTenantAccount } from '../models/tenantAccount.js';
 import { loadTenantDirectory } from '../models/tenantDirectory.js';
 import { report } from '../models/reports.js';
@@ -21,7 +21,7 @@ import { createHash } from 'node:crypto';
 import { updateLoginLimit } from '../middleware/loginLimit.js';
 import { pushPublicKey, savePushSubscription, removePushSubscription, deliverPendingPushes } from '../models/webPush.js';
 const deliverPush=async client=>{try{return await deliverPendingPushes(client);}catch(error){console.error('Push delivery failed:',error.message);return {enabled:true,sent:0,error:true};}};
-const checked=result=>{if(result.error)throw new HttpError(400,result.error.message);return result.data;};
+const checked=result=>{if(result.error)throw serviceError(400,'Unable to save the change. Please retry.',result.error);return result.data;};
 const DEFAULT_IDLE_TIMEOUT_MINUTES=15;
 export const config=()=>{
   const configured=Number.parseFloat(process.env.IDLE_TIMEOUT_MINUTES);
