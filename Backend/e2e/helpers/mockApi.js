@@ -19,7 +19,7 @@ const requestAt=index=>({
   profiles:{full_name:`Tenant ${index+1}`},rooms:{room_number:String(101+index),buildings:{name:'Main Building'}},maintenance_attachments:[],
 });
 
-export async function mockAdminApi(page,{startAuthenticated=false}={}) {
+export async function mockAdminApi(page,{startAuthenticated=false,analyticsData={}}={}) {
   let authenticated=startAuthenticated;
   let paymentRecorded=false;
   const calls=[];
@@ -38,7 +38,7 @@ export async function mockAdminApi(page,{startAuthenticated=false}={}) {
     if(path==='/auth/forgot-password')return json(route,{message:'If an account matches that email, a reset link has been sent.'});
     if(path==='/auth/profile')return json(route,{id:user.id,role:'admin',full_name:'Test Admin'});
     if(path==='/public/config')return json(route,{idleTimeoutMinutes:15});
-    if(path==='/analytics')return json(route,dashboard);
+    if(path==='/analytics')return json(route,{...dashboard,...analyticsData});
     if(path==='/analytics/recommendations')return json(route,{fallback:true,reason:'Disabled in browser tests.'});
     if(path==='/notifications/admin')return json(route,[]);
     if(path==='/rooms')return json(route,[{id:'33333333-3333-4333-8333-333333333333',room_number:'209',floor:2,status:'available',monthly_rate:2500,buildings:{name:'Main Building'}}]);

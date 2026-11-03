@@ -3,6 +3,30 @@ import { mockAdminApi, mockTenantApi } from './helpers/mockApi.js';
 
 const adminNavigationButton=(page,name)=>page.locator(`button[aria-label="${name}"]:visible`);
 
+test('collections forecast shows a consistent target history and insufficient-history state',async({page})=>{
+  const analyticsData={forecastMonth:'2026-11',forecast:600,forecastStatus:'ready',forecastMonths:[
+    {label:'2026-08',value:300,paymentCount:1},
+    {label:'2026-09',value:600,paymentCount:1},
+    {label:'2026-10',value:900,paymentCount:1},
+  ]};
+  await mockAdminApi(page,{startAuthenticated:true,analyticsData});
+  await page.goto('/');
+  await adminNavigationButton(page,'Analytics & Reports').click();
+  const forecast=page.getByRole('region',{name:'Collections forecast'});
+  await expect(forecast).toContainText('Three-month moving average for November 2026');
+  await expect(forecast).toContainText('₱600.00');
+  await expect(forecast).toContainText('Aug 26');
+  await expect(forecast).toContainText('Sep 26');
+  await expect(forecast).toContainText('Oct 26');
+  await expect(forecast).not.toContainText('December 2026');
+  analyticsData.forecast=null;
+  analyticsData.forecastStatus='missing_history';
+  analyticsData.forecastMonths[1]={label:'2026-09',value:0,paymentCount:0};
+  await page.getByRole('button',{name:'Refresh',exact:true}).click();
+  await expect(forecast).toContainText('Not enough history');
+  await expect(forecast).toContainText('At least one recorded payment is needed in each of the three completed months');
+});
+
 test('sign-in handles invalid credentials and opens the admin application',async({page})=>{
   await mockAdminApi(page);
   await page.goto('/');

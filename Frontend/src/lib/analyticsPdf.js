@@ -139,7 +139,7 @@ function createPdfPages(data, month, period) {
   drawTable(["Period", "Billed (PHP)", "Collected (PHP)"], (data.series || []).map(point => [point.label, fmt(point.billed), fmt(point.value)]), [170, 170, 171], "No collection data.");
 
   sectionTitle("Collection forecast", "Three-month simple moving average. Estimates are not guaranteed income.");
-  const forecastMonth = new Date(year, monthNumber, 1).toLocaleDateString('en-PH', {month:'long',year:'numeric'});
+  const forecastMonth = monthTitle(data.forecastMonth || month);
   const forecastText = data.forecast == null
     ? 'Insufficient completed-month payment history'
     : fmt(data.forecast);

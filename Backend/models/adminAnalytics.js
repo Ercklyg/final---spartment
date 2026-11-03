@@ -1,5 +1,6 @@
 import { today } from './billing.js';
 import { readAll } from './readAll.js';
+import { collectionForecast } from './collectionForecast.js';
 const cents = value => Math.round(Number(value || 0)*100);
 export async function loadAdminAnalytics(client) {
   const {data:auth,error}=await client.auth.getUser();
@@ -60,11 +61,7 @@ export function analyticsSnapshot(data,month,asOf=today()) {
   };
 }
 export function forecastCollections(data,month) {
-  const series=periodSeries(data,month).slice(-3);
-  // Require three completed months with recorded collections, rather than
-  // inventing history for a newly connected database.
-  if(month>=today().slice(0,7)||series.some(p=>!data.payments.some(row=>row.payment_date.slice(0,7)===p.label)))return null;
-  return Math.round(series.reduce((sum,p)=>sum+cents(p.value),0)/3)/100;
+  return collectionForecast(data.payments,month).forecast;
 }
 export function csvCell(value) {
   let text=String(value??'');if(/^[\s]*[=+@-]/.test(text))text="'"+text;

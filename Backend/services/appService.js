@@ -9,6 +9,7 @@ import { loadNotifications, markNotificationsRead, markAllNotificationsRead, upd
 import { loadAdminNotifications } from '../models/adminNotifications.js';
 import { loadPaymentReceipt } from '../models/paymentReceipt.js';
 import { analyticsCsv, comparisonTotals } from '../models/adminAnalytics.js';
+import { loadCollectionForecast } from '../models/collectionForecast.js';
 import { changePassword } from '../models/changePassword.js';
 import { signInWithPassword } from '../models/authentication.js';
 import { authFailure } from '../models/authErrors.js';
@@ -174,17 +175,6 @@ export const analytics=async(req)=>{
   const data=await report(req.db,'analytics_report',{p_month:month+'-01',p_period:period,p_export:exportType==='csv'||exportType==='pdf'});
   const {snapshot,series}=data;
   if(req.query.export==='csv')return {csv:analyticsCsv(snapshot,series,month)};
-  const selectedStart=new Date(`${month}-01T00:00:00Z`);
-  const sourceStart=new Date(Date.UTC(selectedStart.getUTCFullYear(),selectedStart.getUTCMonth()-3,1)).toISOString().slice(0,10);
-  const sourceEnd=`${month}-01`;
-  const payments=await readAll(()=>req.db.from('payments').select('amount,payment_date').gte('payment_date',sourceStart).lt('payment_date',sourceEnd).order('payment_date').order('id'));
-  const forecastMonths=Array.from({length:3},(_,index)=>{
-    const date=new Date(Date.UTC(selectedStart.getUTCFullYear(),selectedStart.getUTCMonth()-3+index,1));
-    const label=date.toISOString().slice(0,7);
-    const monthPayments=payments.filter(payment=>String(payment.payment_date).startsWith(label));
-    return {label,value:monthPayments.reduce((sum,payment)=>sum+Number(payment.amount||0),0),paymentCount:monthPayments.length};
-  });
-  const forecastStatus=forecastMonths.some(point=>!point.paymentCount)?'missing_history':'ready';
-  const forecast=forecastStatus!=='ready'?null:Math.round(forecastMonths.reduce((sum,p)=>sum+Math.round(p.value*100),0)/3)/100;
-  return {...data,comparison:comparisonTotals(series),forecast,forecastStatus,loadedAt:new Date().toISOString()};
+  const forecastData=await loadCollectionForecast(req.db,month);
+  return {...data,comparison:comparisonTotals(series),...forecastData,loadedAt:new Date().toISOString()};
 };

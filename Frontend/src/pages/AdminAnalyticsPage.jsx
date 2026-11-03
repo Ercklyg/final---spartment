@@ -53,8 +53,7 @@ const AnalyticsReport = memo(function AnalyticsReport({ data, month, period }) {
   const collectionHealth = snapshot.collectionHealth || { aging: [], dueBillCount: 0, onTimeBillCount: 0, onTimeRate: 0, collectionRate: 0, repeatLatePayers: [] };
   const comparisonCeiling = Math.max(1, ...series.flatMap(point => [point.billed, point.value]));
   const forecastMax = Math.max(1, ...forecastMonths.map(point => Number(point.value || 0)));
-  const [year, selectedMonth] = month.split("-").map(Number);
-  const forecastLabel = longPeriodFormatter.format(new Date(year, selectedMonth, 1));
+  const forecastLabel = longPeriodFormatter.format(new Date(`${data.forecastMonth || month}-01T12:00:00`));
   const overdueAging = collectionHealth.aging.filter(bucket => /^(31-60|61\+)/.test(bucket.label)).reduce((sum, bucket) => sum + Number(bucket.balance || 0), 0);
   const [riskPage, setRiskPage] = useState(1);
   const [riskBuilding, setRiskBuilding] = useState("All");
