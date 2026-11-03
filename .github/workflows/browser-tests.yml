@@ -42,6 +42,9 @@ jobs:
       - name: Audit backend production dependencies
         run: npm audit --omit=dev --audit-level=high
         working-directory: Backend
+      - name: Install Playwright Chrome
+        run: npx playwright install --with-deps chrome
+        working-directory: Backend
       - name: Run desktop and mobile browser tests
         run: npm run test:e2e
         working-directory: Backend
