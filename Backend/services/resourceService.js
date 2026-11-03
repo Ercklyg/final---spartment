@@ -1,6 +1,7 @@
 import * as model from '../models/resourceModel.js';
 import { HttpError } from '../middleware/errors.js';
 import * as validate from './validation.js';
+import { moveInDateError } from '../supabase/functions/_shared/tenancyDates.js';
 const uuid=/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const actions={
   correctPayment:['correct_bill_payment',['p_id','p_payment','p_amount','p_date','p_reference','p_reason','p_expected']],
@@ -27,6 +28,8 @@ export async function changeRequest(db,id,body){
 }
 export async function createTenant(db,body){
   if(!body||typeof body!=='object'||Array.isArray(body))throw new HttpError(400,'Tenant details are required.');
+  const dateError=moveInDateError(body.moveIn);
+  if(dateError)throw new HttpError(400,dateError);
   if(!/^\d{11}$/.test(String(body.phone||''))||!/^\d{11}$/.test(String(body.emergencyPhone||'')))throw new HttpError(400,'Tenant and emergency phone numbers must contain exactly 11 digits.');
   return model.invokeTenantCreation(db,body);
 }

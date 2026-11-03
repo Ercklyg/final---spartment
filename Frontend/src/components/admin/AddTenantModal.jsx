@@ -2,6 +2,7 @@ import { showFeedback } from "../../lib/actionFeedback.js";
 import { useEffect, useRef, useState } from "react";
 import { Copy, Eye, EyeOff, Plus, X } from "lucide-react";
 import { closeFromBackdrop } from "../../lib/dialog.js";
+import { today } from "../../lib/billing.js";
 
 
 const inputClass = "mt-1.5 h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm";
@@ -36,6 +37,7 @@ export default function AddTenantModal({ onClose, onAdd, existingTenants = [], r
     if (existingTenants.some(t => t.email.toLowerCase() === account.email.toLowerCase())) return setError("This email already belongs to a tenant.");
     if (existingTenants.some(t => t.roomId === account.room)) return setError("This room is already assigned to a tenant.");
     if (!Number.isFinite(Number(account.rent)) || Number(account.rent) <= 0) return setError("Monthly rent must be greater than zero.");
+    if (account.moveIn > today()) return setError("Move-in date cannot be in the future. Choose today or an earlier date.");
     if (account.leaseEnd && account.leaseEnd < account.moveIn) return setError("Lease end cannot be before the move-in date.");
     if (account.password.length < 8 || account.password.length > 128 || !/[a-z]/.test(account.password)
       || !/[A-Z]/.test(account.password) || !/\d/.test(account.password) || !/[^A-Za-z0-9]/.test(account.password))
@@ -48,7 +50,7 @@ export default function AddTenantModal({ onClose, onAdd, existingTenants = [], r
     finally { setSaving(false); }
 
   };
-  const fields = (items) => items.map(([key, label, type, optional]) => {const phone=type==="tel";return <label key={key} className="text-sm font-medium text-slate-700">{label}{optional ? " (optional)" : ""}<input required={!optional} type={type} value={form[key]} onChange={e => change(key,phone?e.target.value.replace(/\D/g,"").slice(0,11):e.target.value)} min={key === "rent" ? "0.01" : undefined} step={key === "rent" ? "0.01" : undefined} maxLength={phone?11:undefined} inputMode={phone?"numeric":undefined} pattern={phone?"[0-9]{11}":undefined} title={phone?"Enter exactly 11 digits":undefined} autoComplete={key === "email" ? "off" : phone?"tel":undefined} className={inputClass}/></label>;});
+  const fields = (items) => items.map(([key, label, type, optional]) => {const phone=type==="tel";return <label key={key} className="text-sm font-medium text-slate-700">{label}{optional ? " (optional)" : ""}<input required={!optional} type={type} value={form[key]} onChange={e => change(key,phone?e.target.value.replace(/\D/g,"").slice(0,11):e.target.value)} min={key === "rent" ? "0.01" : undefined} max={key === "moveIn" ? today() : undefined} step={key === "rent" ? "0.01" : undefined} maxLength={phone?11:undefined} inputMode={phone?"numeric":undefined} pattern={phone?"[0-9]{11}":undefined} title={phone?"Enter exactly 11 digits":undefined} autoComplete={key === "email" ? "off" : phone?"tel":undefined} className={inputClass}/></label>;});
   return <dialog ref={dialog} onMouseDown={event=>closeFromBackdrop(event,onClose,saving)} onCancel={event => { if (saving) event.preventDefault(); else onClose(); }} aria-labelledby="add-tenant-title" className="m-auto max-h-[90dvh] w-[calc(100%-2rem)] max-w-xl overflow-y-auto rounded-2xl bg-white p-5 text-slate-900 shadow-xl backdrop:bg-slate-950/40 sm:p-6">
     <form onSubmit={submit}><fieldset disabled={saving}>
       <div className="flex items-start justify-between gap-3"><div><h2 id="add-tenant-title" className="text-xl font-bold">Add tenant</h2><p className="mt-1 text-sm text-slate-500">Create the tenant account and record their tenancy details.</p></div><button type="button" disabled={saving} onClick={onClose} aria-label="Close add tenant" className="p-2"><X/></button></div>

@@ -58,10 +58,17 @@ test('an administrator can create a tenant account',async({page})=>{
   await page.getByLabel('Email / sign-in address').fill('new.tenant@example.test');
   await page.getByLabel('Phone number',{exact:true}).fill('09123456789');
   await page.getByLabel('Assigned room').selectOption('33333333-3333-4333-8333-333333333333');
-  await page.getByLabel('Move-in date').fill('2026-11-02');
+  const moveIn = page.getByLabel('Move-in date');
+  const manilaToday = new Intl.DateTimeFormat('en-CA', {timeZone:'Asia/Manila',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date());
+  await expect(moveIn).toHaveAttribute('max', manilaToday);
+  await moveIn.fill('9999-12-31');
   await page.getByLabel('Contact full name').fill('Emergency Contact');
   await page.getByLabel('Contact phone number').fill('09987654321');
   await page.getByLabel('Relationship to tenant').fill('Sibling');
+  await page.getByRole('button',{name:'Create tenant account'}).click();
+  expect(await moveIn.evaluate(input => input.validity.rangeOverflow)).toBeTruthy();
+  expect(api.calls.some(call=>call.method==='POST'&&call.path==='/tenants')).toBeFalsy();
+  await moveIn.fill(manilaToday);
   await page.getByRole('button',{name:'Create tenant account'}).click();
   await expect(page.getByRole('dialog')).toHaveCount(0);
   const create=api.calls.find(call=>call.method==='POST'&&call.path==='/tenants');

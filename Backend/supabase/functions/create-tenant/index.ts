@@ -1,4 +1,5 @@
 import { createClient } from "npm:@supabase/supabase-js@2.116.0";
+import { moveInDateError } from "../_shared/tenancyDates.js";
 
 const headers = {
   "Access-Control-Allow-Origin": "*",
@@ -34,6 +35,8 @@ Deno.serve(async request => {
     }
     account.email = String(account.email).toLowerCase();
     account.rent = Number(input.rent);
+    const dateError = moveInDateError(account.moveIn);
+    if (dateError) return reply(400, { error: dateError });
     const validDate = (value: string) => /^\d{4}-\d{2}-\d{2}$/.test(value) && Number.isFinite(Date.parse(value)) && new Date(value).toISOString().slice(0,10) === value;
     if (!account.name || !account.emergencyName || !account.relationship ||
         !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(account.email)) ||
