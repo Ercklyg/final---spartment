@@ -10,6 +10,7 @@ const changeKey='spartment-auth-change';
 const navigationCacheMs=5*60*1000;
 const revalidateAfterMs=10*1000;
 const refreshedEvent='spartment:data-refreshed';
+const canUseOffline=error=>!navigator.onLine||error?.code==='network'||error?.code==='timeout'||[408,425,500,502,503,504].includes(error?.status);
 // Retire credentials written by the former localStorage-based implementation.
 try{localStorage.removeItem('spartment-session');}catch{/* Storage may be disabled. */}
 function publish(value){session=value;if(value?.user?.id&&!value.offline)saveOfflineSession(value);listeners.forEach(fn=>fn(value));}
@@ -26,7 +27,7 @@ async function restoreSession(){
   if(restoring)return restoring;
   const current=revision;
   restoring=authRequest('/auth/session').then(value=>{if(current===revision)publish(value);})
-    .catch(error=>{if(current===revision&&error.name!=='AbortError'){if(error.status===401)void clearOfflineData();const offline=!navigator.onLine&&loadOfflineSession();publish(offline||{error:error.message});}})
+    .catch(error=>{if(current===revision&&error.name!=='AbortError'){if(error.status===401)void clearOfflineData();const offline=canUseOffline(error)&&loadOfflineSession();publish(offline||{error:error.message});}})
     .finally(()=>{restoring=null;});
   return restoring;
 }
@@ -123,7 +124,7 @@ function get(path,{signal,cacheMs=0,force=false,timeoutMs=30000}={}){
       responseCache.set(key,{data,expiresAt:Date.now()+Math.max(cacheMs,navigationCacheMs),savedAt:Date.now(),revalidating:false});
       return data;
     }).catch(async error=>{
-      if(!navigator.onLine&&session?.user?.id){const cached=await loadOfflineResponse(session.user.id,path);if(cached){window.dispatchEvent(new CustomEvent('spartment:offline-cache-used',{detail:{savedAt:cached.savedAt}}));return cached.data;}}
+      if(canUseOffline(error)&&session?.user?.id){const cached=await loadOfflineResponse(session.user.id,path);if(cached){window.dispatchEvent(new CustomEvent('spartment:offline-cache-used',{detail:{savedAt:cached.savedAt}}));return cached.data;}}
       throw error;
     }).finally(()=>{record.settled=true;if(inflight.get(key)===record)inflight.delete(key);});
     inflight.set(key,record);

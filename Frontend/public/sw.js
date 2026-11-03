@@ -1,4 +1,4 @@
-const SHELL_CACHE = 'spartment-shell-v2';
+const SHELL_CACHE = 'spartment-shell-v3';
 const SHELL = ['/', '/index.html'];
 
 self.addEventListener('install', event => {
@@ -14,15 +14,54 @@ const cacheableAsset = url => url.origin === self.location.origin &&
   !url.pathname.includes('buildingScene') &&
   !url.pathname.includes('maintenance-attachments');
 
-const saveToShellCache = async (request, response) => {
-  if (!response.ok) return response;
-  // Clone synchronously, before returning the original response to the browser.
-  const copy = response.clone();
-  try {
-    const cache = await caches.open(SHELL_CACHE);
-    await cache.put(request, copy);
-  } catch { /* A cache failure must not break the network response. */ }
-  return response;
+const networkFirst = (event, request, cacheKey, fallbackKey) => {
+  let resolveResponse;
+  let rejectResponse;
+  const clientResponse = new Promise((resolve, reject) => {
+    resolveResponse = resolve;
+    rejectResponse = reject;
+  });
+  const background = fetch(request).then(async response => {
+    // Clone before releasing the original response to the browser.
+    const copy = response.ok ? response.clone() : null;
+    resolveResponse(response);
+    if (copy) {
+      const cache = await caches.open(SHELL_CACHE);
+      await cache.put(cacheKey, copy);
+    }
+  }).catch(async error => {
+    const cached = fallbackKey ? await caches.match(fallbackKey) : null;
+    if (cached) resolveResponse(cached);
+    else rejectResponse(error);
+  });
+  event.respondWith(clientResponse);
+  event.waitUntil(background.catch(() => undefined));
+};
+
+const cacheFirst = (event, request) => {
+  let resolveResponse;
+  let rejectResponse;
+  const clientResponse = new Promise((resolve, reject) => {
+    resolveResponse = resolve;
+    rejectResponse = reject;
+  });
+  const background = caches.match(request).then(cached => {
+    if (cached) {
+      resolveResponse(cached);
+      return undefined;
+    }
+    return fetch(request).then(async response => {
+      // Clone before releasing the original response to the browser.
+      const copy = response.ok ? response.clone() : null;
+      resolveResponse(response);
+      if (copy) {
+        const cache = await caches.open(SHELL_CACHE);
+        await cache.put(request, copy);
+      }
+    });
+  }).catch(rejectResponse);
+  event.respondWith(clientResponse);
+  event.waitUntil(background.catch(() => undefined));
 };
 
 self.addEventListener('fetch', event => {
@@ -30,14 +69,11 @@ self.addEventListener('fetch', event => {
   const url = new URL(event.request.url);
   if (!cacheableAsset(url)) return;
   if (event.request.mode === 'navigate') {
-    event.respondWith(fetch(event.request)
-      .then(response => saveToShellCache('/index.html', response))
-      .catch(() => caches.match('/index.html')));
+    networkFirst(event, event.request, '/index.html', '/index.html');
     return;
   }
   if (!['script', 'style', 'font', 'image'].includes(event.request.destination)) return;
-  event.respondWith(caches.match(event.request).then(cached => cached || fetch(event.request)
-    .then(response => saveToShellCache(event.request, response))));
+  cacheFirst(event, event.request);
 });
 
 self.addEventListener('push',event=>{

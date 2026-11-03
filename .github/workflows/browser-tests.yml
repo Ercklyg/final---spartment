@@ -27,6 +27,21 @@ jobs:
       - name: Install backend test dependencies
         run: npm ci
         working-directory: Backend
+      - name: Lint frontend
+        run: npm run lint
+        working-directory: Frontend
+      - name: Build frontend
+        run: npm run build
+        working-directory: Frontend
+      - name: Run backend tests
+        run: node --test
+        working-directory: Backend
+      - name: Audit frontend production dependencies
+        run: npm audit --omit=dev --audit-level=high
+        working-directory: Frontend
+      - name: Audit backend production dependencies
+        run: npm audit --omit=dev --audit-level=high
+        working-directory: Backend
       - name: Run desktop and mobile browser tests
         run: npm run test:e2e
         working-directory: Backend
