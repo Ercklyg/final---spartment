@@ -1,4 +1,56 @@
-<h2>Reset your Spartment password</h2>
-<p>We received a request to reset your password.</p>
-<p><a href="{{ .RedirectTo }}#token_hash={{ .TokenHash }}&amp;type=recovery">Reset password</a></p>
-<p>This link can be used once. If you did not request a password reset, you can ignore this email.</p>
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="color-scheme" content="light">
+    <title>Reset your Spartment password</title>
+  </head>
+  <body style="margin:0; padding:0; background-color:#f3f6fb; color:#172033; font-family:Arial, Helvetica, sans-serif;">
+    <div style="display:none; max-height:0; overflow:hidden; opacity:0; color:transparent;">
+      Use this secure, one-time link to reset your Spartment password.
+    </div>
+    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="width:100%; background-color:#f3f6fb;">
+      <tr>
+        <td align="center" style="padding:32px 16px;">
+          <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="width:100%; max-width:600px;">
+            <tr>
+              <td style="padding:0 4px 20px; color:#1463ff; font-size:18px; font-weight:700; letter-spacing:5px;">SPARTMENT</td>
+            </tr>
+            <tr>
+              <td style="background-color:#ffffff; border:1px solid #e1e7f0; border-radius:20px; padding:40px 40px 36px; box-shadow:0 10px 30px rgba(23,32,51,0.06);">
+                <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0">
+                  <tr>
+                    <td style="padding-bottom:18px;">
+                      <div style="display:inline-block; padding:7px 11px; border-radius:999px; background-color:#eaf1ff; color:#1457d9; font-size:12px; font-weight:700; letter-spacing:0.5px; text-transform:uppercase;">Account security</div>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td style="padding-bottom:14px; color:#0d172a; font-size:30px; font-weight:700; line-height:1.2;">Reset your password</td>
+                  </tr>
+                  <tr>
+                    <td style="padding-bottom:28px; color:#526078; font-size:16px; line-height:1.65;">We received a request to reset the password for your Spartment account. Select the button below to choose a new password.</td>
+                  </tr>
+                  <tr>
+                    <td align="center" style="padding-bottom:28px;">
+                      <a href="{{ .RedirectTo }}#token_hash={{ .TokenHash }}&amp;type=recovery" style="display:block; box-sizing:border-box; width:100%; padding:16px 24px; border-radius:12px; background-color:#1f63ff; color:#ffffff; font-size:16px; font-weight:700; line-height:1.2; text-align:center; text-decoration:none;">Reset my password</a>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td style="padding:18px 20px; border-radius:12px; background-color:#f7f9fc; color:#526078; font-size:14px; line-height:1.6;"><strong style="color:#172033;">For your security:</strong> this link can be used only once. Please use it promptly and do not forward this email.</td>
+                  </tr>
+                  <tr>
+                    <td style="padding-top:24px; color:#6b778d; font-size:13px; line-height:1.6;">If you did not request a password reset, you can safely ignore this email. Your password will remain unchanged.</td>
+                  </tr>
+                </table>
+              </td>
+            </tr>
+            <tr>
+              <td align="center" style="padding:22px 20px 0; color:#8792a6; font-size:12px; line-height:1.6;">This is an automated security message from Spartment.<br>Please do not reply to this email.</td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+    </table>
+  </body>
+</html>
