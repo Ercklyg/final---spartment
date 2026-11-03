@@ -1,7 +1,7 @@
 import PageSkeleton from "../components/PageSkeleton.jsx";
 import { showFeedback } from "../lib/actionFeedback.js";
 import { api } from '../lib/api.js';
-import { useCallback, useState } from "react";
+import { memo, useCallback, useMemo, useState } from "react";
 import { useSessionState } from "../lib/useSessionState.js";
 import { Activity, Building2, Download, TrendingUp, TriangleAlert, Wallet } from "lucide-react";
 import AdminHeader from "../components/admin/AdminHeader.jsx";
@@ -13,9 +13,13 @@ import { useRemoteData } from "../lib/useRemoteData.js";
 import "./AdminAnalyticsPage.css";
 
 const agingColors = ["#fbbf24", "#fb923c", "#f87171", "#e11d48"];
-const compactMoney = value => new Intl.NumberFormat("en-PH", { style: "currency", currency: "PHP", notation: "compact", maximumFractionDigits: 1 }).format(Number(value || 0));
+const emptyList = [];
+const compactMoneyFormatter = new Intl.NumberFormat("en-PH", { style: "currency", currency: "PHP", notation: "compact", maximumFractionDigits: 1 });
+const shortPeriodFormatter = new Intl.DateTimeFormat("en-PH", { month: "short", year: "2-digit" });
+const longPeriodFormatter = new Intl.DateTimeFormat("en-PH", { month: "long", year: "numeric" });
+const compactMoney = value => compactMoneyFormatter.format(Number(value || 0));
 const periodLabel = value => /^\d{4}-\d{2}$/.test(value)
-  ? new Date(value + "-01T12:00:00").toLocaleDateString("en-PH", { month: "short", year: "2-digit" }) : value;
+  ? shortPeriodFormatter.format(new Date(value + "-01T12:00:00")) : value;
 const buildingNames = room => (room || "Unassigned").split(", ").map(value => value === "Unassigned" ? value : value.split(" / ")[0]);
 
 
@@ -44,20 +48,19 @@ function SectionHeading({ id, icon: Icon, title, subtitle, action }) {
   </div>;
 }
 
-function AnalyticsReport({ data, month, period }) {
+const AnalyticsReport = memo(function AnalyticsReport({ data, month, period }) {
   const { snapshot, series, forecast, forecastMonths } = data;
   const collectionHealth = snapshot.collectionHealth || { aging: [], dueBillCount: 0, onTimeBillCount: 0, onTimeRate: 0, collectionRate: 0, repeatLatePayers: [] };
   const comparisonCeiling = Math.max(1, ...series.flatMap(point => [point.billed, point.value]));
   const forecastMax = Math.max(1, ...forecastMonths.map(point => Number(point.value || 0)));
   const [year, selectedMonth] = month.split("-").map(Number);
-  const forecastLabel = new Date(year, selectedMonth, 1).toLocaleDateString("en-PH", { month: "long", year: "numeric" });
+  const forecastLabel = longPeriodFormatter.format(new Date(year, selectedMonth, 1));
   const overdueAging = collectionHealth.aging.filter(bucket => /^(31-60|61\+)/.test(bucket.label)).reduce((sum, bucket) => sum + Number(bucket.balance || 0), 0);
   const [riskPage, setRiskPage] = useState(1);
   const [riskBuilding, setRiskBuilding] = useState("All");
-  const repeatLatePayers = collectionHealth.repeatLatePayers || [];
-  const allRoomValues = repeatLatePayers.map(item => item.room);
-  const buildingOptions = [...new Set(allRoomValues.flatMap(buildingNames))].sort((a, b) => a.localeCompare(b));
-  const filteredRiskTenants = repeatLatePayers.filter(tenant => riskBuilding === "All" || buildingNames(tenant.room).includes(riskBuilding));
+  const repeatLatePayers = collectionHealth.repeatLatePayers || emptyList;
+  const buildingOptions = useMemo(() => [...new Set(repeatLatePayers.flatMap(item => buildingNames(item.room)))].sort((a, b) => a.localeCompare(b)), [repeatLatePayers]);
+  const filteredRiskTenants = useMemo(() => repeatLatePayers.filter(tenant => riskBuilding === "All" || buildingNames(tenant.room).includes(riskBuilding)), [repeatLatePayers, riskBuilding]);
   const riskPageCount = Math.max(1, Math.ceil(filteredRiskTenants.length / TABLE_PAGE_SIZE));
   const currentRiskPage = Math.min(riskPage, riskPageCount);
   const visibleRiskTenants = filteredRiskTenants.slice((currentRiskPage - 1) * TABLE_PAGE_SIZE, currentRiskPage * TABLE_PAGE_SIZE);
@@ -188,7 +191,7 @@ function AnalyticsReport({ data, month, period }) {
       </div>
     </div>
   </>;
-}
+});
 
 export default function AdminAnalyticsPage({ onNavigate, onLogout }) {
   const [month, setMonth] = useSessionState("admin-analytics-month",today().slice(0, 7));

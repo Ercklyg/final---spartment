@@ -41,7 +41,7 @@
 .analytics-methodology .analytics-disclosure { margin-top:0; }
 .analytics-vacancy-amount { display:block; margin:6px 0; color:#047857; font-size:32px; font-weight:800; letter-spacing:-.03em; font-variant-numeric:tabular-nums; }
 .analytics-grid-wide,.analytics-grid-narrow { min-width:0; }
-.analytics-panel { min-width:0; padding:22px; border:1px solid #e2e8f0; border-radius:18px; background:#fff; box-shadow:0 8px 30px -22px #1e3a8a40; }
+.analytics-panel { min-width:0; padding:22px; border:1px solid #e2e8f0; border-radius:18px; background:#fff; box-shadow:0 8px 30px -22px #1e3a8a40; content-visibility:auto; contain-intrinsic-size:auto 460px; }
 .analytics-revenue { border-top:3px solid #3b82f6; background:linear-gradient(155deg,#eff6ff 0%,#fff 42%); }
 .analytics-forecast { background:linear-gradient(155deg,#eff6ff85,#fff 55%); }
 .analytics-tenant-analysis { background:linear-gradient(150deg,#f8fafc,#fff 55%); }
