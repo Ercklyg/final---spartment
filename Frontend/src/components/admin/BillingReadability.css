@@ -81,6 +81,11 @@
   padding: 14px 12px;
 }
 
+.admin-billing .billing-ledger-table :is(th, td) {
+  padding: 12px 8px;
+  overflow-wrap: anywhere;
+}
+
 .admin-billing tbody tr {
   border-color: #e2e8f0;
 }
