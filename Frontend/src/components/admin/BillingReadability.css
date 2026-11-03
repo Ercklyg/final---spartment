@@ -96,3 +96,14 @@
 .admin-billing tbody tr:focus-within {
   background-color: #eff6ff;
 }
+
+/* Let the browser skip layout and paint for billing content below the viewport. */
+.admin-billing .billing-deferred-panel {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 420px;
+}
+
+.admin-billing .billing-mobile-record {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 340px;
+}

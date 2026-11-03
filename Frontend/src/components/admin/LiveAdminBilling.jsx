@@ -1,5 +1,5 @@
 import PageSkeleton from "../PageSkeleton.jsx";
-import { lazy, Suspense, useCallback, useEffect, useRef, useState } from 'react';
+import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { api } from '../../lib/api.js';
 import { createBill, monthEnd, sendPaymentReminder, today } from '../../lib/billing.js';
 import { useRemoteData } from '../../lib/useRemoteData.js';
@@ -23,7 +23,10 @@ function LeasePicker({ leases, value, includeAll, disabled, onChange }) {
     return () => document.removeEventListener('pointerdown', closeOutside);
   }, [open]);
   const label = lease => `${lease.profiles?.full_name || 'Tenant'} / ${lease.rooms?.buildings?.name || 'Building'} / ${lease.rooms?.room_number || 'Room'}`;
-  const filtered = leases.filter(lease => label(lease).toLowerCase().includes(query.trim().toLowerCase()));
+  const filtered = useMemo(() => {
+    const normalizedQuery = query.trim().toLowerCase();
+    return leases.filter(lease => label(lease).toLowerCase().includes(normalizedQuery));
+  }, [leases, query]);
   const selected = value === 'all' ? `All tenants / rooms (${leases.length})` : label(leases.find(lease => lease.id === value) || {});
   return <div ref={root} className="relative mt-1">
     <button type="button" disabled={disabled} aria-haspopup="listbox" aria-expanded={open} onClick={() => { setOpen(current => !current); setQuery(''); }} className={`${field} flex h-11 items-center justify-between text-left disabled:cursor-not-allowed disabled:opacity-60`}>
@@ -49,7 +52,7 @@ export default function LiveAdminBilling({ type }) {
   const page=useRemoteData(loader,{keepPrevious:true});
   const leaseLoader=useCallback(client=>client.get('/billing/leases?'+new URLSearchParams({month:form.period,type}),{cacheMs:10_000}),[form.period,type]);
   const leases=useRemoteData(leaseLoader,{keepPrevious:true});
-  const data=page.data&&leases.data?{...page.data,leases:leases.data}:null;
+  const data=useMemo(()=>page.data&&leases.data?{...page.data,leases:leases.data}:null,[page.data,leases.data]);
   const error=page.error||leases.error,loading=page.loading||leases.loading;
   const reloadWorkspace=()=>page.reload();
   const reloadAll=()=>{page.reload();leases.reload();};
@@ -61,7 +64,7 @@ export default function LiveAdminBilling({ type }) {
   const [payment, setPayment] = useState(null);
   const [correction, setCorrection] = useState(null);
   const all = type === 'rent' && form.lease === 'all';
-  const availableLeases=data?.leases.filter(lease=>!lease.billed)||[];
+  const availableLeases=useMemo(()=>data?.leases.filter(lease=>!lease.billed)||[],[data]);
 
   const submit = async event => {
     event.preventDefault();

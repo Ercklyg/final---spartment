@@ -1,4 +1,4 @@
-import { lazy, Suspense, useState } from "react";
+import { lazy, Suspense, useEffect, useMemo, useState } from "react";
 import { money, today } from "../../lib/billing.js";
 import PageControls from "../PageControls.jsx";
 import { BellRing, RefreshCw, Search, X } from "lucide-react";
@@ -23,8 +23,21 @@ function StatusBadge({ status }) {
   return <span className={"inline-flex items-center gap-1.5 whitespace-nowrap rounded-full px-2.5 py-1 text-xs font-medium " + colors[status]}><span aria-hidden="true" className="h-1.5 w-1.5 rounded-full bg-current"/>{status}</span>;
 }
 
-const remindedLabel=value=>value?new Date(value).toLocaleString("en-PH",{dateStyle:"medium",timeStyle:"short"}):null;
+const reminderDateFormatter = new Intl.DateTimeFormat("en-PH", { dateStyle: "medium", timeStyle: "short" });
+const remindedLabel=value=>value?reminderDateFormatter.format(new Date(value)):null;
 const DialogLoading = ({ label }) => <div role="status" className="fixed inset-0 z-[80] flex items-center justify-center bg-slate-950/40 p-4"><p className="rounded-xl bg-white px-5 py-4 text-sm font-medium text-slate-700">{label}</p></div>;
+
+function useDesktopBillingLayout() {
+  const query = "(min-width: 1024px)";
+  const [desktop, setDesktop] = useState(() => typeof window !== "undefined" && window.matchMedia(query).matches);
+  useEffect(() => {
+    const media = window.matchMedia(query);
+    const update = event => setDesktop(event.matches);
+    media.addEventListener("change", update);
+    return () => media.removeEventListener("change", update);
+  }, []);
+  return desktop;
+}
 
 export default function BillingLedger({ type, bills, summary, onPayment, onReminder, onCorrection, onRefresh, createForm, month, onMonthChange, page, loading=false, filters, onFiltersChange }) {
   const query=filters.search,status=filters.status;
@@ -32,10 +45,11 @@ export default function BillingLedger({ type, bills, summary, onPayment, onRemin
   const setStatus=status=>onFiltersChange({...filters,status,offset:0});
   const [selected,setSelected]=useState(null);
   const [reminder,setReminder]=useState(null);
+  const desktop=useDesktopBillingLayout();
   const utility=type==="utility";
-  const shown=bills.filter(bill=>bill.bill_type===type&&bill.billing_period.startsWith(month));
+  const shown=useMemo(()=>bills.filter(bill=>bill.bill_type===type&&bill.billing_period.startsWith(month)),[bills,type,month]);
   const totals=summary.months[month]?.[type];
-  const cards=utility?[["Electricity",totals?.electricity],["Water",totals?.water],["Collected",totals?.paid],["Balance",totals?.balance]]:[["Total billed",totals?.total],["Collected",totals?.paid],["Balance",totals?.balance],["Overdue balance",totals?.overdue]];
+  const cards=useMemo(()=>utility?[["Electricity",totals?.electricity],["Water",totals?.water],["Collected",totals?.paid],["Balance",totals?.balance]]:[["Total billed",totals?.total],["Collected",totals?.paid],["Balance",totals?.balance],["Overdue balance",totals?.overdue]],[utility,totals]);
   const openDetails = (event, bill) => {
     event.preventDefault();
     event.stopPropagation();
@@ -43,9 +57,9 @@ export default function BillingLedger({ type, bills, summary, onPayment, onRemin
   };
 
   return <>
-    <div className="mt-5">{createForm}</div>
-    <div className="mt-4 grid grid-cols-2 gap-3 xl:grid-cols-4">{cards.map(([label,value])=><article key={label} className={"min-w-0 rounded-xl border border-t-4 border-slate-200 p-4 shadow-sm sm:p-5 " + cardTones[label]}><p className="text-xs font-medium text-slate-600 sm:text-sm">{label}</p><h2 className="mt-1 break-words text-xl font-bold text-slate-950 sm:mt-2 sm:text-2xl">{money(value)}</h2></article>)}</div>
-    <section className="mt-5 overflow-hidden rounded-xl border border-slate-200 bg-white">
+    <div className="billing-deferred-panel mt-5">{createForm}</div>
+    <div className="billing-deferred-panel mt-4 grid grid-cols-2 gap-3 xl:grid-cols-4">{cards.map(([label,value])=><article key={label} className={"min-w-0 rounded-xl border border-t-4 border-slate-200 p-4 shadow-sm sm:p-5 " + cardTones[label]}><p className="text-xs font-medium text-slate-600 sm:text-sm">{label}</p><h2 className="mt-1 break-words text-xl font-bold text-slate-950 sm:mt-2 sm:text-2xl">{money(value)}</h2></article>)}</div>
+    <section className="billing-deferred-panel mt-5 overflow-hidden rounded-xl border border-slate-200 bg-white">
       <div className="p-4 sm:p-5">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div><h2 className="text-xl font-bold">{utility?"Utility bills":"Rent payment history"}</h2><p className="text-sm text-slate-600">Status updates from payments and due dates.</p></div>
@@ -62,8 +76,8 @@ export default function BillingLedger({ type, bills, summary, onPayment, onRemin
 
       {loading&&<div role="status" aria-live="polite" className="border-t border-blue-100 bg-blue-50/50"><div className="h-1 w-full animate-pulse bg-blue-500"/><p className="px-4 py-2 text-xs font-medium text-blue-700 sm:px-5">Updating billing records…</p></div>}
 
-      <div className="divide-y divide-slate-200 border-t border-slate-200 lg:hidden">
-        {shown.map(bill=><article key={bill.id} className="p-4 sm:p-5">
+      {!desktop&&<div className="divide-y divide-slate-200 border-t border-slate-200">
+        {shown.map(bill=><article key={bill.id} className="billing-mobile-record p-4 sm:p-5">
           <div className="flex min-w-0 items-start justify-between gap-3">
             <div className="min-w-0"><h3 className="break-words font-bold text-slate-900">{bill.leases?.profiles?.full_name || "Unknown tenant"}</h3><p className="text-sm text-slate-600">{bill.leases?.rooms?.buildings?.name || "Building"} / Room {bill.leases?.rooms?.room_number || "Unassigned"}</p></div>
             <StatusBadge status={bill.displayStatus}/>
@@ -83,9 +97,9 @@ export default function BillingLedger({ type, bills, summary, onPayment, onRemin
           </div>
         </article>)}
         {!loading&&!shown.length&&<p className="p-8 text-center text-sm text-slate-500">No bills match this month or search.</p>}
-      </div>
+      </div>}
 
-      <div className="hidden overflow-x-auto lg:block"><table className="w-full min-w-[1050px] text-left text-sm"><thead><tr>{["Tenant / Room","Period / Due date",...(utility?["Electricity","Water"]:[]),"Total","Paid","Balance","Status","Actions"].map(title=><th key={title} className={["Electricity","Water","Total","Paid","Balance"].includes(title)?"text-right":""}>{title}</th>)}</tr></thead>
+      {desktop&&<div className="overflow-x-auto"><table className="w-full min-w-[1050px] text-left text-sm"><thead><tr>{["Tenant / Room","Period / Due date",...(utility?["Electricity","Water"]:[]),"Total","Paid","Balance","Status","Actions"].map(title=><th key={title} className={["Electricity","Water","Total","Paid","Balance"].includes(title)?"text-right":""}>{title}</th>)}</tr></thead>
         <tbody aria-busy={loading}>{shown.map(bill=><tr key={bill.id} className="border-t border-slate-200 transition-colors hover:bg-blue-50/50">
           <td><strong>{bill.leases?.profiles?.full_name || "Unknown tenant"}</strong><p className="text-slate-600">{bill.leases?.rooms?.buildings?.name} / Room {bill.leases?.rooms?.room_number || "Unassigned"}</p></td>
           <td><p>{bill.billing_period.slice(0,7)}</p><p className="whitespace-nowrap text-sm text-slate-600">Due {bill.due_date}</p></td>
@@ -94,7 +108,7 @@ export default function BillingLedger({ type, bills, summary, onPayment, onRemin
           <td><StatusBadge status={bill.displayStatus}/></td>
           <td><div className="flex flex-wrap gap-2">{bill.balance>0&&<button type="button" disabled={loading} onClick={()=>onPayment(bill)} className="rounded-lg bg-blue-600 px-3 py-2 text-sm text-white hover:bg-blue-700">Record payment</button>}{bill.balance>0&&<button type="button" disabled={loading} onClick={()=>setReminder(bill)} className="inline-flex items-center gap-1.5 rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-sm font-medium text-amber-800 hover:bg-amber-100"><BellRing size={15}/>Remind</button>}<button type="button" disabled={loading} onClick={event=>openDetails(event,bill)} className={button}>{bill.payments.length?"Payments / receipts":"View details"}</button>{bill.last_reminded_at&&<span className="basis-full text-xs text-slate-500">Last reminded {remindedLabel(bill.last_reminded_at)}</span>}</div></td>
         </tr>)}{!loading&&!shown.length&&<tr><td colSpan={utility?9:7} className="p-8 text-center text-slate-500">No bills match this month or search.</td></tr>}</tbody>
-      </table></div>
+      </table></div>}
       <p className="border-t border-slate-100 px-4 py-3 text-sm text-slate-500 sm:px-5">Showing {shown.length} of {page.total} matching bills ({page.periodTotal} for {month}).</p>
       <PageControls disabled={loading} offset={filters.offset} limit={25} total={page.total} onChange={offset=>onFiltersChange({...filters,offset})}/>
     </section>
