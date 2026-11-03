@@ -41,6 +41,12 @@ The frontend retains that display information in memory and removes the old
 `spartment-session` localStorage entry. Existing users must sign in once after
 this migration. No old localStorage credential is imported into a cookie.
 
+Offline persistence is restricted to the tenant account, billing overview and
+request-list responses. These copies expire after 24 hours and have strict
+record and response-size limits. The locally persisted offline-session marker
+contains only the user ID and timestamps, not the email address or credentials.
+Logout, account changes and rejected sessions clear all offline copies.
+
 Cookies use SameSite=Lax, Path=/, and the Secure flag in production. Production
 names use the __Host- prefix; NODE_ENV=production always enables Secure. Local
 HTTP development uses unprefixed cookies without Secure. Access-cookie expiry

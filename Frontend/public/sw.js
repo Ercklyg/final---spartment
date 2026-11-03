@@ -1,4 +1,4 @@
-const SHELL_CACHE = 'spartment-shell-v1';
+const SHELL_CACHE = 'spartment-shell-v2';
 const SHELL = ['/', '/index.html'];
 
 self.addEventListener('install', event => {
@@ -14,22 +14,30 @@ const cacheableAsset = url => url.origin === self.location.origin &&
   !url.pathname.includes('buildingScene') &&
   !url.pathname.includes('maintenance-attachments');
 
+const saveToShellCache = async (request, response) => {
+  if (!response.ok) return response;
+  // Clone synchronously, before returning the original response to the browser.
+  const copy = response.clone();
+  try {
+    const cache = await caches.open(SHELL_CACHE);
+    await cache.put(request, copy);
+  } catch { /* A cache failure must not break the network response. */ }
+  return response;
+};
+
 self.addEventListener('fetch', event => {
   if (event.request.method !== 'GET') return;
   const url = new URL(event.request.url);
   if (!cacheableAsset(url)) return;
   if (event.request.mode === 'navigate') {
-    event.respondWith(fetch(event.request).then(response => {
-      if (response.ok) caches.open(SHELL_CACHE).then(cache => cache.put('/index.html', response.clone()));
-      return response;
-    }).catch(() => caches.match('/index.html')));
+    event.respondWith(fetch(event.request)
+      .then(response => saveToShellCache('/index.html', response))
+      .catch(() => caches.match('/index.html')));
     return;
   }
   if (!['script', 'style', 'font', 'image'].includes(event.request.destination)) return;
-  event.respondWith(caches.match(event.request).then(cached => cached || fetch(event.request).then(response => {
-    if (response.ok) caches.open(SHELL_CACHE).then(cache => cache.put(event.request, response.clone()));
-    return response;
-  })));
+  event.respondWith(caches.match(event.request).then(cached => cached || fetch(event.request)
+    .then(response => saveToShellCache(event.request, response))));
 });
 
 self.addEventListener('push',event=>{

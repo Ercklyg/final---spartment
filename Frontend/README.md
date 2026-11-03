@@ -7,6 +7,11 @@ Sessions use HttpOnly cookies and are restored through the backend. Sign in
 again once after upgrading from the previous localStorage session. Production
 requires HTTPS and a same-site API proxy; see Backend/SECURITY.md.
 
+Offline mode persists only the tenant account, billing overview and request-list
+responses. Copies expire after 24 hours, are size/count limited, and are cleared
+on logout or account changes. Administrator workspaces, analytics, notifications,
+receipts, attachments and settings are never written to the offline cache.
+
 This folder contains React UI, API request/session handling and display helpers.
 All Supabase database access, server operations and configuration are in Backend.
 There is no browser Supabase dependency or database credential configuration.
