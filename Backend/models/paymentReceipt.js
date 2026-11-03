@@ -8,10 +8,11 @@ export const escapeReceiptText = value => String(value??'').replace(/[&<>"']/g,c
 export function receiptHtml(payment) {
   const bill=payment.bills,lease=bill.leases,room=lease?.rooms;
   const e=escapeReceiptText;
+  const receiptReference=String(payment.id).replaceAll('-','').slice(0,8).toUpperCase();
   const date=value=>value ? new Date(value+'T12:00:00').toLocaleDateString('en-PH',{month:'short',day:'numeric',year:'numeric'}) : 'Not available';
   const period=new Date(bill.billing_period+'T12:00:00').toLocaleDateString('en-PH',{month:'long',year:'numeric'});
   const detail=(label,value)=>`<div><dt>${e(label)}</dt><dd>${e(value)}</dd></div>`;
-  return `<!doctype html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Spartment payment receipt ${e(payment.id)}</title>
+  return `<!doctype html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Spartment payment receipt ${e(receiptReference)}</title>
 <style>
 *{box-sizing:border-box}body{font:14px/1.55 Arial,sans-serif;color:#172033;margin:0;padding:28px 18px;background:#f1f5f9}main{max-width:740px;margin:auto;background:white;border:1px solid #dfe6ef;border-top:5px solid #2563eb;border-radius:14px;padding:36px;box-shadow:0 8px 30px #0f172a08}
 header{display:flex;justify-content:space-between;align-items:flex-start;gap:20px;padding-bottom:24px;border-bottom:1px solid #e2e8f0}.brand{font-size:25px;font-weight:800;letter-spacing:-1px;color:#0f172a}.subtitle{font-size:11px;letter-spacing:1px;text-transform:uppercase;color:#64748b;margin-top:3px}.heading{text-align:right}h1{font-size:20px;margin:0 0 8px;letter-spacing:-.5px}.badge{display:inline-block;border:1px solid #a7f3d0;border-radius:20px;background:#ecfdf5;color:#047857;padding:3px 10px;font-size:11px;font-weight:bold}
@@ -25,7 +26,7 @@ h2{font-size:11px;letter-spacing:1px;text-transform:uppercase;color:#64748b;marg
 <section><h2>Received from</h2><dl>${detail('Tenant',lease?.profiles?.full_name || 'Not available')}${detail('Property / Room',(room?.buildings?.name || 'Not available')+' / '+(room?.room_number || 'Not available'))}</dl></section>
 <section class="billing"><h2>Payment applies to</h2><dl>${detail('Bill type',bill.bill_type==='rent'?'Rent':bill.bill_type==='utility'?'Utilities':bill.bill_type)}${detail('Billing period',period)}${detail('Bill due date',date(bill.due_date))}</dl></section>
 <section><h2>Reference note</h2><p class="note">${e(payment.reference_note || 'Not provided')}</p></section>
-<dl class="identifiers">${detail('Payment ID',payment.id)}${detail('Bill ID',bill.id)}</dl>
+<dl class="identifiers">${detail('Receipt reference',receiptReference)}</dl>
 <footer><strong>Thank you for your payment.</strong><p>This receipt acknowledges the individual payment shown above. It does not indicate that the entire bill is fully paid. Tenant and room details reflect the currently linked records.</p></footer>
 </main></body></html>`;
 }
