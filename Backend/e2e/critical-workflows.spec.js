@@ -72,12 +72,12 @@ test('an administrator can record a payment and open its receipt',async({page})=
   const api=await mockAdminApi(page,{startAuthenticated:true});
   await page.goto('/');
   await adminNavigationButton(page,'Billing').click();
-  await page.locator('button:visible',{hasText:'Record payment'}).first().click();
+  await page.getByRole('button',{name:'Record payment'}).first().click();
   await page.getByLabel('Amount',{exact:true}).fill('500');
   await page.getByLabel('Reference note').fill('E2E payment');
   await page.getByRole('button',{name:'Save payment'}).click();
   await expect.poll(()=>api.calls.some(call=>call.method==='POST'&&call.path==='/billing/payments')).toBeTruthy();
-  await page.locator('button:visible',{hasText:'Payments / receipts'}).first().click();
+  await page.getByRole('button',{name:'Payments / receipts'}).first().click();
   await page.getByRole('button',{name:'Open receipt'}).click();
   await expect(page.getByTitle('Printable payment receipt')).toBeVisible();
 });
