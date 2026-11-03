@@ -1,18 +1,15 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 
-import { createMainBuildingMiniature } from './mainBuildingMiniature.js';
-import { createBuildingTwoMiniature } from './buildingTwoMiniature.js';
-import { createBuildingThreeMiniature } from './buildingThreeMiniature.js';
-
 const modelSettings = {
-  main: { create: createMainBuildingMiniature, target: [0.4, 3.4, 0], radius: 12, minDistance: 16 },
-  building2: { create: createBuildingTwoMiniature, target: [-0.85, 2.9, 0.55], radius: 8.6, minDistance: 11 },
-  building3: { create: createBuildingThreeMiniature, target: [0, 1.9, 0.55], radius: 8.8, minDistance: 11 },
+  main: { load: () => import('./mainBuildingMiniature.js').then(module => module.createMainBuildingMiniature), target: [0.4, 3.4, 0], radius: 12, minDistance: 16 },
+  building2: { load: () => import('./buildingTwoMiniature.js').then(module => module.createBuildingTwoMiniature), target: [-0.85, 2.9, 0.55], radius: 8.6, minDistance: 11 },
+  building3: { load: () => import('./buildingThreeMiniature.js').then(module => module.createBuildingThreeMiniature), target: [0, 1.9, 0.55], radius: 8.8, minDistance: 11 },
 };
-export function createBuildingViewer(host, onInteraction, onFailure, { building = 'main', name = 'Main Building', helpId = 'building-model-help' } = {}) {
+export async function createBuildingViewer(host, onInteraction, onFailure, { building = 'main', name = 'Main Building', helpId = 'building-model-help' } = {}) {
   const settings = modelSettings[building] || modelSettings.main;
   const { target, radius: framingRadius } = settings;
+  const createMiniature = await settings.load();
   const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
   renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.75));
   renderer.setClearColor(0xf1f0ec);
@@ -47,7 +44,7 @@ export function createBuildingViewer(host, onInteraction, onFailure, { building 
   light.shadow.bias = -0.0002;
   scene.add(light);
 
-  const miniature = settings.create();
+  const miniature = createMiniature();
   scene.add(miniature.model);
   const groundGeometry = new THREE.PlaneGeometry(200, 200);
   const groundMaterial = new THREE.MeshStandardMaterial({ color: 0xf1f0ec, roughness: 1 });

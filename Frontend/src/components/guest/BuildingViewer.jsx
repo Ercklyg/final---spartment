@@ -60,9 +60,11 @@ export default function BuildingViewer({ compact = false, building = 'main' }) {
     if (!active) return;
     let current = true;
     let viewer;
-    import('./buildingScene.js').then(({ createBuildingViewer }) => {
+    import('./buildingScene.js').then(async ({ createBuildingViewer }) => {
       if (!current) return;
-      viewer = createBuildingViewer(hostRef.current, () => setView('custom'), () => setStatus('error'), { building, name: details.name, helpId });
+      const created = await createBuildingViewer(hostRef.current, () => setView('custom'), () => setStatus('error'), { building, name: details.name, helpId });
+      if (!current) { created.dispose(); return; }
+      viewer = created;
       viewerRef.current = viewer;
       setStatus('ready');
     }).catch(() => { if (current) setStatus('error'); });
