@@ -6,6 +6,8 @@ import { DEFAULT_IDLE_TIMEOUT_MINUTES, formatIdleTimeout, useIdleLogout } from "
 import { uiStatePrefix } from "./lib/useSessionState.js";
 import AdminHeader from "./components/admin/AdminHeader.jsx";
 import AdminSidebar from "./components/admin/AdminSidebar.jsx";
+import TenantSidebar from "./components/tenant/TenantSidebar.jsx";
+import TenantHeader from "./components/tenant/TenantHeader.jsx";
 
 const LandingPage = lazy(() => import("./pages/LandingPage.jsx"));
 const GuestPage = lazy(() => import("./pages/GuestPage.jsx"));
@@ -148,7 +150,15 @@ export default function App() {
   }
   if (profile?.role === "tenant") {
     const Page = tenantPages[page] || TenantDashboardPage;
-    return <LazyPage key={userId} Page={Page} variant={skeletons[page] || 'dashboard'} onNavigate={navigate} onLogout={logout} />;
+    return <main key={userId} className="tenant-page flex min-h-screen text-slate-900">
+      <TenantSidebar activePage={tenantPages[page] ? page : 'tenant'} onNavigate={navigate}/>
+      <div className="min-w-0 flex-1">
+        <TenantHeader name={profile.full_name || 'Tenant'} onLogout={logout} onNavigate={navigate}/>
+        <Suspense fallback={<div className="mx-auto max-w-[1300px] px-5 py-6 sm:px-8"><PageSkeleton variant={skeletons[page] || 'dashboard'} label="Loading page..."/></div>}>
+          <Page onNavigate={navigate}/>
+        </Suspense>
+      </div>
+    </main>;
   }
   return <PublicLanding onContinueAsGuest={() => navigate("guest")} onSignIn={signIn} />;
 }
