@@ -1,7 +1,4 @@
-const TIMEOUT_MS = 10000;
-const BUSY_RETRY_DELAY_MS = 20000;
-
-const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
+const TIMEOUT_MS = 6000;
 
 async function requestOnce({ apiKey, model, prompt }) {
   const url = 'https://generativelanguage.googleapis.com/v1beta/models/' + encodeURIComponent(model) + ':generateContent';
@@ -30,12 +27,6 @@ async function requestOnce({ apiKey, model, prompt }) {
   }
 }
 
-export async function generateContent({ apiKey, model, prompt }) {
-  try {
-    return await requestOnce({ apiKey, model, prompt });
-  } catch (error) {
-    if (error.status !== 503) throw error;
-    await sleep(BUSY_RETRY_DELAY_MS);
-    return requestOnce({ apiKey, model, prompt });
-  }
-}
+// The service can try its fallback model immediately. Do not hold the dashboard
+// open for a long busy-provider sleep and retry the same model.
+export const generateContent = requestOnce;

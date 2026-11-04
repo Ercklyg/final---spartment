@@ -2,6 +2,7 @@ import { actionConfirmation, showFeedback } from './actionFeedback.js';
 import { browserRequest } from './http.js';
 import { clearIdleMarker, resetIdleMarker } from './useIdleLogout.js';
 import { clearSessionUiState } from './useSessionState.js';
+import { clearRecommendationPreviews } from './aiRecommendations.js';
 import { clearOfflineData, loadOfflineResponse, loadOfflineSession, saveOfflineResponse, saveOfflineSession } from './offlineCache.js';
 const listeners=new Set(),pendingAuth=new Set(),responseCache=new Map(),inflight=new Map();
 let session,refreshing,restoring;
@@ -15,7 +16,7 @@ const canUseOffline=error=>!navigator.onLine||error?.code==='network'||error?.co
 try{localStorage.removeItem('spartment-session');}catch{/* Storage may be disabled. */}
 function publish(value){session=value;if(value?.user?.id&&!value.offline)saveOfflineSession(value);listeners.forEach(fn=>fn(value));}
 function broadcast(){try{localStorage.setItem(changeKey,crypto.randomUUID());}catch{/* Other tabs recheck on their next request. */}}
-function clearData(){responseCache.clear();for(const request of inflight.values())request.controller.abort();inflight.clear();window.dispatchEvent(new Event('spartment:data-cleared'));}
+function clearData(){responseCache.clear();clearRecommendationPreviews();for(const request of inflight.values())request.controller.abort();inflight.clear();window.dispatchEvent(new Event('spartment:data-cleared'));}
 function clearLocalSession(){revision++;cancelAuth();clearData();clearSessionUiState();void clearOfflineData();publish(null);try{localStorage.removeItem('spartment-session');}catch{/* No credential is retained. */}broadcast();}
 function cancelAuth(){for(const controller of pendingAuth)controller.abort();pendingAuth.clear();}
 async function authRequest(path,body={}){

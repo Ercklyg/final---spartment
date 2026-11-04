@@ -1,9 +1,10 @@
 import PageSkeleton from "../PageSkeleton.jsx";
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { loadAdminAnalytics } from '../../lib/adminAnalytics.js';
 import { today } from '../../lib/billing.js';
 import { useRemoteData } from '../../lib/useRemoteData.js';
 import { api } from '../../lib/api.js';
+import { getRecommendationPreview, saveRecommendationPreview } from '../../lib/aiRecommendations.js';
 import AdminHero from './AdminHero.jsx';
 import AdminAttention from './AdminAttention.jsx';
 import AdminNotifications from './AdminNotifications.jsx';
@@ -14,36 +15,41 @@ export default function LiveAdminDashboard({ onNavigate }) {
   const [month, setMonth] = useState(today().slice(0, 7));
   const loader = useCallback(client => loadAdminAnalytics(client, month), [month]);
   const { data, error, loading, reload } = useRemoteData(loader);
-  const [ai, setAi] = useState({ items: [], loading: true, error: '', updatedAt: null, cached: false, stale: false, source: 'ai' });
+  const [ai, setAi] = useState(() => ({ ...getRecommendationPreview(month), month, loading: true, error: '' }));
+  const aiRequest = useRef(null);
   const handleMonthChange = useCallback(value => {
     setMonth(value);
-    setAi(prev => ({ ...prev, loading: true, error: '' }));
+    setAi({ ...getRecommendationPreview(value), month: value, loading: true, error: '' });
   }, []);
   const fetchAi = useCallback(async (force = false) => {
+    aiRequest.current?.abort();
+    const controller = new AbortController();
+    aiRequest.current = controller;
     setAi(prev => ({ ...prev, loading: true, error: '' }));
     try {
-      const result = await api.post('/analytics/recommendations', { month, period: 'Monthly', force }, { silent: true });
-      if (result.fallback) {
-        setAi({ items: [], loading: false, error: result.reason || 'unavailable', updatedAt: null, cached: false, stale: false, source: 'ai' });
-      } else {
-        setAi({ items: result.items || [], loading: false, error: '', updatedAt: result.updatedAt || null, cached: Boolean(result.cached), stale: Boolean(result.stale), source: result.source || 'ai' });
+      const load = fresh => api.post('/analytics/recommendations', { month, period: 'Monthly', force: fresh }, { signal: controller.signal, silent: true, timeoutMs: 20000 });
+      const show = (result, loading) => {
+        if (controller.signal.aborted) return;
+        if (result.fallback) throw new Error(result.reason || 'unavailable');
+        saveRecommendationPreview(month, result);
+        setAi({ ...result, month, loading, error: '' });
+      };
+      const result = await load(force);
+      show(result, !force && Boolean(result.refreshRecommended));
+      if (!force && result.refreshRecommended && !controller.signal.aborted) {
+        show(await load(true), false);
       }
     } catch (requestError) {
-      setAi({ items: [], loading: false, error: requestError.message || 'unavailable', updatedAt: null, cached: false, stale: false, source: 'ai' });
+      if (controller.signal.aborted) return;
+      setAi(prev => ({ ...prev, loading: false, stale: Boolean(prev.items?.length), error: requestError.message || 'unavailable' }));
     }
   }, [month]);
   useEffect(() => {
-    if (!data?.snapshot) return;
-    const controller = new AbortController();
-    api.post('/analytics/recommendations', { month, period: 'Monthly', force: false },{signal:controller.signal,silent:true}).then(result => {
-      if (result.fallback) setAi({ items: [], loading: false, error: result.reason || 'unavailable', updatedAt: null, cached: false, stale: false, source: 'ai' });
-      else setAi({ items: result.items || [], loading: false, error: '', updatedAt: result.updatedAt || null, cached: Boolean(result.cached), stale: Boolean(result.stale), source: result.source || 'ai' });
-    }).catch(requestError => {
-      if (requestError?.name === 'AbortError') return;
-      setAi({ items: [], loading: false, error: requestError.message || 'unavailable', updatedAt: null, cached: false, stale: false, source: 'ai' });
-    });
-    return () => controller.abort();
-  }, [data?.snapshot, month]);
+    // Start alongside analytics, rather than waiting for it and then fetching
+    // the same report a second time before even checking saved insights.
+    void fetchAi();
+    return () => aiRequest.current?.abort();
+  }, [fetchAi]);
   return <>
     <AdminHero selectedMonth={month} onMonthChange={handleMonthChange} />
     {loading && !data ? <PageSkeleton variant="dashboard" label="Loading dashboard..."/>

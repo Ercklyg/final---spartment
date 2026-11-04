@@ -2,10 +2,12 @@ import { HttpError } from '../middleware/errors.js';
 import { report } from '../models/reports.js';
 import { generateContent } from '../models/gemini.js';
 import * as validate from './validation.js';
+import { today } from '../models/billing.js';
 
 const CACHE_TTL_MS = 12 * 60 * 60 * 1000;
 const cache = new Map();
 const lastGood = new Map();
+const pending = new Map();
 
 const CATEGORIES = ['warning', 'opportunity', 'attention', 'insight'];
 const PAGES = ['Billing', 'Rooms', 'Tenants', 'Customer Requests'];
@@ -146,20 +148,34 @@ export async function recommendations(req) {
   if (!month) throw new HttpError(400, 'Invalid report month.');
   const period = validate.choice(body.period || 'Monthly', ['Monthly', 'Quarterly', 'Yearly'], 'report period');
   const force = body.force === true;
+  const enabled = process.env.AI_RECOMMENDATIONS_ENABLED === 'true' && Boolean(process.env.GEMINI_API_KEY);
+  const [year, monthNumber] = month.split('-').map(Number);
+  const monthEnd = new Date(Date.UTC(year, monthNumber, 0)).toISOString().slice(0, 10);
+  const cutoff = [today(), monthEnd].sort()[0];
+  // Authentication/role checks run before this service. Keep entries scoped to
+  // the authenticated account, reporting period and Manila reporting cutoff.
+  const key = req.user.id + '|' + month + '|' + period + '|' + cutoff;
+  const hit = cache.get(key);
+  if (enabled && !force && hit) {
+    const stale = hit.expiresAt <= Date.now();
+    return { ...hit.data, cached: true, stale, refreshRecommended: stale };
+  }
+  if (pending.has(key)) return pending.get(key);
+  const task = generateRecommendations(req, { month, period, key });
+  pending.set(key, task);
+  try { return await task; }
+  finally { if (pending.get(key) === task) pending.delete(key); }
+}
+
+async function generateRecommendations(req, { month, period, key }) {
   const data = await report(req.db, 'analytics_report', { p_month: month + '-01', p_period: period, p_export: false });
   const snapshot = data.snapshot;
   const payload = buildPayload(snapshot, month);
   if (process.env.AI_RECOMMENDATIONS_ENABLED !== 'true' || !process.env.GEMINI_API_KEY) {
     return { fallback: false, reason: null, items: buildLocalInsights(snapshot, month), cached: false, stale: false, source: 'local', updatedAt: new Date().toISOString() };
   }
-  const key = month + '|' + period + '|' + snapshot.cutoff;
-  const now = Date.now();
-  const hit = cache.get(key);
-  if (!force && hit && hit.expiresAt > now) {
-    return { ...hit.data, cached: true };
-  }
   const prompt = buildPrompt(payload);
-  const models = [process.env.AI_MODEL || 'gemini-3.5-flash-lite', process.env.AI_FALLBACK_MODEL || 'gemini-flash-lite-latest'];
+  const models = [...new Set([process.env.AI_MODEL || 'gemini-3.5-flash-lite', process.env.AI_FALLBACK_MODEL || 'gemini-flash-lite-latest'])];
   let rawText = null;
   let lastError = null;
   for (const model of models) {
@@ -194,7 +210,7 @@ export async function recommendations(req) {
     return { fallback: false, reason: null, items: buildLocalInsights(snapshot, month), cached: false, stale: false, source: 'local', updatedAt: new Date().toISOString() };
   }
   const result = { fallback: false, reason: null, items, cached: false, stale: false, source: 'ai', updatedAt: new Date().toISOString() };
-  cache.set(key, { expiresAt: now + CACHE_TTL_MS, data: result });
-  lastGood.set(key, { data: result, savedAt: now });
+  cache.set(key, { expiresAt: Date.now() + CACHE_TTL_MS, data: result });
+  lastGood.set(key, { data: result, savedAt: Date.now() });
   return result;
 }
