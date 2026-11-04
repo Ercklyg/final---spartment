@@ -34,7 +34,7 @@ export default function TenantDashboardPage({ onNavigate }) {
   const [isChatOpen, setIsChatOpen] = useState(false);
   const [requestRevision, setRequestRevision] = useState(0);
   return <div>
-    <div className="mx-auto max-w-[1100px] px-5 pb-10 sm:px-8">
+    <div className="tenant-content">
       <WelcomeBanner name={account?.full_name} />
       <TenantAccountStatus loading={loading} error={error} retry={retry} variant="dashboard" />
       {account && <DashboardContent account={account} onNavigate={onNavigate} requestRevision={requestRevision} onOpenChat={() => setIsChatOpen(true)} />}

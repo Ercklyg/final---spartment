@@ -18,17 +18,18 @@ export default function TenantSidebar({ activePage = 'tenant', onNavigate }) {
           {!collapsed && <span className="min-w-0 text-left"><span className="block text-[22px] font-black leading-none tracking-tight text-slate-950">Spartment</span><span className="mt-1.5 block text-xs font-semibold uppercase tracking-wider text-slate-500">Tenant portal</span></span>}
         </button>
         <div className="my-5 h-px bg-slate-200"/>
-        <nav aria-label="Tenant navigation" className="min-h-0 flex-1 space-y-1 overflow-y-auto">
+        <nav aria-label="Tenant navigation" className="-mx-2 min-h-0 flex-1 space-y-1 overflow-y-auto px-2">
           {!collapsed && <p className="mb-2 px-3 text-xs font-bold uppercase tracking-widest text-slate-500">My account</p>}
           {navigation.map(({ label, page, icon: Icon }) => {
             const active = page === activePage;
-            return <button key={page} type="button" aria-label={label} aria-current={active ? 'page' : undefined} title={collapsed ? label : undefined} onClick={() => onNavigate?.(page)} className={`group relative flex w-full items-center rounded-xl py-2.5 text-left text-sm font-semibold transition-colors ${collapsed ? 'justify-center px-2' : 'gap-3 px-3'} ${active ? 'bg-blue-50 text-blue-700' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'}`}>
-              <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg ${active ? 'bg-blue-600 text-white shadow-sm shadow-blue-200' : 'bg-slate-100 text-slate-500 group-hover:bg-blue-50 group-hover:text-blue-600'}`}><Icon size={18} aria-hidden="true"/></span>
-              {!collapsed && <span>{label}</span>}
+            return <button key={page} type="button" aria-label={label} aria-current={active ? 'page' : undefined} title={collapsed ? label : undefined} onClick={() => onNavigate?.(page)} className={`group relative flex w-full items-center rounded-xl py-2.5 text-left text-sm font-semibold transition-all ${collapsed ? 'justify-center px-2' : 'gap-3 px-3'} ${active ? 'bg-blue-50 text-blue-700' : 'text-slate-600 hover:translate-x-0.5 hover:bg-white hover:text-slate-900'}`}>
+              {active && <span aria-hidden="true" className="tenant-active-indicator absolute -left-2 h-7 w-1 rounded-full bg-blue-600"/>}
+              <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg transition-colors ${active ? 'bg-blue-600 text-white shadow-sm shadow-blue-200' : 'bg-slate-100 text-slate-500 group-hover:bg-blue-50 group-hover:text-blue-600'}`}><Icon size={18} aria-hidden="true"/></span>
+              {!collapsed && <span className="min-w-0 flex-1 truncate">{label}</span>}
             </button>;
           })}
         </nav>
-        <div className="mt-4 border-t border-slate-200 pt-4"><button type="button" onClick={() => setCollapsed(value => !value)} aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'} aria-expanded={!collapsed} className="flex min-h-11 w-full items-center rounded-xl px-3 text-slate-500 hover:bg-slate-50">{collapsed ? <PanelLeftOpen size={19} aria-hidden="true"/> : <PanelLeftClose size={19} aria-hidden="true"/>}</button></div>
+        <div className="mt-4 border-t border-slate-200 pt-4"><button type="button" onClick={() => setCollapsed(value => !value)} aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'} aria-expanded={!collapsed} className="flex min-h-11 w-full items-center rounded-xl px-3 text-slate-500 transition hover:bg-slate-50 hover:text-slate-900">{collapsed ? <PanelLeftOpen size={19} aria-hidden="true"/> : <PanelLeftClose size={19} aria-hidden="true"/>}</button></div>
       </aside>
     </div>
     <nav className="tenant-mobile-nav" aria-label="Tenant mobile navigation">{navigation.map(({ label, page, icon: Icon }) => <button key={page} type="button" aria-label={label} aria-current={activePage === page ? 'page' : undefined} onClick={() => onNavigate?.(page)} className={'tenant-nav-item' + (activePage === page ? ' is-active' : '')}><Icon size={20} aria-hidden="true"/><span>{label}</span></button>)}</nav>

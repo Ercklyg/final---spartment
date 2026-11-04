@@ -153,8 +153,8 @@ export default function App() {
     return <main key={userId} className="tenant-page flex min-h-screen text-slate-900">
       <TenantSidebar activePage={tenantPages[page] ? page : 'tenant'} onNavigate={navigate}/>
       <div className="min-w-0 flex-1">
-        <TenantHeader name={profile.full_name || 'Tenant'} onLogout={logout} onNavigate={navigate}/>
-        <Suspense fallback={<div className="mx-auto max-w-[1300px] px-5 py-6 sm:px-8"><PageSkeleton variant={skeletons[page] || 'dashboard'} label="Loading page..."/></div>}>
+        <TenantHeader name={profile.full_name || 'Tenant'} activePage={page} onLogout={logout} onNavigate={navigate}/>
+        <Suspense fallback={<div className="tenant-content tenant-content-loading"><PageSkeleton variant={skeletons[page] || 'dashboard'} label="Loading page..."/></div>}>
           <Page onNavigate={navigate}/>
         </Suspense>
       </div>

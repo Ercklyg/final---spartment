@@ -1,11 +1,13 @@
 
 import { useEffect, useRef, useState } from "react";
-import { Building2, ChevronDown, LoaderCircle, LogOut } from "lucide-react";
+import { Building2, ChevronDown, CreditCard, LayoutDashboard, LoaderCircle, LogOut, Settings, ShieldCheck } from "lucide-react";
 
 import "./TenantDesign.css";
 import { closeFromBackdrop } from "../../lib/dialog.js";
 
-function TenantHeader({ name = "Tenant", onLogout, onNavigate }) {
+const sections = { tenant: { label: 'Dashboard', icon: LayoutDashboard }, billing: { label: 'Billing', icon: CreditCard }, settings: { label: 'Settings', icon: Settings } };
+
+function TenantHeader({ name = "Tenant", activePage = 'tenant', onLogout, onNavigate }) {
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
   const [isLogoutConfirmationOpen, setIsLogoutConfirmationOpen] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
@@ -21,7 +23,8 @@ function TenantHeader({ name = "Tenant", onLogout, onNavigate }) {
   const requestLogout = () => { setIsProfileMenuOpen(false); setIsLogoutConfirmationOpen(true); };
   const confirmLogout = () => { setIsLoggingOut(true); window.setTimeout(() => onLogout?.(), 600); };
 
-  const initials = name.trim().split(/\s+/).map(part => part[0]).slice(0, 2).join("") || "T";
+  const initials = name.trim().split(/\s+/).map(part => part[0]).slice(0, 2).join("").toUpperCase() || "T";
+  const { label, icon: SectionIcon } = sections[activePage] || sections.tenant;
   const navigate = page => { setIsProfileMenuOpen(false); onNavigate?.(page); };
 
   return <><header className="tenant-header">
@@ -30,13 +33,16 @@ function TenantHeader({ name = "Tenant", onLogout, onNavigate }) {
         <span className="tenant-brand-mark"><Building2 size={24} strokeWidth={1.8}/></span>
         <span className="tenant-brand-name">Spartment</span>
       </button>
-      <p className="tenant-header-title text-sm font-semibold text-slate-500">Tenant portal</p>
+      <div className="tenant-header-context" aria-label={`Tenant portal — ${label}`}>
+        <span className="tenant-section-icon"><SectionIcon size={20} aria-hidden="true"/></span>
+        <div><span className="tenant-header-eyebrow">Tenant portal</span><span className="tenant-header-section">{label}</span></div>
+      </div>
       <div ref={profile} className="tenant-profile">
         <button type="button" onClick={() => setIsProfileMenuOpen(open => !open)}
           aria-label={`Account menu for ${name}`} aria-expanded={isProfileMenuOpen} aria-haspopup="menu"
           className={"tenant-profile-trigger" + (isProfileMenuOpen ? " is-open" : "")}>
           <span className="tenant-avatar">{initials}</span>
-          <span className="tenant-profile-label"><span>{name}</span><small>Tenant</small></span>
+          <span className="tenant-profile-label"><span>{name}</span><small><ShieldCheck size={12} aria-hidden="true"/>Tenant account</small></span>
           <ChevronDown size={16} aria-hidden="true" className={isProfileMenuOpen ? "rotate-180" : ""}/>
         </button>
         {isProfileMenuOpen && <div role="menu" aria-label="Account" className="tenant-profile-menu">
