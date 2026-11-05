@@ -26,6 +26,11 @@ test('admin previews the three reminder audiences and sends one guarded bulk req
   await expect(dialog).toContainText('26');
   await expect(dialog).toContainText('across every page');
   expect(sends).toHaveLength(0);
+  const month = dialog.getByLabel('Billing month', { exact: true });
+  await expect(month).toHaveValue(previews.at(-1).month);
+  await month.fill('2026-09');
+  await expect.poll(() => previews.at(-1)?.month).toBe('2026-09');
+  await expect(dialog).toContainText('Rent bills · September 2026');
   await select.selectOption('all_unpaid');
   await expect.poll(() => previews.at(-1)?.audience).toBe('all_unpaid');
   await select.selectOption('partially_paid');
@@ -33,10 +38,12 @@ test('admin previews the three reminder audiences and sends one guarded bulk req
   const send = dialog.getByRole('button', { name: 'Send to 26 tenant(s)', exact: true });
   await expect(send).toBeEnabled();
   await send.click();
+  await expect(month).toBeDisabled();
   await expect(dialog.getByRole('button', { name: 'Sending reminders…' })).toBeDisabled();
   await expect.poll(() => Boolean(release)).toBeTruthy();
   expect(sends).toHaveLength(1);
   expect(sends[0]).toMatchObject({ type: 'rent', audience: 'partially_paid', month: previews.at(-1).month });
+  expect(sends[0].month).toBe('2026-09');
   expect(sends[0].id).toMatch(/^[0-9a-f-]{36}$/);
   release();
   await expect(dialog).toContainText('Notified 26 tenant(s) about 30 bill(s)');
@@ -46,6 +53,7 @@ test('admin previews the three reminder audiences and sends one guarded bulk req
   await page.getByRole('button', { name: 'Utility Billing', exact: true }).click();
   await page.getByRole('button', { name: 'Send reminders', exact: true }).click();
   await expect.poll(() => previews.at(-1)?.type).toBe('utility');
+  await expect(dialog.getByLabel('Billing month', { exact: true })).toHaveValue(previews.at(-1).month);
   await expect(dialog.getByLabel('Remind tenants with')).toHaveValue('overdue');
   expect(await dialog.evaluate(element => element.scrollWidth <= element.clientWidth)).toBe(true);
   await page.screenshot({ path: testInfo.outputPath('bulk-reminders.png') });
