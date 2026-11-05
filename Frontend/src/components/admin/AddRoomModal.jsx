@@ -1,6 +1,5 @@
 import { useRef, useState } from "react";
 import { Plus, Save, X } from "lucide-react";
-import { closeFromBackdrop } from "../../lib/dialog.js";
 
 function AddRoomModal({ onClose, onAdd, initialRoom }) {
   const editing = Boolean(initialRoom);
@@ -34,7 +33,7 @@ function AddRoomModal({ onClose, onAdd, initialRoom }) {
     }
   };
 
-  return <div role="dialog" aria-modal="true" aria-labelledby="room-modal-title" onMouseDown={event=>closeFromBackdrop(event,onClose,saving)} className="fixed inset-0 z-[70] flex items-center justify-center overflow-y-auto bg-slate-950/40 p-4">
+  return <div role="dialog" aria-modal="true" aria-labelledby="room-modal-title" className="fixed inset-0 z-[70] flex items-center justify-center overflow-y-auto bg-slate-950/40 p-4">
     <form onSubmit={submit} className="my-4 w-full max-w-lg rounded-2xl bg-white p-5 shadow-2xl sm:p-6">
       <div className="flex items-center justify-between">
         <div><h2 id="room-modal-title" className="text-xl font-bold">{editing ? "Edit room" : "Add room"}</h2><p className="mt-1 text-sm text-slate-500">Enter the room details and location.</p></div>

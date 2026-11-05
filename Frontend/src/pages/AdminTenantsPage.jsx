@@ -10,13 +10,12 @@ import AdminHeader from "../components/admin/AdminHeader.jsx";
 import AdminSidebar from "../components/admin/AdminSidebar.jsx";
 import TenantCardGrid from "../components/admin/TenantCardGrid.jsx";
 import TenantsToolbar from "../components/admin/TenantsToolbar.jsx";
-import { closeFromBackdrop } from "../lib/dialog.js";
 
 const loadRooms=client=>client.get('/rooms',{cacheMs:30_000});
 const TENANTS_PER_PAGE = 30;
 function TenantModal({onAdd,onClose,tenants}) {
   const {data,error,loading,reload}=useRemoteData(loadRooms);
-  if (loading || error) return <div role="dialog" aria-modal="true" aria-labelledby="tenant-modal-loading-title" onMouseDown={event=>closeFromBackdrop(event,onClose)} className="fixed inset-0 z-[70] flex items-center justify-center bg-slate-950/40 p-4">
+  if (loading || error) return <div role="dialog" aria-modal="true" aria-labelledby="tenant-modal-loading-title" className="fixed inset-0 z-[70] flex items-center justify-center bg-slate-950/40 p-4">
     <section className="w-full max-w-xl rounded-2xl bg-white p-6 shadow-xl">
       <div className="flex items-start justify-between gap-4">
         <div><h2 id="tenant-modal-loading-title" className="text-xl font-bold">Add tenant</h2><p className="mt-1 text-sm text-slate-500">Preparing the available-room options.</p></div>

@@ -1,5 +1,5 @@
 import PageSkeleton from "../components/PageSkeleton.jsx";
-import ReportMonthSelect from "../components/ReportMonthSelect.jsx";
+import ReportMonthPicker from "../components/ReportMonthPicker.jsx";
 import { showFeedback } from "../lib/actionFeedback.js";
 import { api } from '../lib/api.js';
 import { memo, useCallback, useMemo, useState } from "react";
@@ -235,7 +235,7 @@ export default function AdminAnalyticsPage({ onNavigate, onLogout }) {
           <div className="analytics-segments" aria-label="Revenue grouping">{["Monthly", "Quarterly", "Yearly"].map(item => <button key={item} type="button" aria-pressed={period === item} onClick={() => setPeriod(item)}>{item}</button>)}</div>
           <div className="analytics-toolbar-right">
             <div className="analytics-controls">
-              <label>Through <ReportMonthSelect aria-label="Report ending month" months={data?.availableMonths || []} value={month} onChange={setMonth}/></label>
+              <ReportMonthPicker label="Report ending month" months={data?.availableMonths || []} value={month} onChange={setMonth}/>
               <button type="button" className="analytics-refresh" disabled={loading} onClick={reload}>Refresh</button>
               <button type="button" disabled={!data?.availableMonths?.length||loading||exporting} className="analytics-export disabled:opacity-50" onClick={() => setConfirmExport(true)}><Download size={16} />{exporting?'Preparing PDF...':'Export PDF'}</button>
             </div>

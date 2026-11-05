@@ -9,6 +9,8 @@
 .analytics-segments button[aria-pressed="true"] { background:white; color:#1d4ed8; box-shadow:0 1px 3px #0f172a15; font-weight:600; }
 .analytics-toolbar-right { display:flex; align-items:center; justify-content:flex-end; gap:10px; flex-wrap:wrap; }
 .analytics-controls { display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
+.analytics-controls .report-month-picker { grid-column:1/-1; }
+.analytics-controls .analytics-refresh,.analytics-controls .analytics-export { min-height:54px; }
 .analytics-controls label { display:flex; align-items:center; gap:8px; color:#475569; font-size:14px; }
 .analytics-controls input { min-width:0; min-height:44px; padding:8px; border:1px solid #dbe3ed; border-radius:7px; background:white; color:#334155; font-size:15px; }
 .analytics-controls select { min-width:150px; min-height:44px; padding:8px 10px; border:1px solid #dbe3ed; border-radius:7px; background:white; color:#334155; }
