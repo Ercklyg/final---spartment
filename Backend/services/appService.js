@@ -21,6 +21,7 @@ import { createHash } from 'node:crypto';
 import { updateLoginLimit, loginNeedsSuccessClear } from '../middleware/loginLimit.js';
 import { pushPublicKey, savePushSubscription, removePushSubscription, deliverPendingPushes } from '../models/webPush.js';
 const deliverPush=async client=>{try{return await deliverPendingPushes(client);}catch(error){console.error('Push delivery failed:',error.message);return {enabled:true,sent:0,error:true};}};
+export const pushReminders=deliverPush;
 const checked=result=>{if(result.error)throw serviceError(400,'Unable to save the change. Please retry.',result.error);return result.data;};
 const DEFAULT_IDLE_TIMEOUT_MINUTES=15;
 export const config=()=>{

@@ -33,6 +33,8 @@ router.get('/billing/leases',requireAdmin,app.billingLeases);
 router.post('/billing/bills',requireAdmin,app.billCreate);
 router.post('/billing/payments',requireAdmin,app.paymentCreate);
 router.post('/billing/reminders',requireAdmin,app.paymentReminder);
+router.get('/billing/reminders/preview',requireAdmin,app.bulkReminderPreview);
+router.post('/billing/reminders/bulk',requireAdmin,app.bulkReminderSend);
 router.get('/payments/:id/receipt',app.receipt);
 router.get('/payments/:id/corrections',requireAdmin,app.correctionHistory);
 router.get('/requests',app.requests);

@@ -5,6 +5,7 @@ import { BellRing, RefreshCw, Search, X } from "lucide-react";
 
 const BillPaymentsDialog = lazy(() => import("../billing/BillPaymentsDialog.jsx"));
 const ReminderDialog = lazy(() => import("./ReminderDialog.jsx"));
+const BulkReminderDialog = lazy(() => import("./BulkReminderDialog.jsx"));
 
 const colors = { Paid: "bg-emerald-50 text-emerald-700", Pending: "bg-amber-50 text-amber-700", "Partially paid": "bg-orange-50 text-orange-700", Late: "bg-rose-50 text-rose-700" };
 const field = "w-full rounded-lg border border-slate-300 bg-white p-2 text-sm";
@@ -45,6 +46,7 @@ export default function BillingLedger({ type, bills, summary, onPayment, onRemin
   const setStatus=status=>onFiltersChange({...filters,status,offset:0});
   const [selected,setSelected]=useState(null);
   const [reminder,setReminder]=useState(null);
+  const [bulkReminder,setBulkReminder]=useState(false);
   const desktop=useDesktopBillingLayout();
   const utility=type==="utility";
   const shown=useMemo(()=>bills.filter(bill=>bill.bill_type===type&&bill.billing_period.startsWith(month)),[bills,type,month]);
@@ -63,7 +65,7 @@ export default function BillingLedger({ type, bills, summary, onPayment, onRemin
       <div className="p-4 sm:p-5">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div><h2 className="text-xl font-bold">{utility?"Utility bills":"Rent payment history"}</h2><p className="text-sm text-slate-600">Status updates from payments and due dates.</p></div>
-          <button type="button" onClick={onRefresh} disabled={loading} className={button + " inline-flex items-center gap-2 font-medium text-slate-700"}><RefreshCw size={16} className={loading?"animate-spin":""}/>Refresh</button>
+          <div className="flex flex-wrap gap-2"><button type="button" onClick={()=>setBulkReminder(true)} disabled={loading} className="inline-flex min-h-11 items-center gap-2 rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-sm font-semibold text-amber-800 hover:bg-amber-100 disabled:opacity-50"><BellRing size={16}/>Send reminders</button><button type="button" onClick={onRefresh} disabled={loading} className={button + " inline-flex items-center gap-2 font-medium text-slate-700"}><RefreshCw size={16} className={loading?"animate-spin":""}/>Refresh</button></div>
         </div>
         <div className="mt-4 grid items-end gap-3 md:grid-cols-[180px_minmax(240px,1fr)] lg:grid-cols-[180px_minmax(260px,1fr)_auto]">
           <label className="text-sm font-medium text-slate-700">Month<input type="month" value={month} onChange={event=>onMonthChange(event.target.value || today().slice(0,7))} className={field + " mt-1.5"}/></label>
@@ -114,5 +116,6 @@ export default function BillingLedger({ type, bills, summary, onPayment, onRemin
     </section>
     {selected&&<Suspense fallback={<DialogLoading label="Opening payments…"/>}><BillPaymentsDialog key={selected.id} bill={selected} onClose={()=>setSelected(null)} onCorrection={onCorrection}/></Suspense>}
     {reminder&&<Suspense fallback={<DialogLoading label="Opening reminder…"/>}><ReminderDialog bill={reminder} onClose={()=>setReminder(null)} onSend={onReminder}/></Suspense>}
+    {bulkReminder&&<Suspense fallback={<DialogLoading label="Opening reminder preview…"/>}><BulkReminderDialog key={type+month} month={month} type={type} onClose={()=>setBulkReminder(false)} onSaved={onRefresh}/></Suspense>}
   </>;
 }

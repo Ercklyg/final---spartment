@@ -1,4 +1,7 @@
 import * as service from '../services/appService.js';
+import { previewBulkReminders, sendBulkReminders } from '../services/bulkReminders.js';
+export const bulkReminderPreview=async(req,res)=>res.json(await previewBulkReminders(req));
+export const bulkReminderSend=async(req,res)=>{const result=await sendBulkReminders(req);await service.pushReminders(req.db);res.json(result);};
 import { setSessionCookies, clearSessionCookies, publicSession } from '../services/sessionCookies.js';
 export const billingLeases=async(req,res)=>res.json(await service.billingLeases(req));
 export const config=async(req,res)=>res.json(await service.config());

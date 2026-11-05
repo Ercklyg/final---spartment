@@ -5,6 +5,7 @@ import { loadNotifications } from './notifications.js';
 test('tenant feed orders unread before dates and highlights only unpaid bills', async () => {
   const orders = [];
   const notices = ['unpaid', 'paid'].map((id, index) => ({ id, kind: 'bill', source_id: id, is_read: false, created_at: `2026-10-${20 + index}T00:00:00Z` }));
+  notices.push({ id: 'grouped', kind: 'bill', source_id: 'paid', reminder_bill_ids: ['paid', 'unpaid'], is_read: false });
   const client = { from(table) {
     let head = false;
     const query = {
@@ -26,5 +27,6 @@ test('tenant feed orders unread before dates and highlights only unpaid bills', 
   assert.deepEqual(orders, [['is_read', true], ['created_at', false], ['id', true]]);
   assert.equal(result.data[0].alert, 'Payment overdue');
   assert.equal(result.data[1].alert, null);
+  assert.equal(result.data[2].alert, 'Payment overdue', 'a paid first bill does not hide the other overdue bill in a grouped reminder');
   assert.equal(result.unreadCount, 2);
 });
