@@ -1,4 +1,3 @@
-import CalendarInput from "../CalendarInput.jsx";
 import { useEffect, useRef, useState } from "react";
 import { LogOut, X } from "lucide-react";
 import { today } from "../../lib/billing.js";
@@ -41,7 +40,7 @@ export default function MoveOutDialog({ tenant, onClose, onDone }) {
     <form onSubmit={submit}><fieldset disabled={saving}>
       <div className="flex items-start justify-between gap-3"><div><h2 id="move-out-title" className="text-xl font-bold">Move out tenant</h2><p className="mt-1 text-sm text-slate-500">{tenant.name} · Room {tenant.room}</p></div><button type="button" disabled={saving} onClick={onClose} aria-label="Close move out" className="p-2"><X /></button></div>
       <p className="mt-4 text-sm text-slate-600">This ends the active lease on the effective date and frees the room. Bills, payments and lease history stay on record, and the tenant keeps their login.</p>
-      <label className="mt-4 block text-sm font-medium text-slate-700">Effective date<CalendarInput label="Effective date" required type="date" value={date} onChange={e => { setDate(e.target.value); setError(""); }} min={tenant.moveIn || undefined} max={today()} className={inputClass} /></label>
+      <label className="mt-4 block text-sm font-medium text-slate-700">Effective date<input required type="date" value={date} onChange={e => { setDate(e.target.value); setError(""); }} min={tenant.moveIn || undefined} max={today()} className={inputClass} /></label>
       {balance > 0 && <label className="mt-4 flex cursor-pointer items-start gap-3 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm"><input type="checkbox" checked={confirmed} onChange={e => { setConfirmed(e.target.checked); setError(""); }} className="mt-1" /><span><strong>Outstanding balance of {balance.toLocaleString("en-PH", { style: "currency", currency: "PHP" })} stays on record.</strong><span className="mt-1 block text-slate-600">The tenant moves out owing this amount. Confirm to continue.</span></span></label>}
       {error && <p role="alert" className="mt-3 text-sm text-rose-600">{error}</p>}
       <button className="mt-5 flex min-h-11 w-full items-center justify-center gap-2 rounded-xl bg-rose-600 py-3 font-semibold text-white disabled:opacity-60"><LogOut size={17} />{saving ? "Recording move-out..." : "Record move-out"}</button>

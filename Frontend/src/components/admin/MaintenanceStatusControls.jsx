@@ -1,4 +1,3 @@
-import CalendarInput from "../CalendarInput.jsx";
 import { useState } from "react";
 
 export default function MaintenanceStatusControls({ request, onUpdate }) {
@@ -15,7 +14,7 @@ export default function MaintenanceStatusControls({ request, onUpdate }) {
   }}>
     <h3 className="mb-2 font-semibold">Maintenance status</h3>
     <div className="flex flex-wrap gap-2">{["Open", "Scheduled", "In progress", "Resolved"].map(value => <button key={value} type="button" aria-pressed={status === value} onClick={() => setStatus(value)} className={`${button} ${status === value ? "border-blue-300 bg-blue-50 text-blue-700" : "bg-white"}`}>{value}</button>)}</div>
-    {status === "Scheduled" && <label className="mt-3 block">Scheduled visit date<CalendarInput label="Scheduled visit date" type="date" required min={request.created.slice(0, 10)} value={date} onChange={event => setDate(event.target.value)} className="mt-1 block min-h-11 w-full rounded-lg border border-slate-300 p-2"/></label>}
+    {status === "Scheduled" && <label className="mt-3 block">Scheduled visit date<input type="date" required min={request.created.slice(0, 10)} value={date} onChange={event => setDate(event.target.value)} className="mt-1 block min-h-11 w-full rounded-lg border border-slate-300 p-2"/></label>}
     {error && <p role="alert" className="mt-2 text-rose-700">{error}</p>}
     <button type="submit" disabled={status === request.status && (status !== "Scheduled" || date === request.scheduledDate)} className={`${button} mt-3 bg-blue-600 text-white disabled:opacity-50`}>Save status</button>
   </form>;

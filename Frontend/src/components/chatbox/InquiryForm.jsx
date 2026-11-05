@@ -1,5 +1,4 @@
 import { api } from "../../lib/api.js";
-import CalendarInput from "../CalendarInput.jsx";
 import { submitInquiry } from "../../lib/requests.js";
 
 import { Building2, Send } from "lucide-react";
@@ -186,8 +185,7 @@ function InquiryForm({ onBack, prefilledRoom = "" }) {
             <label htmlFor="moveInDate" className={labelClass}>
               Preferred move-in date (optional)
             </label>
-            <CalendarInput
-              label="Preferred move-in date (optional)"
+            <input
               id="moveInDate"
               name="moveInDate"
               type="date"

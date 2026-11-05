@@ -1,4 +1,3 @@
-import CalendarInput from "../CalendarInput.jsx";
 import { lazy, Suspense, useEffect, useMemo, useState } from "react";
 import { money, today } from "../../lib/billing.js";
 import PageControls from "../PageControls.jsx";
@@ -69,7 +68,7 @@ export default function BillingLedger({ type, bills, summary, onPayment, onRemin
           <div className="flex flex-wrap gap-2"><button type="button" onClick={()=>setBulkReminder(true)} disabled={loading} className="inline-flex min-h-11 items-center gap-2 rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-sm font-semibold text-amber-800 hover:bg-amber-100 disabled:opacity-50"><BellRing size={16}/>Send reminders</button><button type="button" onClick={onRefresh} disabled={loading} className={button + " inline-flex items-center gap-2 font-medium text-slate-700"}><RefreshCw size={16} className={loading?"animate-spin":""}/>Refresh</button></div>
         </div>
         <div className="mt-4 grid items-end gap-3 md:grid-cols-[180px_minmax(240px,1fr)] lg:grid-cols-[180px_minmax(260px,1fr)_auto]">
-          <label className="text-sm font-medium text-slate-700">Month<CalendarInput label="Month" type="month" value={month} onChange={event=>onMonthChange(event.target.value || today().slice(0,7))} className={field + " mt-1.5"}/></label>
+          <label className="text-sm font-medium text-slate-700">Month<input type="month" value={month} onChange={event=>onMonthChange(event.target.value || today().slice(0,7))} className={field + " mt-1.5"}/></label>
           <label className="text-sm font-medium text-slate-700">Search tenant or room<span className="relative mt-1.5 block"><Search aria-hidden="true" size={18} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"/><input aria-label="Search tenant or room" placeholder="Search by tenant name or room" value={query} onChange={event=>setQuery(event.target.value)} className={field + " pl-10 pr-10"}/>{query&&<button type="button" aria-label="Clear search" onClick={()=>setQuery("")} className="absolute right-2 top-1/2 -translate-y-1/2 rounded-md p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-700"><X size={17}/></button>}</span></label>
           <div className="flex flex-wrap gap-2 md:col-span-2 lg:col-span-1" aria-label="Filter bills by status">
             {statuses.map(value=><button key={value} type="button" aria-pressed={status===value} onClick={()=>setStatus(value)} className={"rounded-full border px-3 py-1.5 text-sm font-medium transition-colors "+(status===value?"border-blue-600 bg-blue-600 text-white shadow-sm":"border-slate-200 bg-slate-50 text-slate-600 hover:border-blue-200 hover:bg-blue-50 hover:text-blue-700")}>{value}</button>)}

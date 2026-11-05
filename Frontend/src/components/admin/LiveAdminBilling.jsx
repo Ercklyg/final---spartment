@@ -1,4 +1,3 @@
-import CalendarInput from "../CalendarInput.jsx";
 import PageSkeleton from "../PageSkeleton.jsx";
 import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { api } from '../../lib/api.js';
@@ -103,7 +102,7 @@ export default function LiveAdminBilling({ type }) {
         ...(type === 'rent' ? (all ? [] : [['rent', 'Rent amount', 'number']])
           : [['electricity', 'Electricity', 'number'], ['water', 'Water', 'number']])
       ].map(([key, label, inputType]) => <label key={key} className="text-sm">{label}
-        <CalendarInput label={label} required readOnly={key==='due'} type={inputType} min={inputType === 'number' ? '0' : undefined} step={inputType === 'number' ? '0.01' : undefined} value={form[key]} onChange={event => setForm({ ...form, [key]: event.target.value, ...(key==='period'?{lease:'',due:event.target.value?monthEnd(event.target.value):''}:{}) })} className={field+(key==='due'?' cursor-not-allowed bg-slate-100 text-slate-600':'')} />
+        <input required readOnly={key==='due'} type={inputType} min={inputType === 'number' ? '0' : undefined} step={inputType === 'number' ? '0.01' : undefined} value={form[key]} onChange={event => setForm({ ...form, [key]: event.target.value, ...(key==='period'?{lease:'',due:event.target.value?monthEnd(event.target.value):''}:{}) })} className={field+(key==='due'?' cursor-not-allowed bg-slate-100 text-slate-600':'')} />
       </label>)}
       {all && type === 'rent' && <label className="text-sm">Rent amount<input readOnly value="Each tenant's saved monthly rent" className={field + " text-slate-600"} /></label>}
       <button disabled={leases.loading || !availableLeases.length || !form.lease} className="self-end rounded-lg bg-blue-600 p-3 font-semibold text-white disabled:opacity-50">
