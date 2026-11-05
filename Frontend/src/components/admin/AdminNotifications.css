@@ -1,0 +1,12 @@
+.admin-notification-categories { container-type:inline-size; min-width:0; }
+.admin-notification-category-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); }
+@container (max-width:360px) {
+  .admin-notification-category-grid .admin-notification-category-icon { display:none; }
+  .admin-notification-category-grid button { flex-direction:column; gap:2px; padding:6px; }
+}
+@container (min-width:540px) {
+  .admin-notification-category-grid { grid-template-columns:repeat(3,minmax(0,1fr)); }
+}
+@container (min-width:1050px) {
+  .admin-notification-category-grid { grid-template-columns:repeat(6,minmax(0,1fr)); }
+}

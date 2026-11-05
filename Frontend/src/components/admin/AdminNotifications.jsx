@@ -3,6 +3,7 @@ import { BellRing, X, Wallet, CalendarClock, Wrench, DoorOpen, MessageSquare, La
 import { useRemoteData } from '../../lib/useRemoteData.js';
 import { useSessionState } from '../../lib/useSessionState.js';
 import { closeFromBackdrop } from '../../lib/dialog.js';
+import './AdminNotifications.css';
 
 const load = client => client.get('/notifications/admin');
 const categories = ['All', 'Payments', 'Leases', 'Requests', 'Rooms', 'Inquiries'];
@@ -12,18 +13,18 @@ const icons = { All: Layers, Payments: Wallet, Leases: CalendarClock, Requests: 
 const noticeVersion = item => JSON.stringify([item.id, item.title, item.text, item.priority, item.deadline, item.time]);
 
 function CategoryButtons({ notices, selected, onSelect, disabled, seen }) {
-  return <div role="group" aria-label="Notification categories" className="mt-5 grid grid-cols-2 gap-1.5 rounded-2xl border border-slate-200 bg-gradient-to-b from-white to-slate-50 p-1.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.9)] sm:grid-cols-3 lg:grid-cols-6">
+  return <div role="group" aria-label="Notification categories" className="admin-notification-categories mt-5"><div className="admin-notification-category-grid gap-1.5 rounded-2xl border border-slate-200 bg-gradient-to-b from-white to-slate-50 p-1.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.9)]">
     {categories.map(category => {
       const count = category === 'All' ? notices.length : notices.filter(item => item.category === category).length;
       const active = selected === category;
       const Icon = icons[category];
       const hasNew = category !== 'All' && notices.some(item => item.category === category && seen[item.id] !== noticeVersion(item));
-      return <button key={category} type="button" aria-pressed={active} disabled={disabled} onClick={() => onSelect(category)}
+      return <button key={category} type="button" aria-label={`${category}: ${count} notifications`} title={`${category}: ${count} notifications`} aria-pressed={active} disabled={disabled} onClick={() => onSelect(category)}
         className={`relative inline-flex min-h-11 min-w-0 items-center justify-center gap-1.5 overflow-visible rounded-xl border px-2 py-1.5 text-xs font-semibold transition-[background-color,border-color,color,box-shadow] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600 disabled:opacity-50 ${active ? 'border-blue-200 bg-gradient-to-b from-white to-blue-50 text-blue-700 shadow-[0_3px_10px_-5px_rgba(37,99,235,0.55)]' : count ? 'border-transparent text-slate-700 hover:border-blue-100 hover:bg-white hover:text-blue-700' : 'border-transparent text-slate-500 hover:border-slate-200 hover:bg-white'}`}>
-        <span className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-lg ${active?'bg-blue-100 text-blue-700':count?'bg-slate-100 text-slate-600':'bg-slate-100/70 text-slate-400'}`}><Icon size={14} aria-hidden="true" /></span><span>{category}</span>{count>0&&<span className="relative inline-flex"><span className={`inline-flex min-w-5 items-center justify-center rounded-md px-1.5 py-0.5 text-[10px] tabular-nums ${active ? 'bg-blue-600 text-white' : 'bg-slate-200/80 text-slate-600'}`}>{count}</span>{hasNew&&<span className="absolute -right-1 -top-1 h-2 w-2 rounded-full bg-red-500 ring-2 ring-white"><span className="sr-only">New notifications</span></span>}</span>}{active&&<span className="absolute inset-x-3 bottom-0 h-0.5 rounded-full bg-blue-600"/>}
+        <span className={`admin-notification-category-icon flex h-7 w-7 shrink-0 items-center justify-center rounded-lg ${active?'bg-blue-100 text-blue-700':count?'bg-slate-100 text-slate-600':'bg-slate-100/70 text-slate-400'}`}><Icon size={14} aria-hidden="true" /></span><span className="admin-notification-category-label min-w-0 truncate">{category}</span>{count>0&&<span className="relative inline-flex shrink-0"><span className={`inline-flex min-w-5 items-center justify-center rounded-md px-1.5 py-0.5 text-[10px] tabular-nums ${active ? 'bg-blue-600 text-white' : 'bg-slate-200/80 text-slate-600'}`}>{count}</span>{hasNew&&<span className="absolute -right-1 -top-1 h-2 w-2 rounded-full bg-red-500 ring-2 ring-white"><span className="sr-only">New notifications</span></span>}</span>}{active&&<span className="absolute inset-x-3 bottom-0 h-0.5 rounded-full bg-blue-600"/>}
       </button>;
     })}
-  </div>;
+  </div></div>;
 }
 
 function NotificationDetails({ item, onClose }) {
@@ -87,10 +88,10 @@ export default function AdminNotifications() {
       {data && filtered.length > 5 && <p className="mt-2 text-xs text-slate-500">Showing 5 of {filtered.length} {category === 'All' ? 'notifications' : category.toLowerCase()}. Select View all to see the rest.</p>}
     </section>
     {isAllOpen && <div role="dialog" aria-modal="true" aria-labelledby="all-notifications-title" onMouseDown={event=>closeFromBackdrop(event,()=>setIsAllOpen(false))} onKeyDown={event => { if (event.key === 'Escape') setIsAllOpen(false); }} className="fixed inset-0 z-[70] flex items-center justify-center bg-slate-950/40 p-4">
-      <div className="max-h-[85vh] w-full max-w-2xl overflow-y-auto rounded-2xl bg-white p-5 shadow-2xl">
-        <div className="flex items-start justify-between gap-4"><div><h2 id="all-notifications-title" className="text-xl font-bold">All notifications</h2><p className="mt-1 text-sm text-slate-500">Current alerts across your properties, ordered by priority.</p></div><button autoFocus type="button" onClick={() => setIsAllOpen(false)} aria-label="Close notifications" className="rounded-lg p-2 text-slate-500 hover:bg-slate-100"><X size={20} /></button></div>
+      <div className="flex max-h-[85dvh] w-full max-w-2xl flex-col overflow-hidden rounded-2xl bg-white shadow-2xl">
+        <div className="shrink-0 px-4 pb-4 pt-5 sm:px-5"><div className="flex items-start justify-between gap-4"><div><h2 id="all-notifications-title" className="text-xl font-bold">All notifications</h2><p className="mt-1 text-sm text-slate-500">Current alerts across your properties, ordered by priority.</p></div><button autoFocus type="button" onClick={() => setIsAllOpen(false)} aria-label="Close notifications" className="rounded-lg p-2 text-slate-500 hover:bg-slate-100"><X size={20} /></button></div>
         <CategoryButtons notices={notices} selected={category} onSelect={selectCategory} seen={seen} disabled={loading || Boolean(error)} />
-        <div className="mt-4 space-y-2"><NoticeList items={filtered} seen={seen} onView={viewNotice} /></div>
+        </div><div className="min-h-0 flex-1 space-y-2 overflow-y-auto overscroll-contain px-4 pb-5 sm:px-5"><NoticeList items={filtered} seen={seen} onView={viewNotice} /></div>
       </div>
     </div>}
     {viewed && <NotificationDetails item={viewed} onClose={() => setViewed(null)} />}
