@@ -6,10 +6,11 @@ const user={id:'11111111-1111-4111-8111-111111111111',email:'admin@example.test'
 const future=Math.floor(Date.now()/1000)+3600;
 
 const dashboard={
+  availableMonths:['2026-07','2026-08','2026-09','2026-10','2026-11'],
   snapshot:{cutoff:'2026-11-02',rows:[],selected:[],late:[],outstanding:0,overdue:0,collected:0,
     inventory:['occupied','available','reserved','maintenance'].map(status=>({status,count:0})),occupancy:0,
     activeTenants:0,available:0,vacancyGap:0,openRequests:[],openInquiries:[],collectionHealth:null},
-  series:[],forecast:null,forecastStatus:'missing_history',comparison:{billed:0,collected:0,periods:0},loadedAt:new Date().toISOString(),
+  series:[],forecast:null,forecastMonths:[],forecastStatus:'missing_history',comparison:{billed:0,collected:0,periods:0},loadedAt:new Date().toISOString(),
 };
 
 const requestAt=index=>({
@@ -38,7 +39,11 @@ export async function mockAdminApi(page,{startAuthenticated=false,analyticsData=
     if(path==='/auth/forgot-password')return json(route,{message:'If an account matches that email, a reset link has been sent.'});
     if(path==='/auth/profile')return json(route,{id:user.id,role:'admin',full_name:'Test Admin'});
     if(path==='/public/config')return json(route,{idleTimeoutMinutes:15});
-    if(path==='/analytics')return json(route,{...dashboard,...analyticsData});
+    if(path==='/analytics'){
+      const report={...dashboard,...analyticsData};
+      const requestedMonth=url.searchParams.get('month');
+      return json(route,{...report,reportMonth:report.availableMonths.includes(requestedMonth)?requestedMonth:report.availableMonths.at(-1)||requestedMonth});
+    }
     if(path==='/analytics/recommendations')return json(route,{fallback:true,reason:'Disabled in browser tests.'});
     if(path==='/notifications/admin')return json(route,[]);
     if(path==='/rooms')return json(route,[{id:'33333333-3333-4333-8333-333333333333',room_number:'209',floor:2,status:'available',monthly_rate:2500,buildings:{name:'Main Building'}}]);

@@ -1,4 +1,5 @@
 import PageSkeleton from "../components/PageSkeleton.jsx";
+import ReportMonthSelect from "../components/ReportMonthSelect.jsx";
 import { showFeedback } from "../lib/actionFeedback.js";
 import { api } from '../lib/api.js';
 import { memo, useCallback, useMemo, useState } from "react";
@@ -193,12 +194,13 @@ const AnalyticsReport = memo(function AnalyticsReport({ data, month, period }) {
 });
 
 export default function AdminAnalyticsPage({ onNavigate, onLogout }) {
-  const [month, setMonth] = useSessionState("admin-analytics-month",today().slice(0, 7));
+  const [requestedMonth, setMonth] = useSessionState("admin-analytics-month",today().slice(0, 7));
   const [period, setPeriod] = useSessionState("admin-analytics-period","Monthly");
   const [exporting,setExporting]=useState(false);
   const [confirmExport,setConfirmExport]=useState(false);
-  const loader = useCallback(client => loadAdminAnalytics(client, month, period), [month, period]);
+  const loader = useCallback(client => loadAdminAnalytics(client, requestedMonth, period), [requestedMonth, period]);
   const { data, error, loading, reload } = useRemoteData(loader,{keepPrevious:true});
+  const month = data?.reportMonth || requestedMonth;
   const exportReport = async () => {
     if (!data||exporting) return;
     setConfirmExport(false);
@@ -206,11 +208,12 @@ export default function AdminAnalyticsPage({ onNavigate, onLogout }) {
     try {
       const report = await api.get("/analytics?" + new URLSearchParams({ month, period, export: "pdf" }));
       const { generateAnalyticsPdf } = await import("../lib/analyticsPdf.js");
-      const pdf = generateAnalyticsPdf(report, month, period);
+      const exportMonth = report.reportMonth || month;
+      const pdf = generateAnalyticsPdf(report, exportMonth, period);
       const url = URL.createObjectURL(new Blob([pdf], { type: "application/pdf" }));
       const link = document.createElement("a");
       link.href = url;
-      link.download = `collections-${period.toLowerCase()}-${month}.pdf`;
+      link.download = `collections-${period.toLowerCase()}-${exportMonth}.pdf`;
       document.body.appendChild(link);
       link.click();
       link.remove();
@@ -232,9 +235,9 @@ export default function AdminAnalyticsPage({ onNavigate, onLogout }) {
           <div className="analytics-segments" aria-label="Revenue grouping">{["Monthly", "Quarterly", "Yearly"].map(item => <button key={item} type="button" aria-pressed={period === item} onClick={() => setPeriod(item)}>{item}</button>)}</div>
           <div className="analytics-toolbar-right">
             <div className="analytics-controls">
-              <label>Through <input type="month" aria-label="Report ending month" value={month} max={today().slice(0, 7)} onChange={event => { if (event.target.value) setMonth(event.target.value); }} /></label>
+              <label>Through <ReportMonthSelect aria-label="Report ending month" months={data?.availableMonths || []} value={month} onChange={setMonth}/></label>
               <button type="button" className="analytics-refresh" disabled={loading} onClick={reload}>Refresh</button>
-              <button type="button" disabled={!data||exporting} className="analytics-export disabled:opacity-50" onClick={() => setConfirmExport(true)}><Download size={16} />{exporting?'Preparing PDF...':'Export PDF'}</button>
+              <button type="button" disabled={!data?.availableMonths?.length||loading||exporting} className="analytics-export disabled:opacity-50" onClick={() => setConfirmExport(true)}><Download size={16} />{exporting?'Preparing PDF...':'Export PDF'}</button>
             </div>
             {data && <p className="analytics-updated">Updated {new Date(data.loadedAt).toLocaleString("en-PH")}</p>}
           </div>

@@ -12,9 +12,10 @@ import AdminMetrics from './AdminMetrics.jsx';
 import SmartRecommendations from './SmartRecommendations.jsx';
 
 export default function LiveAdminDashboard({ onNavigate }) {
-  const [month, setMonth] = useState(today().slice(0, 7));
-  const loader = useCallback(client => loadAdminAnalytics(client, month), [month]);
+  const [requestedMonth, setMonth] = useState(today().slice(0, 7));
+  const loader = useCallback(client => loadAdminAnalytics(client, requestedMonth), [requestedMonth]);
   const { data, error, loading, reload } = useRemoteData(loader);
+  const month = data?.reportMonth || requestedMonth;
   const [ai, setAi] = useState(() => ({ ...getRecommendationPreview(month), month, loading: true, error: '' }));
   const aiRequest = useRef(null);
   const handleMonthChange = useCallback(value => {
@@ -51,7 +52,8 @@ export default function LiveAdminDashboard({ onNavigate }) {
     return () => aiRequest.current?.abort();
   }, [fetchAi]);
   return <>
-    <AdminHero selectedMonth={month} onMonthChange={handleMonthChange} />
+    <AdminHero selectedMonth={month} availableMonths={data?.availableMonths || []} onMonthChange={handleMonthChange} />
+    {data && !data.availableMonths?.length && <p role="status" className="mb-4 text-sm text-slate-500">No recorded bills or payments yet. Reporting months become available when financial records are saved.</p>}
     {loading && !data ? <PageSkeleton variant="dashboard" label="Loading dashboard..."/>
       : error && !data ? <p role="alert" className="py-5 text-rose-700">{error} <button onClick={reload} className="underline">Retry</button></p>
         : <div className="space-y-4 sm:space-y-5" aria-busy={loading}>
