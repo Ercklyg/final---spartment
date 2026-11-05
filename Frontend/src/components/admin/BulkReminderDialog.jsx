@@ -1,3 +1,4 @@
+import CalendarInput from "../CalendarInput.jsx";
 import { useEffect, useRef, useState } from 'react';
 import { BellRing, RefreshCw, X } from 'lucide-react';
 import { api } from '../../lib/api.js';
@@ -57,7 +58,7 @@ export default function BulkReminderDialog({ month: initialMonth, type, onClose,
     <div className="p-5 sm:p-6">
       <div className="flex items-start gap-3"><span className="rounded-xl bg-amber-50 p-2.5 text-amber-600"><BellRing size={22}/></span><div className="min-w-0 flex-1"><h2 id="bulk-reminder-title" className="text-lg font-bold">Send payment reminders</h2><p className="mt-1 text-sm text-slate-500">{type === 'rent' ? 'Rent' : 'Utility'} bills · {period}</p></div><button type="button" aria-label="Close payment reminders" disabled={sending} onClick={onClose} className="rounded-lg p-2 text-slate-500 hover:bg-slate-100 disabled:opacity-50"><X size={20}/></button></div>
       {!result ? <>
-        <label className="mt-5 block text-sm font-semibold">Billing month<input type="month" min="0001-01" max="9999-12" disabled={sending} value={month} onChange={event => { const value = event.target.value; if (/^\d{4}-(0[1-9]|1[0-2])$/.test(value)) { setMonth(value); refresh(); } }} className="mt-2 min-h-11 w-full min-w-0 rounded-xl border border-slate-300 bg-white px-3 py-2 font-normal"/></label>
+        <label className="mt-5 block text-sm font-semibold">Billing month<CalendarInput label="Billing month" type="month" min="0001-01" max="9999-12" disabled={sending} value={month} onChange={event => { const value = event.target.value; if (/^\d{4}-(0[1-9]|1[0-2])$/.test(value)) { setMonth(value); refresh(); } }} className="mt-2 min-h-11 w-full min-w-0 rounded-xl border border-slate-300 bg-white px-3 py-2 font-normal"/></label>
         <label className="mt-5 block text-sm font-semibold">Remind tenants with<select disabled={sending} value={audience} onChange={event => selectAudience(event.target.value)} className="mt-2 min-h-11 w-full rounded-xl border border-slate-300 bg-white px-3 py-2 font-normal">{audiences.map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></label>
         <p className="mt-2 text-xs leading-5 text-slate-500">{audience === 'all_unpaid' ? 'Every bill with a remaining balance.' : audience === 'overdue' ? 'Unpaid bills past their due date, using the current Philippine date.' : 'Bills with a recorded payment and a remaining balance, including overdue bills.'}</p>
         <p className="mt-3 text-sm leading-6 text-slate-600">Includes all matching {type} bills for this month, across every page. The table search and status filter do not apply. Each tenant receives one combined in-app notification.</p>

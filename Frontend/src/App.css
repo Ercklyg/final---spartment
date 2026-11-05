@@ -88,14 +88,6 @@ button {
   cursor: pointer;
 }
 
-.admin-month-native { display: block; }
-.admin-month-custom { display: none; }
-
-@media (min-width: 768px) {
-  .admin-month-native { display: none; }
-  .admin-month-custom { display: block; }
-}
-
 button:focus-visible,
 input:focus-visible,
 textarea:focus-visible,
