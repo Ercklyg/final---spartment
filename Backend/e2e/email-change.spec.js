@@ -1,7 +1,7 @@
 import { test, expect } from '@playwright/test';
 import { mockTenantApi } from './helpers/mockApi.js';
 
-test('tenant enters a new email, receives its OTP immediately, verifies, and signs out', async ({ page }) => {
+test('tenant enters a new email, receives its OTP immediately, verifies, and signs out', async ({ page }, testInfo) => {
   await mockTenantApi(page);
   let stage = 'none';
   const calls = [];
@@ -32,11 +32,12 @@ test('tenant enters a new email, receives its OTP immediately, verifies, and sig
   await change.click();
   await expect(page.getByRole('heading', { name: 'Change email', exact: true })).toBeVisible();
   await page.getByLabel('New email', { exact: true }).fill('new@example.test');
-  await page.getByRole('button', { name: 'Send verification code', exact: true }).click();
-  await expect(page.getByRole('status').filter({ hasText: 'A verification code was sent to your new email.' })).toBeVisible();
+  await page.getByRole('button', { name: 'Send code', exact: true }).click();
+  await expect(page.getByRole('status')).toHaveText('A verification code was sent to your new email. Check your inbox and spam folder.');
   await expect(page.getByRole('button', { name: /approval/i })).toHaveCount(0);
-  await page.getByLabel('Verification code sent to your new email').fill('123456');
-  await page.getByRole('button', { name: 'Verify and change email' }).click();
+  await page.getByLabel('Verification code', { exact: true }).fill('123456');
+  await page.getByRole('dialog', { name: 'Change email' }).screenshot({ path: testInfo.outputPath('email-code-dialog.png') });
+  await page.getByRole('button', { name: 'Verify email', exact: true }).click();
   await expect(page.getByText('Email updated. Sign in using your new email.')).toBeVisible();
   await expect(page.getByRole('heading', { name: 'Change email', exact: true })).toHaveCount(0);
   expect(calls).toContain('verify');

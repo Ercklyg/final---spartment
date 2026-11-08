@@ -1,5 +1,5 @@
 import { createClient } from 'npm:@supabase/supabase-js@2.116.0';
-import { emailChangeMailConfig, sendEmailChangeMail } from '../_shared/emailChangeMail.ts';
+import { emailChangeMailConfig, emailChangeOtpMessage, sendEmailChangeMail } from '../_shared/emailChangeMail.ts';
 
 const reply = (status: number, body: unknown) => new Response(JSON.stringify(body), {
   status, headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' },
@@ -64,8 +64,9 @@ Deno.serve(async req => {
     }
     if (body.action !== 'status') {
       if (result.stage !== 'otp') throw new Error('Email change migration required');
-      await sendEmailChangeMail(result.newEmail, 'Your Spartment verification code',
-        `Your Spartment email verification code is ${otp}. It expires in 10 minutes. Do not share this code.`, `email-change-otp-${crypto.randomUUID()}`);
+      const message = emailChangeOtpMessage(otp);
+      await sendEmailChangeMail(result.newEmail, message.subject, message.text,
+        `email-change-otp-${crypto.randomUUID()}`, message.html);
     }
     // Never return OTPs to the browser.
     return reply(200, { stage: result.stage, newEmail: result.newEmail, expiresAt: result.expiresAt, resendAt: result.resendAt });

@@ -9,6 +9,9 @@ import { createHash } from 'node:crypto';
 const source = stripTypeScriptTypes(await readFile(new URL('../supabase/functions/email-change/index.ts', import.meta.url), 'utf8'))
   .replace(/^import .*;\s*$/gm, '');
 const AsyncFunction = Object.getPrototypeOf(async function () {}).constructor;
+const mailSource = stripTypeScriptTypes(await readFile(new URL('../supabase/functions/_shared/emailChangeMail.ts', import.meta.url), 'utf8'))
+  .replace(/^import .*;\s*$/gm, '').replace(/export /g, '');
+const otpMessage = new Function('Deno', 'nodemailer', mailSource + '\nreturn emailChangeOtpMessage;')({}, {});
 const userId = '11111111-1111-4111-8111-111111111111';
 const digest = value => createHash('sha256').update(value).digest('hex');
 async function fixture(options = {}) {
@@ -39,10 +42,11 @@ async function fixture(options = {}) {
       return query;
     },
   };
-  await new AsyncFunction('Deno', 'createClient', 'sendEmailChangeMail', 'emailChangeMailConfig', source)(
+  await new AsyncFunction('Deno', 'createClient', 'sendEmailChangeMail', 'emailChangeMailConfig', 'emailChangeOtpMessage', source)(
     { env: { get: key => env[key] }, serve: fn => { handler = fn; } }, () => db,
     async (...args) => { if (options.mailFails) throw new Error('Provider failure'); mails.push(args); },
     () => { if (!env.EMAIL_CHANGE_SMTP_USER || !env.EMAIL_CHANGE_SMTP_PASSWORD) throw new Error('Mail unavailable'); },
+    otpMessage,
   );
   async function request(body, secret = env.RECOVERY_STORAGE_SECRET) {
     const response = await handler(new Request('https://example.test/functions/v1/email-change', {

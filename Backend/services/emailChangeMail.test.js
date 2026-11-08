@@ -5,7 +5,7 @@ import { stripTypeScriptTypes } from 'node:module';
 
 const source = stripTypeScriptTypes(await readFile(new URL('../supabase/functions/_shared/emailChangeMail.ts', import.meta.url), 'utf8'))
   .replace(/^import .*;\s*$/gm, '').replace(/export /g, '');
-const create = new Function('Deno', 'nodemailer', source + '\nreturn {emailChangeMailConfig, sendEmailChangeMail};');
+const create = new Function('Deno', 'nodemailer', source + '\nreturn {emailChangeMailConfig, emailChangeOtpMessage, sendEmailChangeMail};');
 function fixture(overrides = {}, result = { accepted: ['tenant@example.test'] }) {
   const env = { EMAIL_CHANGE_SMTP_USER: 'sender@gmail.com', EMAIL_CHANGE_SMTP_PASSWORD: 'abcd efgh ijkl mnop', ...overrides };
   const calls = []; let closed = false;
@@ -47,4 +47,18 @@ test('SMTP errors and rejected recipients fail privately and close the connectio
     await assert.rejects(mail.sendEmailChangeMail('tenant@example.test', 'Code', '123456', 'email-change-test'), error => error.message === 'Mail unavailable');
     assert.equal(mail.closed(), true);
   }
+});
+
+test('verification emails include an HTML code card and a plain-text fallback', async () => {
+  const mail = fixture();
+  const message = mail.emailChangeOtpMessage('012345');
+  assert.match(message.html, /Verify your email/);
+  assert.match(message.html, />012345<\/div>/);
+  assert.match(message.text, /012345/);
+  assert.match(message.html, /Expires in 10 minutes/);
+  assert.ok(!/<script|<img|<form/i.test(message.html));
+  assert.throws(() => mail.emailChangeOtpMessage('<html>'), /Invalid verification code/);
+  await mail.sendEmailChangeMail('tenant@example.test', message.subject, message.text, 'email-change-otp-example', message.html);
+  assert.equal(mail.calls[1].html, message.html);
+  assert.equal(mail.calls[1].text, message.text);
 });
