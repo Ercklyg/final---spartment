@@ -20,6 +20,16 @@ test('tenant verifies a new email after old-mailbox approval, then signs out', a
   });
   await page.goto('/');
   await page.getByRole('navigation').getByRole('button', { name: 'Settings', exact: true }).click();
+  await expect(page.getByRole('heading', { name: 'Change email', exact: true })).toHaveCount(0);
+  const change = page.getByRole('button', { name: 'Change email', exact: true });
+  await change.click();
+  await expect(page.getByRole('dialog', { name: 'Change email', exact: true })).toBeVisible();
+  await page.getByRole('button', { name: 'Close email change' }).click();
+  await expect(change).toBeFocused();
+  await change.click();
+  await page.keyboard.press('Escape');
+  await expect(page.getByRole('dialog', { name: 'Change email', exact: true })).toHaveCount(0);
+  await change.click();
   await expect(page.getByRole('heading', { name: 'Change email', exact: true })).toBeVisible();
   await page.getByLabel('New email', { exact: true }).fill('new@example.test');
   await page.getByRole('button', { name: 'Send approval link', exact: true }).click();

@@ -1,10 +1,17 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Mail } from 'lucide-react';
+import { Mail, X } from 'lucide-react';
 import { api, auth } from '../../lib/api.js';
 import { showFeedback } from '../../lib/actionFeedback.js';
 
 const base = '/account/email-change';
-export default function ChangeEmail({ currentEmail }) {
+export default function ChangeEmail({ currentEmail, onClose }) {
+  const dialog = useRef(null);
+  useEffect(() => {
+    const previous = document.activeElement;
+    const element = dialog.current;
+    element.showModal();
+    return () => { element.close(); previous?.focus(); };
+  }, []);
   const [email, setEmail] = useState('');
   const [otp, setOtp] = useState('');
   const [pending, setPending] = useState(null);
@@ -53,8 +60,8 @@ export default function ChangeEmail({ currentEmail }) {
     } catch (failure) { setError(failure.message); await load().catch(() => {}); }
     finally { busy.current = false; setSaving(false); }
   }
-  return <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6">
-    <div className="flex items-center gap-3"><span className="rounded-xl bg-blue-50 p-3 text-blue-600"><Mail size={24}/></span><div><h2 className="text-lg font-bold">Change email</h2><p className="text-sm text-slate-500">Approve through your current email, then verify your new email.</p></div></div>
+  return <dialog ref={dialog} aria-labelledby="change-email-title" onCancel={event => { event.preventDefault(); if (!busy.current) onClose(); }} className="m-auto max-h-[90dvh] w-[calc(100%-2rem)] max-w-lg overflow-y-auto rounded-2xl border border-slate-200 bg-white p-4 text-slate-900 shadow-xl backdrop:bg-slate-950/40 backdrop:backdrop-blur-sm sm:p-6">
+    <div className="flex items-start gap-3"><span className="rounded-xl bg-blue-50 p-3 text-blue-600"><Mail size={24}/></span><div className="min-w-0 flex-1"><h2 id="change-email-title" className="text-lg font-bold">Change email</h2><p className="text-sm text-slate-500">Approve through your current email, then verify your new email.</p></div><button type="button" aria-label="Close email change" disabled={saving} onClick={onClose} className="shrink-0 rounded-lg p-2 text-slate-500 hover:bg-slate-100 disabled:opacity-50"><X size={20}/></button></div>
     <p className="mt-4 break-all text-sm text-slate-600">Current email: {currentEmail}</p>
     {loading ? <p role="status" className="mt-3 text-sm">Checking pending changes...</p> : <>
       {waiting ? <div className="mt-4 space-y-3">
@@ -77,5 +84,5 @@ export default function ChangeEmail({ currentEmail }) {
     </>}
     {message && <p role="status" className="mt-3 text-sm text-emerald-700">{message}</p>}
     {error && <p role="alert" className="mt-3 text-sm text-rose-700">{error}</p>}
-  </section>;
+  </dialog>;
 }
