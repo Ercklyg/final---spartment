@@ -2,6 +2,7 @@ import { createUserClient } from '../config/supabase.js';
 import { authFailure } from '../models/authErrors.js';
 import { HttpError } from './errors.js';
 import { readSessionCookie } from '../services/sessionCookies.js';
+import { requireActiveSession } from '../models/activeSession.js';
 export async function authenticate(req,res,next) {
   const token=readSessionCookie(req,'access');
   if(!token)return res.status(401).json({error:'Sign in to continue.'});
@@ -10,6 +11,7 @@ export async function authenticate(req,res,next) {
     const {data,error}=await req.db.auth.getUser(token);
     if(error)throw authFailure(error);
     if(!data.user)throw new HttpError(401,'Invalid or expired session.');
+    await requireActiveSession(req.db);
     const expected=req.get('X-Spartment-User');
     if(expected&&expected!==data.user.id)throw new HttpError(409,'Your session changed. Refresh before trying again.','session_changed');
     req.user=data.user;

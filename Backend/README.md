@@ -3,6 +3,10 @@
 Operational backup, restoration, deployment and incident procedures are in
 [OPERATIONS.md](OPERATIONS.md).
 
+Tenant email-change setup and verification are in [EMAIL_CHANGE.md](EMAIL_CHANGE.md).
+Apply migration `202611080001_tenant_email_change.sql` before running this backend;
+session validation requires its `current_session_active()` database function.
+
 The application now uses this flow:
 
 Frontend React -> Express API -> Supabase Auth / database / protected functions

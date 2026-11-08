@@ -2,6 +2,8 @@ import { StrictMode, Suspense } from "react";
 import { createRoot } from "react-dom/client";
 import "./App.css";
 import { isRecoveryPage } from "./lib/passwordRecovery.js";
+import { isEmailApprovalPage } from "./lib/emailChange.js";
+import ApproveEmailChangePage from "./pages/ApproveEmailChangePage.jsx";
 import App from "./App.jsx";
 import { ResetPasswordPage } from "./lazyEntrypoints.jsx";
 import ActionFeedback from "./components/ActionFeedback.jsx";
@@ -16,7 +18,7 @@ createRoot(document.getElementById("root")).render(
   <StrictMode>
     <AppErrorBoundary>
       <Suspense fallback={<PageSkeleton variant={isRecoveryPage ? 'password' : 'auth'} label="Loading application..." fullPage/>}>
-        {isRecoveryPage ? <ResetPasswordPage /> : <App />}
+        {isEmailApprovalPage ? <ApproveEmailChangePage /> : isRecoveryPage ? <ResetPasswordPage /> : <App />}
       </Suspense>
       <ActionFeedback />
       <ConnectionStatus />

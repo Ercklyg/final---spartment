@@ -8,6 +8,7 @@
     "node": ">=22.0.0"
   },
   "scripts": {
+    "test:email-change": "node --test models/emailChange.test.js services/emailChange.test.js services/emailChangeEdge.test.js services/emailChangeMail.test.js",
     "supabase": "supabase",
     "login": "supabase login",
     "link": "supabase link --project-ref nbuwnbcnhzgkvjteggfb",
@@ -36,6 +37,7 @@
     "web-push": "^3.6.7"
   },
   "devDependencies": {
+    "@electric-sql/pglite": "^0.5.15",
     "@playwright/test": "^1.63.0",
     "playwright": "1.63.0",
     "supabase": "2.117.0"

@@ -1,4 +1,5 @@
 import { createUserClient } from '../config/supabase.js';
+import { requireActiveSession } from '../models/activeSession.js';
 import { HttpError, serviceError } from '../middleware/errors.js';
 import { loadTenantAccount } from '../models/tenantAccount.js';
 import { report } from '../models/reports.js';
@@ -47,6 +48,7 @@ export const refresh=async(req)=>{
   const result=await createUserClient().auth.refreshSession({refresh_token:token});
   if(result.error)throw authFailure(result.error);
   if(!result.data.session?.access_token)throw new HttpError(503,'Authentication is temporarily unavailable. Please try again later.','auth_unavailable');
+  await requireActiveSession(createUserClient(result.data.session.access_token));
   return (result.data.session);
   })();
   refreshes.set(key,operation);
@@ -58,6 +60,7 @@ export const session=async(req)=>{
     const {data,error}=await createUserClient().auth.getUser(token);
     if(error){const failure=authFailure(error);if(failure.status!==401)throw failure;}
     else if(data.user){
+      await requireActiveSession(createUserClient(token));
       // Auth verified the JWT before reading its expiry. No credential is returned.
       let expires_at;try{expires_at=JSON.parse(Buffer.from(token.split('.')[1],'base64url').toString()).exp;}catch{throw new HttpError(401,'Invalid session.');}
       return {user:data.user,expires_at};
