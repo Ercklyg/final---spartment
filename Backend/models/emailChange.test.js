@@ -9,7 +9,7 @@ const id = '11111111-1111-4111-8111-111111111111';
 const other = '22222222-2222-4222-8222-222222222222';
 const sessionId = '33333333-3333-4333-8333-333333333333';
 const hash = char => char.repeat(64);
-let db;
+let db, upgradedRequests;
 before(async () => {
   db = new PGlite();
   await db.exec(`
@@ -24,6 +24,10 @@ before(async () => {
     create function auth.jwt() returns jsonb language sql as $$ select coalesce(nullif(current_setting('request.jwt.claims',true),''),'{}')::jsonb $$;
   `);
   await db.exec(await readFile(new URL('../supabase/migrations/202611080001_tenant_email_change.sql', import.meta.url), 'utf8'));
+  await db.query("insert into auth.users values($1,'old@example.test'),($2,'other@example.test')", [id, other]);
+  await db.query("insert into public.tenant_email_changes(user_id,old_email,new_email,approval_hash,stage,expires_at,completed_at) values($1,'old@example.test','new@example.test',$3,'approval',now()+interval '10 minutes',null),($2,'previous@example.test','other@example.test',$4,'complete',now(),now())", [id, other, hash('a'), hash('b')]);
+  await db.exec(await readFile(new URL('../supabase/migrations/202611080002_email_change_new_mailbox_only.sql', import.meta.url), 'utf8'));
+  upgradedRequests = (await db.query('select stage,otp_hash,expires_at<=now() expired,completed_at is not null completed from public.tenant_email_changes order by user_id')).rows;
 });
 beforeEach(async () => {
   await db.exec('truncate auth.users cascade; truncate public.tenant_email_send_limits;');
@@ -34,20 +38,25 @@ beforeEach(async () => {
 });
 after(async () => { await db?.close(); });
 async function action(name, overrides = {}) {
-  const p = { user: id, email: 'new@example.test', approval: hash('a'), otp: hash('b'), ip: hash('c'), ...overrides };
-  const result = await db.query('select public.tenant_email_change($1,$2,$3,$4,$5,$6) result', [name, p.user, p.email, p.approval, p.otp, p.ip]);
+  const p = { user: id, email: 'new@example.test', otp: hash('b'), ip: hash('c'), ...overrides };
+  const result = await db.query('select public.tenant_email_change($1,$2,$3,$4,$5,$6) result', [name, p.user, p.email, null, p.otp, p.ip]);
   return result.rows[0].result;
 }
 async function ageSend() { await db.exec("update public.tenant_email_changes set sent_at=now()-interval '61 seconds'"); }
-async function ready() { await action('start'); await action('approve'); return action('verify'); }
+async function ready() { await action('start'); return action('verify'); }
 async function email() { return (await db.query('select email from auth.users where id=$1', [id])).rows[0].email; }
 
-test('old-mailbox approval and new-mailbox OTP are both required; completion is atomic', async () => {
+test('migration expires old approval requests and preserves successful-change cooldowns', () => {
+  assert.deepEqual(upgradedRequests.map(r => ({ stage: r.stage, expired: r.expired, completed: r.completed })), [
+    { stage: 'otp', expired: true, completed: false }, { stage: 'complete', expired: true, completed: true },
+  ]);
+  assert.equal(upgradedRequests[0].otp_hash, null);
+});
+
+test('new-mailbox OTP is sufficient; completion and session revocation are atomic', async () => {
   assert.equal((await action('verify')).status, 400);
-  assert.equal((await action('start')).stage, 'approval');
-  assert.equal((await action('verify')).status, 400);
+  assert.equal((await action('start')).stage, 'otp');
   await assert.rejects(db.query('update auth.users set email=$1 where id=$2', ['new@example.test', id]), /verification required/);
-  assert.equal((await action('approve')).stage, 'otp');
   assert.equal(await email(), 'old@example.test');
   assert.equal((await action('verify')).newEmail, 'new@example.test');
   await db.query('update auth.users set email=$1 where id=$2', ['new@example.test', id]);
@@ -66,44 +75,41 @@ test('rejects unchanged, malformed and occupied email addresses without leaking 
   assert.equal((await action('start', { email: 'a'.repeat(255) + '@test.com' })).status, 400);
 });
 
-test('codes and approval links expire and approvals are single use', async () => {
+test('codes expire and old approval actions cannot authorize a change', async () => {
   await action('start');
   await db.exec("update public.tenant_email_changes set expires_at=now()-interval '1 second'");
   assert.equal((await action('approve')).status, 400);
   assert.equal((await action('status')).stage, 'expired');
-  await ageSend(); await action('start'); await action('approve');
-  assert.equal((await action('approve')).status, 400);
-  await db.exec("update public.tenant_email_changes set expires_at=now()-interval '1 second'");
   assert.equal((await action('verify')).status, 400);
   assert.equal((await action('resend')).status, 400);
 });
 
 test('five incorrect attempts invalidate even the correct code', async () => {
-  await action('start'); await action('approve');
+  await action('start');
   for (let i = 0; i < 5; i++) assert.match((await action('verify', { otp: hash('e') })).error, /Incorrect/);
   assert.match((await action('verify')).error, /no longer valid/);
   assert.equal(await email(), 'old@example.test');
 });
 
-test('resends have cooldowns, rotate codes and approval tokens, and retain account limits', async () => {
+test('resends have cooldowns, rotate codes, and retain account limits', async () => {
   await action('start');
   assert.equal((await action('resend')).status, 429);
-  await ageSend(); await action('resend', { approval: hash('e') });
-  assert.equal((await action('approve')).status, 400);
-  await action('approve', { approval: hash('e') });
   await ageSend(); await action('resend', { otp: hash('f') });
   assert.equal((await action('verify')).status, 400);
   assert.equal((await action('verify', { otp: hash('f') })).newEmail, 'new@example.test');
   await ageSend(); await action('resend', { otp: hash('e') });
+  await ageSend(); await action('resend', { otp: hash('f') });
+  await ageSend(); await action('resend', { otp: hash('e') });
   await ageSend(); assert.equal((await action('start', { email: 'different@example.test' })).status, 429);
 });
 
-test('changing the target requires a new approval and invalidates the prior OTP', async () => {
+test('changing the target invalidates the prior OTP and requires the new target code', async () => {
   await ready(); await ageSend();
-  assert.equal((await action('start', { email: 'different@example.test', approval: hash('e') })).stage, 'approval');
+  assert.equal((await action('start', { email: 'different@example.test', otp: hash('e') })).stage, 'otp');
   assert.equal((await action('verify')).status, 400);
   assert.equal((await action('approve')).status, 400);
   await assert.rejects(db.query('update auth.users set email=$1 where id=$2', ['new@example.test', id]), /verification required/);
+  assert.equal((await action('verify', { otp: hash('e') })).newEmail, 'different@example.test');
 });
 
 test('database rejects a duplicate claimed after verification without consuming request or revoking sessions', async () => {
@@ -118,7 +124,7 @@ test('database rejects a duplicate claimed after verification without consuming 
 
 test('overlapping start requests keep one pending request and one send reservation', async () => {
   const results = await Promise.all([action('start'), action('start', { email: 'different@example.test' })]);
-  assert.equal(results.filter(r => r.stage === 'approval').length, 1);
+  assert.equal(results.filter(r => r.stage === 'otp').length, 1);
   assert.equal(results.filter(r => r.status === 429).length, 1);
   assert.equal((await db.query('select count(*)::int n from public.tenant_email_changes')).rows[0].n, 1);
 });
@@ -132,7 +138,7 @@ test('destination and IP limits apply across accounts and reset after the hour',
   await db.query("insert into public.tenant_email_send_limits values($1,20,now()+interval '1 hour')", ['ip:' + hash('c')]);
   assert.equal((await action('start')).status, 429);
   await db.exec("update public.tenant_email_send_limits set expires_at=now()-interval '1 second'");
-  assert.equal((await action('start')).stage, 'approval');
+  assert.equal((await action('start')).stage, 'otp');
 });
 
 test('browser database roles cannot inspect credentials or authorize changes', async () => {

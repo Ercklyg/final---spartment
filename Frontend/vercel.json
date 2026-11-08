@@ -19,10 +19,6 @@
       "destination": "https://final-spartment-1.onrender.com/api/:path*"
     },
     {
-      "source": "/approve-email-change",
-      "destination": "/index.html"
-    },
-    {
       "source": "/reset-password",
       "destination": "/index.html"
     }

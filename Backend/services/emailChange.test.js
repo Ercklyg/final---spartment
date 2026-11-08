@@ -18,9 +18,9 @@ test('email change takes identity and IP from server context and forwards only a
     const result = await emailChange(request, 'start', async (url, options) => {
       assert.equal(url.pathname, '/functions/v1/email-change');
       assert.deepEqual(JSON.parse(options.body), { action: 'start', email: 'new@example.test', accessToken: 'server-cookie', ip: '127.0.0.1' });
-      return { ok: true, json: async () => ({ stage: 'approval' }) };
+      return { ok: true, json: async () => ({ stage: 'otp' }) };
     });
-    assert.equal(result.stage, 'approval');
+    assert.equal(result.stage, 'otp');
   } finally {
     for (const [key, value] of Object.entries({ RECOVERY_STORAGE_SECRET: previous.secret, SUPABASE_URL: previous.url, NODE_ENV: previous.mode, COOKIE_SECURE: previous.secure })) {
       if (value === undefined) delete process.env[key]; else process.env[key] = value;

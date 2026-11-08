@@ -13,7 +13,7 @@ const userId = '11111111-1111-4111-8111-111111111111';
 const digest = value => createHash('sha256').update(value).digest('hex');
 async function fixture(options = {}) {
   const env = { RECOVERY_STORAGE_SECRET: 'private-test-secret', SUPABASE_URL: 'https://example.supabase.co', SUPABASE_ANON_KEY: 'anon', SUPABASE_SERVICE_ROLE_KEY: 'service',
-    EMAIL_CHANGE_SMTP_USER: 'accounts@gmail.com', EMAIL_CHANGE_SMTP_PASSWORD: 'test-app-password', EMAIL_CHANGE_APPROVAL_URL: 'https://example.test/approve-email-change', ...options.env };
+    EMAIL_CHANGE_SMTP_USER: 'accounts@gmail.com', EMAIL_CHANGE_SMTP_PASSWORD: 'test-app-password', ...options.env };
   const calls = [], mails = [];
   let handler, updated = false;
   const db = {
@@ -24,7 +24,7 @@ async function fixture(options = {}) {
       calls.push(params);
       if (options.rpcError) return { data: { error: 'Too many verification emails.', status: 429 } };
       return { data: params.p_action === 'verify' ? { newEmail: 'new@example.test' } : {
-        stage: ['start', 'resend'].includes(params.p_action) ? 'approval' : 'otp',
+        stage: 'otp',
         oldEmail: 'old@example.test', newEmail: 'new@example.test', expiresAt: '2099-01-01', resendAt: '2099-01-01',
       } };
     },
@@ -53,27 +53,32 @@ async function fixture(options = {}) {
   return { request, calls, mails, updated: () => updated };
 }
 
-test('Edge handler sends approval only to old email and a secret-bound OTP only to new email', async () => {
+test('Edge handler sends exactly one OTP to the new email and no messages to the current email', async () => {
   const f = await fixture();
   const start = await f.request({ action: 'start', email: 'new@example.test', accessToken: 'valid-session', ip: '127.0.0.1' });
   assert.equal(start.status, 200);
-  assert.equal(f.mails[0][0], 'old@example.test');
-  const approval = f.mails[0][2].match(/#token=([a-f0-9]{64})/)[1];
-  assert.equal(f.calls[0].p_approval, digest(approval));
+  assert.equal(start.data.stage, 'otp');
+  assert.equal(f.mails.length, 1);
+  assert.equal(f.mails[0][0], 'new@example.test');
   assert.equal(start.data.oldEmail, undefined);
-  const approved = await f.request({ action: 'approve', token: approval, ip: '127.0.0.1' });
-  assert.equal(approved.status, 200);
-  assert.equal(f.mails[1][0], 'new@example.test');
-  const otp = f.mails[1][2].match(/code is (\d{6})/)[1];
-  assert.equal(f.calls[1].p_otp, digest(`private-test-secret:email-change:${userId}:${otp}`));
-  assert.equal(f.calls[1].p_user, userId);
+  const otp = f.mails[0][2].match(/code is (\d{6})/)[1];
+  assert.equal(f.calls[0].p_otp, digest(`private-test-secret:email-change:${userId}:${otp}`));
+  assert.equal(f.calls[0].p_user, userId);
   const verified = await f.request({ action: 'verify', otp, accessToken: 'valid-session' });
   assert.equal(verified.status, 200);
   assert.deepEqual(verified.data, { ok: true });
-  assert.equal(f.calls[2].p_otp, f.calls[1].p_otp);
+  assert.equal(f.calls[1].p_otp, f.calls[0].p_otp);
   assert.equal(f.updated(), true);
-  assert.ok(!JSON.stringify(start.data).includes(approval));
-  assert.ok(!JSON.stringify(approved.data).includes(otp));
+  assert.equal(f.mails.length, 1, 'Completion must not email the old address');
+  assert.ok(!JSON.stringify(start.data).includes(otp));
+});
+
+test('retired approval and notification actions never send email', async () => {
+  const f = await fixture();
+  assert.equal((await f.request({ action: 'approve', token: 'a'.repeat(64) })).status, 400);
+  assert.deepEqual((await f.request({ action: 'notify' })).data, { ok: true, skipped: true });
+  assert.equal(f.mails.length, 0);
+  assert.equal(f.calls.length, 0);
 });
 
 test('Edge handler rejects missing private authorization, revoked sessions, and non-tenant accounts', async () => {
