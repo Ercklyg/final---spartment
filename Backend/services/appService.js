@@ -10,7 +10,7 @@ import { loadNotifications, markNotificationsRead, markAllNotificationsRead, upd
 import { loadAdminNotifications } from '../models/adminNotifications.js';
 import { loadPaymentReceipt } from '../models/paymentReceipt.js';
 import { analyticsCsv, comparisonTotals } from '../models/adminAnalytics.js';
-import { loadCollectionForecast } from '../models/collectionForecast.js';
+import { loadForecastReport } from '../models/collectionForecast.js';
 import { reportingPeriod } from '../models/reportingPeriod.js';
 import { changePassword } from '../models/changePassword.js';
 import { signInWithPassword } from '../models/authentication.js';
@@ -183,6 +183,6 @@ export const analytics=async(req)=>{
   const data=await report(req.db,'analytics_report',{p_month:month+'-01',p_period:period,p_export:exportType==='csv'||exportType==='pdf'});
   const {snapshot,series}=data;
   if(req.query.export==='csv')return {csv:analyticsCsv(snapshot,series,month)};
-  const forecastData=await loadCollectionForecast(req.db,month);
+  const forecastData=await loadForecastReport(req.db,month);
   return {...data,...reporting,comparison:comparisonTotals(series),...forecastData,loadedAt:new Date().toISOString()};
 };

@@ -2,15 +2,16 @@ import PageSkeleton from "../components/PageSkeleton.jsx";
 import ReportMonthPicker from "../components/ReportMonthPicker.jsx";
 import { showFeedback } from "../lib/actionFeedback.js";
 import { api } from '../lib/api.js';
-import { memo, useCallback, useMemo, useState } from "react";
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useSessionState } from "../lib/useSessionState.js";
-import { Activity, Building2, Download, TrendingUp, TriangleAlert, Wallet } from "lucide-react";
+import { Activity, Building2, Download, TrendingUp, TriangleAlert, Wallet, X } from "lucide-react";
 import AdminHeader from "../components/admin/AdminHeader.jsx";
 import AdminSidebar from "../components/admin/AdminSidebar.jsx";
 import { loadAdminAnalytics } from "../lib/adminAnalytics.js";
 import { closeFromBackdrop } from "../lib/dialog.js";
 import { money, today } from "../lib/billing.js";
 import { useRemoteData } from "../lib/useRemoteData.js";
+import { estimateDifference, methodComparison, validationLimits, validationMethod, validationSummary } from '../lib/forecastValidation.js';
 import "./AdminAnalyticsPage.css";
 
 const agingColors = ["#fbbf24", "#fb923c", "#f87171", "#e11d48"];
@@ -47,6 +48,100 @@ function SectionHeading({ id, icon: Icon, title, subtitle, action }) {
     </div>
     {action}
   </div>;
+}
+
+function ComparisonBar({ label, amount, maximum, tone = 'estimated' }) {
+  return <div className="forecast-amount-row" role="img" aria-label={label + ': ' + money(amount)}>
+    <div><span>{label}</span><strong>{money(amount)}</strong></div>
+    <div className="forecast-bar-track" aria-hidden="true"><span className={'forecast-bar-fill ' + tone} style={{ width: (Math.max(0, amount) / maximum * 100) + '%' }}/></div>
+  </div>;
+}
+
+function DetailedForecastValidation({ validation }) {
+  const [page, setPage] = useState(1);
+  const rows = [...(validation?.rows || emptyList)].sort((a, b) => b.month.localeCompare(a.month));
+  const pageCount = Math.max(1, Math.ceil(rows.length / TABLE_PAGE_SIZE));
+  const currentPage = Math.min(page, pageCount);
+  const visible = rows.slice((currentPage - 1) * TABLE_PAGE_SIZE, currentPage * TABLE_PAGE_SIZE);
+  const maximum = Math.max(1, ...rows.flatMap(row => [row.forecast, row.actual]));
+  const methodMaximum = Math.max(1, validation?.smaMae || 0, validation?.benchmarkMae || 0);
+  return <section className="analytics-panel analytics-forecast-validation analytics-grid-narrow" aria-labelledby="forecast-validation-heading">
+    <SectionHeading id="forecast-validation-heading" icon={Activity} title="Forecast vs Actual" subtitle="Historical backtesting"/>
+    <p className="analytics-muted">{validation?.testedMonths === 1 ? '1 month checked. More history is needed to assess accuracy.' : validationSummary(validation)}</p>
+    {validation && <>
+      {validation.testedMonths > 1 && <div className="analytics-validation-metrics">
+        <div><span>Average difference</span><strong>{validation.smaMae == null ? 'Not available' : money(validation.smaMae)}</strong><small>How far estimates were from actual collections.</small></div>
+        <div><span>Months checked</span><strong>{validation.testedMonths}</strong><small>Completed months only.</small></div>
+      </div>}
+      {rows.length > 0 && <>
+        <ol className="forecast-comparisons" aria-label="Monthly forecast comparisons">{visible.map(row => <li key={row.month}><article aria-label={longPeriodFormatter.format(new Date(row.month + '-01T12:00:00'))}>
+          <h3>{longPeriodFormatter.format(new Date(row.month + '-01T12:00:00'))}</h3>
+          <ComparisonBar label="Estimated" amount={row.forecast} maximum={maximum}/>
+          <ComparisonBar label="Actually collected" amount={row.actual} maximum={maximum} tone="actual"/>
+          <p className="forecast-difference">{estimateDifference(row)}</p>
+          <details className="forecast-sources"><summary>Source months</summary><p>{row.sourceMonths.map(periodLabel).join(', ')}</p></details>
+        </article></li>)}</ol>
+        <TablePagination count={rows.length} page={currentPage} pageCount={pageCount} onPageChange={setPage} label="Forecast comparison pages"/>
+      </>}
+      <details className="analytics-disclosure"><summary>Compare forecasting methods</summary>
+        <p className="analytics-footnote">Average difference from actual collections. Lower is better. Both methods use the same {validation.testedMonths} checked month{validation.testedMonths === 1 ? '' : 's'}.</p>
+        {rows.length > 0 && <div className="forecast-method-bars"><ComparisonBar label="Three-month average" amount={validation.smaMae} maximum={methodMaximum}/><ComparisonBar label="Use previous month" amount={validation.benchmarkMae} maximum={methodMaximum} tone="benchmark"/></div>}
+        <p className="analytics-footnote">{methodComparison(validation)}</p>
+        {visible.map(row => <p key={row.month} className="analytics-footnote">{periodLabel(row.month)}: previous-month estimate {money(row.benchmark)}; difference {money(row.benchmarkAbsoluteError)}.</p>)}
+      </details>
+      {validation.skippedMonths.length > 0 && <details className="analytics-disclosure"><summary>{validation.skippedMonths.length} target month{validation.skippedMonths.length === 1 ? '' : 's'} excluded due to missing records</summary><ul className="analytics-validation-skipped">{validation.skippedMonths.map(row => <li key={row.month}>{periodLabel(row.month)}: {row.reason === 'missing_actual' ? 'no actual payment records for the target month' : 'no payment records for ' + row.missingSources.map(periodLabel).join(', ')}</li>)}</ul></details>}
+    </>}
+    <details className="analytics-disclosure"><summary>Method and limitations</summary><p className="analytics-footnote">{validationMethod}</p><p className="analytics-footnote">{validationLimits}</p>{validation && <p className="analytics-footnote">Completed targets through {longPeriodFormatter.format(new Date(validation.throughMonth + '-01T12:00:00'))}. Average difference is the mean absolute error (MAE), measured in pesos.</p>}</details>
+  </section>;
+}
+
+function BacktestingDialog({ validation, onClose }) {
+  const ref = useRef(null);
+  useEffect(() => {
+    const dialog = ref.current;
+    const opener = document.activeElement;
+    const overflow = document.documentElement.style.overflow;
+    dialog.showModal();
+    document.documentElement.style.overflow = 'hidden';
+    return () => {
+      dialog.close();
+      document.documentElement.style.overflow = overflow;
+      if (opener instanceof HTMLElement && opener.isConnected) opener.focus({ preventScroll: true });
+    };
+  }, []);
+  return <dialog ref={ref} aria-label="Backtesting report" className="forecast-report-dialog"
+    onCancel={event => { event.preventDefault(); onClose(); }}
+    onMouseDown={event => closeFromBackdrop(event, onClose)}
+    onKeyDown={event => {
+      if (event.key !== 'Tab') return;
+      const items = [...ref.current.querySelectorAll('button:not(:disabled),summary,[tabindex="0"]')].filter(item => item.getClientRects().length);
+      if (event.shiftKey && document.activeElement === items[0]) { event.preventDefault(); items.at(-1).focus(); }
+      else if (!event.shiftKey && document.activeElement === items.at(-1)) { event.preventDefault(); items[0].focus(); }
+    }}>
+    <div className="forecast-report-toolbar"><h2>Backtesting report</h2><button type="button" onClick={onClose} aria-label="Close backtesting report"><X size={20} aria-hidden="true"/></button></div>
+    <div className="forecast-report-body"><DetailedForecastValidation validation={validation}/></div>
+  </dialog>;
+}
+
+function ForecastValidation({ validation }) {
+  const [open, setOpen] = useState(false);
+  const latest = [...(validation?.rows || emptyList)].sort((a, b) => b.month.localeCompare(a.month))[0];
+  const maximum = Math.max(1, latest?.forecast || 0, latest?.actual || 0);
+  const count = validation?.testedMonths || 0;
+  return <>
+    <section className="analytics-panel analytics-forecast-validation analytics-grid-narrow" aria-labelledby="forecast-summary-heading">
+      <SectionHeading id="forecast-summary-heading" icon={Activity} title="Forecast vs Actual"/>
+      {latest ? <div className="forecast-summary">
+        <h3>{longPeriodFormatter.format(new Date(latest.month + '-01T12:00:00'))}</h3>
+        <ComparisonBar label="Estimated" amount={latest.forecast} maximum={maximum}/>
+        <ComparisonBar label="Actually collected" amount={latest.actual} maximum={maximum} tone="actual"/>
+        <p className="forecast-difference">{estimateDifference(latest)}</p>
+      </div> : <p className="analytics-muted">{validation ? 'Not enough history to compare yet.' : 'Past comparisons are unavailable. Refresh the report to try again.'}</p>}
+      {latest && <p className="analytics-footnote">Based on {count} completed month{count === 1 ? '' : 's'}.</p>}
+      <button type="button" className="forecast-report-trigger" disabled={!validation} aria-haspopup="dialog" onClick={() => setOpen(true)}>View backtesting report</button>
+    </section>
+    {open && <BacktestingDialog validation={validation} onClose={() => setOpen(false)}/>}
+  </>;
 }
 
 const AnalyticsReport = memo(function AnalyticsReport({ data, month, period }) {
@@ -138,23 +233,24 @@ const AnalyticsReport = memo(function AnalyticsReport({ data, month, period }) {
       </div>
       <div className="analytics-report-column">
       <section className="analytics-panel analytics-forecast analytics-grid-narrow" aria-labelledby="forecast-heading">
-        <SectionHeading id="forecast-heading" icon={TrendingUp} title="Collections forecast" subtitle={`Three-month moving average for ${forecastLabel}`} />
+        <SectionHeading id="forecast-heading" icon={TrendingUp} title="Estimated Collections" subtitle={forecastLabel} />
         <div className="analytics-forecast-value">
-          <p className="analytics-eyebrow">ESTIMATED COLLECTIONS</p>
+          <p className="analytics-eyebrow">EXPECTED COLLECTIONS</p>
           <p className={"analytics-forecast-number" + (forecast === null ? " analytics-forecast-number--muted" : "")} aria-live="polite">{forecast === null ? "Not enough history" : money(forecast)}</p>
           <p className="analytics-muted">{forecastLabel}</p>
         </div>
-        <div className="analytics-forecast-months" aria-label="Monthly collections used in the forecast">
+        <p className="analytics-footnote">Based on the average collections from the previous three completed months.</p>
+        <div className="analytics-forecast-months forecast-exact-months" aria-label="Monthly collections used in the forecast">
           {forecastMonths.map(point => <div className="analytics-forecast-month" key={point.label}>
             <span>{periodLabel(point.label)}</span>
-            <div className="analytics-forecast-track"><i style={{ width: (Number(point.value || 0) ? Math.max(2, Number(point.value) / forecastMax * 100) : 0) + "%" }} /></div>
-            <strong>{compactMoney(point.value)}</strong>
+            <div className="analytics-forecast-track"><i style={{ width: (Number(point.value || 0) ? Number(point.value) / forecastMax * 100 : 0) + "%" }} /></div>
+            <strong>{money(point.value)}</strong>
           </div>)}
         </div>
-        <p className="analytics-footnote">{forecast === null
-          ? "At least one recorded payment is needed in each of the three completed months shown. Select another report month or record any missing payments to calculate an estimate."
-          : "Average recorded collections for the three completed months shown above."} Uses monthly history regardless of the chart grouping. This is an estimate, not guaranteed income.</p>
+        <details className="analytics-disclosure forecast-calculation"><summary>How this is calculated</summary><p className="analytics-footnote">{forecast === null ? 'At least one recorded payment is needed in each of the three completed months shown. Missing records are not treated as zero.' : '(' + forecastMonths.map(point => money(point.value)).join(' + ') + ') ÷ 3 = ' + money(forecast)}</p></details>
+        <p className="analytics-footnote">This estimate may differ from actual collections.</p>
       </section>
+      <ForecastValidation validation={data.forecastValidation}/>
       <section className="analytics-panel analytics-collection-health analytics-grid-narrow" aria-labelledby="collection-health-heading">
         <SectionHeading id="collection-health-heading" icon={Activity} title="Collection health" subtitle={`Aging and payment timing through ${snapshot.cutoff}`} />
         <div className="analytics-health-rates">

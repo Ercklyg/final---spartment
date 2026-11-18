@@ -31,3 +31,57 @@ export async function loadCollectionForecast(client, month, asOf = today()) {
     .gte('payment_date', sourceStart).lt('payment_date', sourceEnd).order('payment_date').order('id'));
   return collectionForecast(payments, month, asOf);
 }
+
+const shiftMonth = (month, offset) => {
+  const [year, number] = month.split('-').map(Number);
+  return new Date(Date.UTC(year, number - 1 + offset, 1)).toISOString().slice(0, 7);
+};
+
+// Retrospective one-month-ahead evaluation. Never use the target month's
+// collections to construct its forecast, or evaluate an incomplete target.
+export function forecastValidation(payments, month, asOf = today()) {
+  const currentMonth = asOf.slice(0, 7);
+  const throughMonth = month < currentMonth ? month : shiftMonth(currentMonth, -1);
+  const totals = new Map();
+  for (const payment of payments) {
+    const label = String(payment.payment_date).slice(0, 7);
+    if (label > throughMonth) continue;
+    const value = totals.get(label) || { cents: 0, count: 0 };
+    value.cents += Math.round(Number(payment.amount) * 100);
+    value.count++;
+    totals.set(label, value);
+  }
+  const historyStart = [...totals.keys()].sort()[0] || null;
+  const rows = [], skippedMonths = [];
+  let smaErrorCents = 0, benchmarkErrorCents = 0;
+  for (let target = historyStart && shiftMonth(historyStart, 3); target && target <= throughMonth; target = shiftMonth(target, 1)) {
+    const sourceMonths = [-3, -2, -1].map(offset => shiftMonth(target, offset));
+    const missingSources = sourceMonths.filter(label => !totals.has(label));
+    if (missingSources.length || !totals.has(target)) {
+      skippedMonths.push({ month: target, reason: missingSources.length ? 'missing_history' : 'missing_actual', missingSources });
+      continue;
+    }
+    const forecastCents = Math.round(sourceMonths.reduce((sum, label) => sum + totals.get(label).cents, 0) / 3);
+    const actualCents = totals.get(target).cents;
+    const benchmarkCents = totals.get(sourceMonths[2]).cents;
+    const absoluteError = Math.abs(forecastCents - actualCents);
+    const benchmarkAbsoluteError = Math.abs(benchmarkCents - actualCents);
+    smaErrorCents += absoluteError;
+    benchmarkErrorCents += benchmarkAbsoluteError;
+    rows.push({ month: target, sourceMonths, forecast: forecastCents / 100, actual: actualCents / 100,
+      absoluteError: absoluteError / 100, benchmark: benchmarkCents / 100, benchmarkAbsoluteError: benchmarkAbsoluteError / 100 });
+  }
+  return { historyStart, throughMonth, testedMonths: rows.length, skippedMonths, rows,
+    smaMae: rows.length ? Math.round(smaErrorCents / rows.length) / 100 : null,
+    benchmarkMae: rows.length ? Math.round(benchmarkErrorCents / rows.length) / 100 : null };
+}
+
+export async function loadForecastReport(client, month, asOf = today()) {
+  const target = forecastWindow(month, asOf).forecastMonth;
+  const end = (target < asOf.slice(0, 7) ? shiftMonth(target, 1) : target) + '-01';
+  // One paginated history read serves both the current SMA and all eligible
+  // backtests. The selected historical month is the latest permitted target.
+  const payments = await readAll(() => client.from('payments').select('amount,payment_date')
+    .lt('payment_date', end).order('payment_date').order('id'));
+  return { ...collectionForecast(payments, month, asOf), forecastValidation: forecastValidation(payments, month, asOf) };
+}

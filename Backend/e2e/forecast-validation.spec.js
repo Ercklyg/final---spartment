@@ -1,0 +1,133 @@
+import { test, expect } from '@playwright/test';
+import { mockAdminApi } from './helpers/mockApi.js';
+import { collectionForecast, forecastValidation } from '../models/collectionForecast.js';
+
+test('analytics shows retrospective SMA validation, matching benchmark, pagination, exclusions and PDF export', async ({ page }, testInfo) => {
+  const history = Array.from({ length: 10 }, (_, index) => ({ payment_date: `2026-${String(index + 1).padStart(2, '0')}-15`, amount: (index + 1) * 1000 }));
+  const analyticsData = { ...collectionForecast(history, '2026-11', '2026-11-18'), forecastValidation: forecastValidation(history, '2026-11', '2026-11-18') };
+  await mockAdminApi(page, { startAuthenticated: true, analyticsData });
+  const errors = [];
+  page.on('pageerror', error => errors.push(error.message));
+  await page.goto('/');
+  await page.locator('button[aria-label="Analytics & Reports"]:visible').click();
+  const dashboard = page.getByRole('region', { name: 'Forecast vs Actual', exact: true });
+  await expect(dashboard.getByText('Average difference', {exact:true})).toHaveCount(0);
+  await expect(dashboard.locator('details')).toHaveCount(0);
+  await dashboard.getByRole('button', {name:'View backtesting report'}).click();
+  const report = page.getByRole('dialog', {name:'Backtesting report',exact:true});
+  await expect(report).toBeVisible();
+  await expect(report).toContainText('Historical backtesting');
+  await expect(report).toContainText('Across 7 months checked');
+  await expect(report).toContainText('₱2,000.00');
+  await expect(report).toContainText('₱1,000.00');
+  await expect(report).toContainText('not future accuracy');
+  const months = report.locator('.forecast-comparisons article');
+  await expect(months).toHaveCount(5);
+  await expect(months.first()).toHaveAccessibleName('October 2026');
+  await expect(months.first()).toContainText('The estimate was');
+  await expect(months.first()).toContainText('below actual collections.');
+  const fills = months.first().locator('.forecast-bar-fill');
+  await expect(fills.nth(0)).toHaveAttribute('style', 'width: 80%;');
+  await expect(fills.nth(1)).toHaveAttribute('style', 'width: 100%;');
+  await months.first().getByText('Source months', { exact: true }).click();
+  await expect(months.first()).toContainText('Jul 26, Aug 26, Sep 26');
+  await report.getByRole('button', { name: 'Next', exact: true }).click();
+  await expect(months).toHaveCount(2);
+  await expect(months.last()).toHaveAccessibleName('April 2026');
+  await expect(report.getByRole('button', { name: 'Next', exact: true })).toBeDisabled();
+  await report.getByRole('button', { name: 'Previous', exact: true }).click();
+  await report.getByText('Compare forecasting methods', { exact: true }).click();
+  await expect(report).toContainText('Using the previous month was closer');
+  await report.getByText('Compare forecasting methods', { exact: true }).click();
+  const widths = testInfo.project.name === 'mobile-chrome' ? [320, 393] : [1024, 1440];
+  for (const width of widths) {
+    await page.setViewportSize({ width, height: 900 });
+    await report.scrollIntoViewIfNeeded();
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+    await months.first().scrollIntoViewIfNeeded();
+    expect(await report.evaluate(element => element.scrollWidth <= element.clientWidth)).toBe(true);
+    await expect(months.first().getByRole('img', { name: /^Estimated:/ })).toBeVisible();
+    await expect(months.first().getByRole('img', { name: /^Actually collected:/ })).toBeVisible();
+    await page.screenshot({ path: testInfo.outputPath(`forecast-validation-${width}.png`) });
+  }
+  await report.getByRole('button',{name:'Close backtesting report'}).click();
+  await expect(dashboard.getByRole('button',{name:'View backtesting report'})).toBeFocused();
+  for (const width of widths) {
+    await page.setViewportSize({ width, height: 900 });
+    await dashboard.scrollIntoViewIfNeeded();
+    await expect(dashboard.getByText('Average difference', { exact: true })).toHaveCount(0);
+    await expect(dashboard.locator('details')).toHaveCount(0);
+    expect(await dashboard.evaluate(element => element.scrollWidth <= element.clientWidth)).toBe(true);
+    await page.screenshot({ path: testInfo.outputPath(`forecast-dashboard-${width}.png`) });
+  }
+  const download = page.waitForEvent('download');
+  await page.getByRole('button', { name: 'Export PDF', exact: true }).click();
+  await page.getByRole('alertdialog').getByRole('button', { name: 'Download PDF', exact: true }).click();
+  const file = await download;
+  const pdf = await file.createReadStream();
+  const chunks = [];
+  for await (const chunk of pdf) chunks.push(chunk);
+  const content = Buffer.concat(chunks).toString();
+  expect(content).toContain('Forecast vs Actual');
+  expect(content).toContain('2026-04');
+  expect(content).toContain('2026-10');
+  expect(content).toContain('Retrospective');
+  expect(content).toContain('Months checked');
+
+  await dashboard.getByRole('button',{name:'View backtesting report'}).click();
+  analyticsData.forecastValidation = forecastValidation(history.filter(row => row.payment_date.slice(0, 7) !== '2026-08'), '2026-11', '2026-11-18');
+  await report.getByRole('button',{name:'Close backtesting report'}).click();
+  await page.getByRole('button', { name: 'Refresh', exact: true }).click();
+  await dashboard.getByRole('button',{name:'View backtesting report'}).click();
+  await expect(report).toContainText('3 target months excluded');
+  await report.getByText('3 target months excluded due to missing records', { exact: true }).click();
+  await expect(report).toContainText('Aug 26: no actual payment records');
+  await expect(report).toContainText('Sep 26: no payment records for Aug 26');
+  await report.getByText('Method and limitations', { exact: true }).click();
+  await expect(report.getByText(/Retrospective results use currently recorded payments/)).toBeVisible();
+
+  analyticsData.forecastValidation = forecastValidation(history.slice(0, 3), '2026-04', '2026-04-18');
+  await report.getByRole('button',{name:'Close backtesting report'}).click();
+  await page.getByRole('button', { name: 'Refresh', exact: true }).click();
+  await dashboard.getByRole('button',{name:'View backtesting report'}).click();
+  await expect(report).toContainText('Not enough history to compare yet');
+  await expect(report.getByRole('table')).toHaveCount(0);
+  await expect(report.getByRole('navigation')).toHaveCount(0);
+  expect(errors).toEqual([]);
+});
+
+test('single-month comparisons explain below, above, exact and zero collections without claiming accuracy', async ({ page }) => {
+  const analyticsData = { ...collectionForecast([], '2026-11', '2026-11-18'), forecastValidation: forecastValidation([], '2026-11', '2026-11-18') };
+  await mockAdminApi(page, { startAuthenticated: true, analyticsData });
+  await page.goto('/');
+  await page.locator('button[aria-label="Analytics & Reports"]:visible').click();
+  const report = page.getByRole('region', { name: 'Forecast vs Actual', exact: true });
+  for (const [actual, description] of [[900, 'below actual collections'], [300, 'above actual collections'], [600, 'matched actual collections'], [0, 'above actual collections']]) {
+    const rows = ['07', '08', '09'].map(month => ({ payment_date: `2026-${month}-15`, amount: 600 }));
+    rows.push({ payment_date: '2026-10-15', amount: actual });
+    Object.assign(analyticsData, collectionForecast(rows, '2026-11', '2026-11-18'), { forecastValidation: forecastValidation(rows, '2026-11', '2026-11-18') });
+    await page.getByRole('button', { name: 'Refresh', exact: true }).click();
+    await expect(report).toContainText('Based on 1 completed month.');
+    await expect(report.locator('.forecast-difference')).toContainText(description);
+    await expect(report.getByRole('navigation')).toHaveCount(0);
+    if (actual === 0) await expect(report.locator('.forecast-bar-fill.actual')).toHaveAttribute('style', 'width: 0%;');
+  }
+  await report.getByRole('button', { name: 'View backtesting report' }).click();
+  const detail = page.getByRole('dialog', { name: 'Backtesting report', exact: true });
+  await expect(detail).toContainText('1 month checked. More history is needed to assess accuracy.');
+  await expect(detail.getByText('Average difference', { exact: true })).toHaveCount(0);
+  await expect(detail.getByText('Months checked', { exact: true })).toHaveCount(0);
+  expect(await detail.locator('details').evaluateAll(items => items.every(item => !item.open))).toBe(true);
+  await detail.getByText('Compare forecasting methods', { exact: true }).click();
+  await expect(detail.locator('details').filter({ has: page.getByText('Compare forecasting methods', { exact: true }) })).toHaveAttribute('open', '');
+  await page.keyboard.press('Escape');
+  await expect(detail).toBeHidden();
+  await expect(report.getByRole('button', { name: 'View backtesting report' })).toBeFocused();
+  await report.getByRole('button', { name: 'View backtesting report' }).click();
+  expect(await detail.locator('details').evaluateAll(items => items.every(item => !item.open))).toBe(true);
+  await page.keyboard.press('Escape');
+  const forecast = page.getByRole('region', { name: 'Estimated Collections', exact: true });
+  await forecast.getByText('How this is calculated', { exact: true }).click();
+  await expect(forecast).not.toContainText('AI is not used in the computation.');
+  await expect(forecast).toContainText('÷ 3');
+});

@@ -12,8 +12,8 @@ test('collections forecast shows a consistent target history and insufficient-hi
   await mockAdminApi(page,{startAuthenticated:true,analyticsData});
   await page.goto('/');
   await adminNavigationButton(page,'Analytics & Reports').click();
-  const forecast=page.getByRole('region',{name:'Collections forecast'});
-  await expect(forecast).toContainText('Three-month moving average for November 2026');
+  const forecast=page.getByRole('region',{name:'Estimated Collections'});
+  await expect(forecast).toContainText('Based on the average collections from the previous three completed months.');
   await expect(forecast).toContainText('₱600.00');
   await expect(forecast).toContainText('Aug 26');
   await expect(forecast).toContainText('Sep 26');
@@ -24,6 +24,7 @@ test('collections forecast shows a consistent target history and insufficient-hi
   analyticsData.forecastMonths[1]={label:'2026-09',value:0,paymentCount:0};
   await page.getByRole('button',{name:'Refresh',exact:true}).click();
   await expect(forecast).toContainText('Not enough history');
+  await forecast.getByText('How this is calculated', {exact:true}).click();
   await expect(forecast).toContainText('At least one recorded payment is needed in each of the three completed months');
 });
 

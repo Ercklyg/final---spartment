@@ -1,4 +1,5 @@
 import { money } from "./billing.js";
+import { estimateDifference, methodComparison, validationLimits, validationMethod, validationSummary } from './forecastValidation.js';
 
 const PAGE_W = 595;
 const PAGE_H = 842;
@@ -93,6 +94,16 @@ function createPdfPages(data, month, period) {
     y += 18;
   };
 
+  const amountBar = (label, amount, maximum, color) => {
+    if (y + 48 > PAGE_H - 45) newPage();
+    text(label, MARGIN + 10, y + 12, 9, '0.28 0.34 0.43');
+    const value = fmt(amount);
+    text(value, PAGE_W - MARGIN - value.length * 5.5 - 10, y + 12, 10, '0.09 0.17 0.29', true);
+    rect(MARGIN + 10, y + 21, usableW - 20, 8, '0.94 0.96 0.98');
+    if (amount > 0) rect(MARGIN + 10, y + 21, (usableW - 20) * amount / maximum, 8, color);
+    y += 43;
+  };
+
   const snapshot = data.snapshot || {};
   const health = snapshot.collectionHealth || {};
   const rows = snapshot.rows || [];
@@ -138,13 +149,57 @@ function createPdfPages(data, month, period) {
   sectionTitle("Revenue trend", `Billed by billing period and collected by payment date · Through ${snapshot.cutoff || "-"}`);
   drawTable(["Period", "Billed (PHP)", "Collected (PHP)"], (data.series || []).map(point => [point.label, fmt(point.billed), fmt(point.value)]), [170, 170, 171], "No collection data.");
 
-  sectionTitle("Collection forecast", "Three-month simple moving average. Estimates are not guaranteed income.");
+  sectionTitle("Estimated Collections", "Based on the average collections from the previous three completed months.");
   const forecastMonth = monthTitle(data.forecastMonth || month);
   const forecastText = data.forecast == null
     ? 'Insufficient completed-month payment history'
     : fmt(data.forecast);
   drawTable(['Forecast period', 'Estimated collections'], [[forecastMonth, forecastText]], [230, 281]);
-  drawTable(['Source month', 'Recorded collections (PHP)'], (data.forecastMonths || []).map(point => [point.label, fmt(point.value)]), [230, 281], 'No forecast history.');
+  const sourceMaximum = Math.max(1, ...(data.forecastMonths || []).map(point => point.value));
+  for (const point of data.forecastMonths || []) amountBar(monthTitle(point.label), point.value, sourceMaximum, '0.14 0.36 0.89');
+  if (data.forecast != null) {
+    for (const part of wrap('Calculation: (' + (data.forecastMonths || []).map(point => fmt(point.value)).join(' + ') + ') / 3 = ' + fmt(data.forecast), 108)) { text(part, MARGIN, y + 9, 8, '0.38 0.44 0.53'); y += 12; }
+  }
+  text('This estimate may differ from actual collections.', MARGIN, y + 12, 8, '0.38 0.44 0.53');
+  y += 26;
+
+  const validation = data.forecastValidation;
+  sectionTitle('Forecast vs Actual', 'Historical backtesting. ' + validationSummary(validation));
+  if (validation) {
+    drawTable(['Measure', 'Result'], [
+      ['Completed targets through', monthTitle(validation.throughMonth)],
+      ['Months checked', validation.testedMonths],
+      ['Average difference (PHP)', validation.smaMae == null ? 'Not available' : fmt(validation.smaMae)],
+    ], [300, 211]);
+    if (validation.rows.length) {
+      const sorted = [...validation.rows].sort((a, b) => b.month.localeCompare(a.month));
+      const maximum = Math.max(1, ...sorted.flatMap(row => [row.forecast, row.actual]));
+      for (const row of sorted) {
+        if (y + 175 > PAGE_H - 45) newPage();
+        sectionTitle(monthTitle(row.month));
+        amountBar('Estimated', row.forecast, maximum, '0.14 0.36 0.89');
+        amountBar('Actually collected', row.actual, maximum, '0.05 0.58 0.53');
+        for (const part of wrap(estimateDifference(row), 108)) { text(part, MARGIN + 10, y + 9, 9, '0.09 0.17 0.29', true); y += 13; }
+        text('Sources: ' + row.sourceMonths.join(', '), MARGIN + 10, y + 10, 8, '0.38 0.44 0.53');
+        y += 30;
+      }
+      if (y + 190 > PAGE_H - 45) newPage();
+      sectionTitle('Compare forecasting methods', methodComparison(validation));
+      const methodMaximum = Math.max(1, validation.smaMae, validation.benchmarkMae);
+      amountBar('Three-month average: average difference', validation.smaMae, methodMaximum, '0.14 0.36 0.89');
+      amountBar('Use previous month: average difference', validation.benchmarkMae, methodMaximum, '0.39 0.45 0.55');
+      const amount = value => Number(value).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+      sectionTitle('Supporting figures', 'All amounts and differences are in PHP. Prior month is the previous-month benchmark.');
+      drawTable(['Target / sources', 'Estimate', 'Actual', 'Difference', 'Prior month', 'Prior diff.'], sorted.map(row => [
+        `${row.month} / ${row.sourceMonths.join(', ')}`, amount(row.forecast), amount(row.actual), amount(row.absoluteError), amount(row.benchmark), amount(row.benchmarkAbsoluteError),
+      ]), [126, 77, 77, 77, 77, 77]);
+    }
+    if (validation.skippedMonths.length) drawTable(['Excluded target', 'Reason'], validation.skippedMonths.map(row => [row.month,
+      row.reason === 'missing_actual' ? 'No actual payment records for the target month' : `No payment records for ${row.missingSources.join(', ')}`,
+    ]), [130, 381]);
+  }
+  sectionTitle('Method and limitations', validationMethod);
+  drawTable(['Scope', 'Interpretation'], [['Recorded history', validationLimits], ['Error', 'Absolute error = |forecast - actual|. MAE is the average absolute error across evaluated months, in PHP. No accuracy percentage is calculated.']], [130, 381]);
 
   const statusRows = ["Paid", "Partially paid", "Pending", "Late"].map(status => {
     const bills = periodRows.filter(bill => bill.status === status);
