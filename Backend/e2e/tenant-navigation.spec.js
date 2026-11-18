@@ -10,7 +10,7 @@ test('tenant navigation links all three pages and preserves the active page on r
   const mobile = testInfo.project.name === 'mobile-chrome';
   const nav = page.getByRole('navigation', { name: mobile ? 'Tenant mobile navigation' : 'Tenant navigation', exact: true });
   await expect(nav).toBeVisible();
-  await expect(nav.getByRole('button')).toHaveCount(3);
+  await expect(nav.getByRole('button')).toHaveCount(mobile ? 3 : 4);
   await expect(nav.getByRole('button', { name: 'Dashboard', exact: true })).toHaveAttribute('aria-current', 'page');
 
   await nav.getByRole('button', { name: 'Billing', exact: true }).click();

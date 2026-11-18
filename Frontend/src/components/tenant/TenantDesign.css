@@ -36,6 +36,10 @@
 .tenant-profile-menu button { display: flex; align-items: center; gap: 10px; width: 100%; min-height: 44px; padding: 10px 12px; border-radius: 10px; color: #be123c; font-size: 14px; font-weight: 600; }
 .tenant-profile-menu button:hover { background: #fff1f2; }
 .tenant-mobile-nav { display: none; }
+.tenant-rules-dialog { margin: auto; width: min(1200px, calc(100% - 32px)); max-width: none; max-height: calc(100dvh - 32px - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px)); padding: 0; border: 1px solid #dfe7f3; border-radius: 22px; background: white; color: #0f172a; box-shadow: 0 24px 80px rgb(15 23 42 / 24%); }
+.tenant-rules-dialog[open] { display: flex; flex-direction: column; }
+.tenant-rules-dialog::backdrop { background: rgb(15 23 42 / 40%); backdrop-filter: blur(3px); }
+.tenant-rules-launcher { bottom: calc(152px + env(safe-area-inset-bottom, 0px)); margin-right: 4px; }
 @media (max-width: 1023px) {
   .tenant-page { --tenant-gutter: 24px; }
   .tenant-header-inner { min-height: 68px; padding-block: 8px; }

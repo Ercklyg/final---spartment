@@ -8,6 +8,7 @@ import AdminHeader from "./components/admin/AdminHeader.jsx";
 import AdminSidebar from "./components/admin/AdminSidebar.jsx";
 import TenantSidebar from "./components/tenant/TenantSidebar.jsx";
 import TenantHeader from "./components/tenant/TenantHeader.jsx";
+import TenantRulesDialog from "./components/tenant/TenantRulesDialog.jsx";
 
 const LandingPage = lazy(() => import("./pages/LandingPage.jsx"));
 const GuestPage = lazy(() => import("./pages/GuestPage.jsx"));
@@ -65,6 +66,7 @@ function AdminPageFallback({ activePage, variant, onNavigate, onLogout }) {
 
 export default function App() {
   const [page, setPage] = useState("landing");
+  const [isRulesOpen, setIsRulesOpen] = useState(false);
   const [session, setSession] = useState(undefined);
   const [profile, setProfile] = useState(null);
   const [error, setError] = useState("");
@@ -151,13 +153,14 @@ export default function App() {
   if (profile?.role === "tenant") {
     const Page = tenantPages[page] || TenantDashboardPage;
     return <main key={userId} className="tenant-page flex min-h-screen text-slate-900">
-      <TenantSidebar activePage={tenantPages[page] ? page : 'tenant'} onNavigate={navigate}/>
+      <TenantSidebar activePage={tenantPages[page] ? page : 'tenant'} onNavigate={navigate} onOpenRules={() => setIsRulesOpen(true)}/>
       <div className="min-w-0 flex-1">
         <TenantHeader name={profile.full_name || 'Tenant'} activePage={page} onLogout={logout} onNavigate={navigate}/>
         <Suspense fallback={<div className="tenant-content tenant-content-loading"><PageSkeleton variant={skeletons[page] || 'dashboard'} label="Loading page..."/></div>}>
-          <Page onNavigate={navigate}/>
+          <Page onNavigate={navigate} onOpenRules={() => setIsRulesOpen(true)}/>
         </Suspense>
       </div>
+      <TenantRulesDialog open={isRulesOpen} onClose={() => setIsRulesOpen(false)}/>
     </main>;
   }
   return <PublicLanding onContinueAsGuest={() => navigate("guest")} onSignIn={signIn} />;

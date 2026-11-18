@@ -1,7 +1,9 @@
-import { MessagesSquare } from "lucide-react";
+import { ClipboardList, MessagesSquare } from "lucide-react";
 
-function TenantChatLauncher({ onOpen }) {
+function TenantChatLauncher({ onOpen, onOpenRules }) {
   return (
+    <>
+    {onOpenRules && <button type="button" onClick={onOpenRules} aria-label="Rules & Regulations" aria-haspopup="dialog" title="Rules & Regulations" className="tenant-rules-launcher fixed right-5 z-50 flex h-12 w-12 items-center justify-center rounded-full border border-blue-200 bg-white text-blue-600 shadow-lg transition hover:bg-blue-50 active:scale-95 sm:right-6 lg:hidden"><ClipboardList size={23} aria-hidden="true"/></button>}
     <button
       type="button"
       onClick={onOpen}
@@ -10,6 +12,7 @@ function TenantChatLauncher({ onOpen }) {
     >
       <MessagesSquare size={24} strokeWidth={1.9} />
     </button>
+    </>
   );
 }
 
