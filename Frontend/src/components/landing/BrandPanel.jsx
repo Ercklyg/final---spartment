@@ -57,12 +57,12 @@ function BrandPanel() {
               About
             </a>
 
-            <a
-              href="mailto:support@spartment.ph"
-              className="text-blue-100/75 transition hover:text-white"
+            <span
+              aria-disabled="true"
+              className="cursor-default text-blue-100/75"
             >
               Contact
-            </a>
+            </span>
           </nav>
         </header>
 
