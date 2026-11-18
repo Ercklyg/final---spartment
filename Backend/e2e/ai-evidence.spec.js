@@ -17,14 +17,20 @@ test('recommendation cards separate tenant evidence from property totals on desk
     {factId:'property:requests',actionId:'respond_to_requests'},
     {factId:'property:collections',actionId:'review_collections'},
   ],facts);
-  await page.route('**/api/analytics/recommendations',route=>route.fulfill({contentType:'application/json',body:JSON.stringify({items,updatedAt:'2026-11-19T00:00:00Z',fallback:false})}));
+  await page.route('**/api/analytics/recommendations',route=>route.fulfill({contentType:'application/json',body:JSON.stringify({items,updatedAt:'2026-11-19T00:00:00Z',fallback:false,cached:true})}));
   await page.goto('/');
   const panel=page.getByRole('region',{name:'Smart Recommendations'});
   const tenant=panel.getByRole('button',{name:/Discuss payment options/});
   await expect(tenant).toContainText('Corpuz Family · Building 2 / 202');
-  await expect(tenant).toContainText('Recorded: ₱5,319.00 overdue');
+  await expect(tenant.locator('strong')).toHaveText('₱5,319.00 overdue');
   await expect(tenant).toContainText('5 late bills in the last 6 months');
-  await expect(tenant).toContainText('Suggested action: Contact this tenant');
+  await expect(tenant).toContainText('Contact this tenant');
+  await expect(tenant.getByText('Payments',{exact:true})).toBeVisible();
+  await expect(panel.getByRole('button',{name:'Refresh insights',exact:true})).toBeVisible();
+  await expect(panel.getByText('Saved insights · Generated November 19, 2026 at 8:00 AM (Philippine time)',{exact:true})).toBeVisible();
+  await expect(panel.getByText('Available rooms',{exact:true})).toHaveCount(0);
+  await expect(panel.getByText('Unresolved requests and inquiries',{exact:true})).toHaveCount(0);
+  await expect(panel).not.toContainText('Suggested action:');
   await expect(tenant).not.toContainText('42,552');
   await expect(panel.getByRole('button',{name:/Promote available rooms/})).toContainText('₱18,000.00 potential monthly rent');
   await expect(panel).not.toContainText('loyalty');

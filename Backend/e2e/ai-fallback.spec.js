@@ -25,10 +25,10 @@ test('quota fallback survives reload and manual retry preserves cards until reco
   await page.goto('/');
   const panel = page.getByRole('region', { name: 'Smart Recommendations' });
   await expect(panel.getByText(items[0].title, { exact: true })).toBeVisible();
-  await panel.getByRole('button', { name: 'Provide Insight' }).click();
+  await panel.getByRole('button', { name: 'Refresh insights' }).click();
   const notice = 'AI usage limit reached. Showing the last generated recommendations from November 19, 2026 at 12:07 AM (Philippine time).';
   await expect(panel.getByRole('status')).toHaveText(notice);
-  await expect(panel.getByText('Saved AI recommendations', { exact: true })).toBeVisible();
+  await expect(panel.getByText('Saved AI recommendations', { exact: true })).toHaveCount(0);
   await expect(panel).not.toContainText('Last generated');
   await page.reload();
   await expect(panel.getByRole('status')).toHaveText(notice);
@@ -39,14 +39,14 @@ test('quota fallback survives reload and manual retry preserves cards until reco
   expect(await panel.evaluate(el => el.scrollWidth <= el.clientWidth)).toBe(true);
   recover = true;
   await panel.getByRole('button', { name: 'Try again' }).click();
-  await expect(panel.getByRole('button', { name: 'Generating...' })).toBeDisabled();
+  await expect(panel.getByRole('button', { name: 'Refreshing...' })).toBeDisabled();
   await expect(panel.getByText(items[0].title, { exact: true })).toBeVisible();
   await expect.poll(() => Boolean(release)).toBe(true);
   release();
   await expect(panel.getByText('Updated recommendations', { exact: true })).toBeVisible();
   await expect(panel.getByRole('status')).toHaveCount(0);
   await expect(panel).toContainText('November 19, 2026 at 10:00 AM (Philippine time)');
-  await expect(panel.getByRole('button', { name: 'Provide Insight' })).toBeEnabled();
+  await expect(panel.getByRole('button', { name: 'Refresh insights' })).toBeEnabled();
 });
 
 test('quota without saved recommendations has no invented cards or timestamp', async ({ page }) => {
@@ -74,7 +74,7 @@ test('temporary API failure retains the preview with a generic dated notice', as
   const panel = page.getByRole('region', { name: 'Smart Recommendations' });
   await expect(panel.getByText(items[0].title, { exact: true })).toBeVisible();
   fail = true;
-  await panel.getByRole('button', { name: 'Provide Insight' }).click();
+  await panel.getByRole('button', { name: 'Refresh insights' }).click();
   await expect(panel.getByRole('status')).toHaveText('AI insights are temporarily unavailable. Showing the last generated recommendations from November 19, 2026 at 12:07 AM (Philippine time).');
   await expect(panel.getByText(items[0].title, { exact: true })).toBeVisible();
 });

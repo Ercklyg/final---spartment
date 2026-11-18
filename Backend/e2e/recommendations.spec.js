@@ -2,7 +2,7 @@ import { test, expect } from '@playwright/test';
 import { mockAdminApi } from './helpers/mockApi.js';
 
 const insight = title => ({
-  items: [{ title, text: 'Review the property records.', category: 'insight', page: 'Billing' }],
+  items: [{ evidenceVersion: 1, factId: 'property:collections', actionId: 'review_collections', subject: 'Collections for 2026-11', evidence: '₱1,000.00 collected · ₱500.00 outstanding', title, text: 'Review the property records.', category: 'insight', page: 'Billing' }],
   updatedAt: new Date().toISOString(), source: 'ai', cached: false, stale: false,
 });
 
@@ -19,19 +19,19 @@ test('saved recommendations remain visible during a manual refresh and after a r
   });
   await page.goto('/');
   await expect(page.getByText('Saved recommendation', { exact: true })).toBeVisible();
-  await page.getByRole('button', { name: 'Provide Insight' }).click();
-  await expect(page.getByRole('status')).toContainText('Updating insights in the background');
+  await page.getByRole('button', { name: 'Refresh insights' }).click();
+  await expect(page.getByRole('status')).toContainText('Refreshing insights');
   await expect(page.getByText('Saved recommendation', { exact: true })).toBeVisible();
-  await expect(page.getByRole('button', { name: 'Generating...' })).toBeDisabled();
+  await expect(page.getByRole('button', { name: 'Refreshing...' })).toBeDisabled();
   await expect.poll(() => Boolean(release)).toBeTruthy();
   release();
   await expect(page.getByText('Updated recommendation', { exact: true })).toBeVisible();
   release = null;
   fail = true;
-  await page.getByRole('button', { name: 'Provide Insight' }).click();
+  await page.getByRole('button', { name: 'Refresh insights' }).click();
   await expect.poll(() => Boolean(release)).toBeTruthy();
   release();
-  await expect(page.getByText('AI insights are unavailable right now.', { exact: false })).toBeVisible();
+  await expect(page.getByText('AI insights are temporarily unavailable.', { exact: false })).toBeVisible();
   await expect(page.getByText('Updated recommendation', { exact: true })).toBeVisible();
 });
 
