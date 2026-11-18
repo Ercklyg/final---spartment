@@ -1,9 +1,12 @@
 import { readAll } from './readAll.js';
-import { serviceError } from '../middleware/errors.js';
+import { HttpError, serviceError } from '../middleware/errors.js';
 
 export async function submitTenantRequest(client,kind,form,id) {
   // The API authenticates the caller; the RPC enforces tenant authorization.
   const {error}=await client.rpc('submit_tenant_request',{p_id:id,p_kind:kind,p_subject:(kind==='maintenance'?form.issue:form.subject).trim(),p_message:(kind==='maintenance'?form.description:form.message).trim(),p_priority:kind==='maintenance'?form.priority:'Normal'});
+  if(kind==='maintenance'&&error?.code==='P0001'&&error.message==='An active room assignment is required'){
+    throw new HttpError(403,'You cannot submit a maintenance request because you do not have an active room assignment. You can still view your previous requests. Please contact the administrator if you believe this is incorrect.','active_assignment_required');
+  }
   if(error)throw serviceError(400,'Unable to submit the request. Please retry.',error);
 }
 export async function submitInquiry(client,form,id) {
