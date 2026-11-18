@@ -26,31 +26,36 @@ export default function LiveAdminDashboard({ onNavigate }) {
     aiRequest.current?.abort();
     const controller = new AbortController();
     aiRequest.current = controller;
-    setAi(prev => ({ ...prev, loading: true, error: '' }));
+    setAi(prev => ({ ...(prev.month === month ? prev : getRecommendationPreview(month)), month, loading: true, error: '' }));
     try {
       const load = fresh => api.post('/analytics/recommendations', { month, period: 'Monthly', force: fresh }, { signal: controller.signal, silent: true, timeoutMs: 20000 });
       const show = (result, loading) => {
         if (controller.signal.aborted) return;
-        if (result.fallback) throw new Error(result.reason || 'unavailable');
         saveRecommendationPreview(month, result);
         setAi({ ...result, month, loading, error: '' });
       };
       const result = await load(force);
-      show(result, !force && Boolean(result.refreshRecommended));
-      if (!force && result.refreshRecommended && !controller.signal.aborted) {
+      show(result, !force && !result.fallback && Boolean(result.refreshRecommended));
+      if (!force && !result.fallback && result.refreshRecommended && !controller.signal.aborted) {
         show(await load(true), false);
       }
-    } catch (requestError) {
+    } catch {
       if (controller.signal.aborted) return;
-      setAi(prev => ({ ...prev, loading: false, stale: Boolean(prev.items?.length), error: requestError.message || 'unavailable' }));
+      setAi(prev => {
+        const saved = prev.month === month ? prev : getRecommendationPreview(month) || {};
+        return { ...saved, month, loading: false, stale: true, fallback: true, reason: 'unavailable',
+          source: saved.items?.length ? 'cache' : 'none', refreshRecommended: false, error: '' };
+      });
     }
   }, [month]);
   useEffect(() => {
     // Start alongside analytics, rather than waiting for it and then fetching
     // the same report a second time before even checking saved insights.
-    void fetchAi();
-    return () => aiRequest.current?.abort();
+    let disposed = false;
+    queueMicrotask(() => { if (!disposed) void fetchAi(); });
+    return () => { disposed = true; aiRequest.current?.abort(); };
   }, [fetchAi]);
+  const shownAi = ai.month === month ? ai : { items: [], loading: true };
   return <>
     <AdminHero selectedMonth={month} availableMonths={data?.availableMonths || []} onMonthChange={handleMonthChange} />
     {data && !data.availableMonths?.length && <p role="status" className="mb-4 text-sm text-slate-500">No recorded bills or payments yet. Reporting months become available when financial records are saved.</p>}
@@ -61,7 +66,7 @@ export default function LiveAdminDashboard({ onNavigate }) {
           <AdminAttention snapshot={data.snapshot} onNavigate={onNavigate} />
           <AdminNotifications key={data.loadedAt} />
           <AdminMetrics snapshot={data.snapshot} onNavigate={onNavigate} />
-          <SmartRecommendations onNavigate={onNavigate} aiItems={ai.items} aiLoading={ai.loading} aiError={ai.error} aiUpdatedAt={ai.updatedAt} aiCached={ai.cached} aiStale={ai.stale} aiSource={ai.source} onRefreshAi={() => fetchAi(true)} />
+          <SmartRecommendations onNavigate={onNavigate} aiItems={shownAi.items} aiLoading={shownAi.loading} aiError={shownAi.error} aiUpdatedAt={shownAi.updatedAt} aiCached={shownAi.cached} aiSource={shownAi.source} aiFallback={shownAi.fallback} aiReason={shownAi.reason} onRefreshAi={() => fetchAi(true)} />
           <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3 text-[11px] text-slate-500 shadow-sm sm:text-xs">
             <p>Dashboard updated {new Date(data.loadedAt).toLocaleString('en-PH')}</p>
             <button disabled={loading} onClick={reload} className="rounded-lg border border-slate-200 px-3 py-1.5 font-semibold text-blue-600 hover:bg-blue-50 disabled:opacity-50">{loading ? "Refreshing..." : "Refresh dashboard"}</button>
