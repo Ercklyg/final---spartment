@@ -8,7 +8,7 @@
     "node": ">=22.0.0"
   },
   "scripts": {
-    "test:ai-recommendations": "node --test models/savedAiRecommendations.test.js services/aiRecommendations.test.js",
+    "test:ai-recommendations": "node --test models/savedAiRecommendations.test.js services/recommendationFacts.test.js services/aiRecommendations.test.js",
     "test:announcements": "node --test models/announcements.test.js services/announcements.test.js",
     "test:email-change": "node --test models/emailChange.test.js services/emailChange.test.js services/emailChangeEdge.test.js services/emailChangeMail.test.js",
     "supabase": "supabase",

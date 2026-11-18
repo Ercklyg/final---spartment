@@ -1,4 +1,6 @@
-const TIMEOUT_MS = 6000;
+// Normal Gemini responses can take more than six seconds. Allow enough time
+// for generation while keeping each primary/fallback attempt bounded.
+const TIMEOUT_MS = 15000;
 
 async function requestOnce({ apiKey, model, prompt }) {
   const url = 'https://generativelanguage.googleapis.com/v1beta/models/' + encodeURIComponent(model) + ':generateContent';

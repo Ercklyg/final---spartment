@@ -28,7 +28,8 @@ export default function LiveAdminDashboard({ onNavigate }) {
     aiRequest.current = controller;
     setAi(prev => ({ ...(prev.month === month ? prev : getRecommendationPreview(month)), month, loading: true, error: '' }));
     try {
-      const load = fresh => api.post('/analytics/recommendations', { month, period: 'Monthly', force: fresh }, { signal: controller.signal, silent: true, timeoutMs: 20000 });
+      // Two bounded 15-second model attempts, plus report and storage work.
+      const load = fresh => api.post('/analytics/recommendations', { month, period: 'Monthly', force: fresh }, { signal: controller.signal, silent: true, timeoutMs: 40000 });
       const show = (result, loading) => {
         if (controller.signal.aborted) return;
         saveRecommendationPreview(month, result);

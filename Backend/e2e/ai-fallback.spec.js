@@ -1,7 +1,7 @@
 import { test, expect } from '@playwright/test';
 import { mockAdminApi } from './helpers/mockApi.js';
 
-const items = [{ title: 'Review open requests', text: 'Review the four pending maintenance requests.', category: 'attention', page: 'requests' }];
+const items = [{ evidenceVersion: 1, factId: 'property:requests', actionId: 'respond_to_requests', subject: 'Unresolved requests and inquiries', evidence: '4 unresolved tenant requests · 1 guest inquiry', title: 'Review unresolved requests', text: 'Review unresolved tenant requests and guest inquiries, then provide appropriate updates.', category: 'attention', page: 'Customer Requests' }];
 const originalDate = '2026-11-18T16:07:00Z';
 const result = (overrides = {}) => ({ items, updatedAt: originalDate, fallback: false, reason: null, source: 'ai', cached: false, refreshRecommended: false, ...overrides });
 const respond = (route, body) => route.fulfill({ contentType: 'application/json', body: JSON.stringify(body) });

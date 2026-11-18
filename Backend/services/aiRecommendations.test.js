@@ -2,11 +2,13 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { recommendations } from './aiRecommendations.js';
 import { generateContent } from '../models/gemini.js';
+import { ACTIONS } from './recommendationFacts.js';
 import { getRecommendationPreview, saveRecommendationPreview, clearRecommendationPreviews, formatInsightDate, recommendationFallbackMessage } from '../../Frontend/src/lib/aiRecommendations.js';
 
-const snapshot = { cutoff: '2026-01-31', occupancy: 70, collected: 100, rows: [], late: [] };
-const item = { title: 'Review collections', text: 'Review the 100 collected this month.', category: 'insight' };
-const success = () => new Response(JSON.stringify({ candidates: [{ content: { parts: [{ text: JSON.stringify([item]) }] } }] }));
+const snapshot = { cutoff: '2026-01-31', occupancy: 70, collected: 100, outstanding: 0, rows: [], late: [] };
+const selection = { factId: 'property:collections', actionId: 'review_collections' };
+const item = { evidenceVersion: 1, ...selection, title: ACTIONS.review_collections.title, text: ACTIONS.review_collections.text, category: 'insight', subject: 'Collections for 2026-01', evidence: '₱100.00 collected' };
+const success = (items = [selection]) => new Response(JSON.stringify({ candidates: [{ content: { parts: [{ text: JSON.stringify(items) }] } }] }));
 function enableTestAi(t) {
   const previous = { AI_RECOMMENDATIONS_ENABLED: process.env.AI_RECOMMENDATIONS_ENABLED, GEMINI_API_KEY: process.env.GEMINI_API_KEY };
   process.env.AI_RECOMMENDATIONS_ENABLED = 'true'; process.env.GEMINI_API_KEY = 'test-only';
@@ -107,7 +109,7 @@ test('saved recommendations are isolated by account, month and reporting period'
   await assert.rejects(recommendations({...req,role:'tenant'}),error=>error.status===403);
 });
 
-test('provider attempts remain bounded and a slow attempt is aborted after six seconds', async t => {
+test('provider attempts remain bounded and a slow attempt is aborted after fifteen seconds', async t => {
   enableTestAi(t); let calls=0;
   t.mock.method(globalThis,'fetch',async()=>{ calls++; return new Response('{}',{status:503}); });
   const result=await recommendations(request('busy'));
@@ -115,7 +117,59 @@ test('provider attempts remain bounded and a slow attempt is aborted after six s
   t.mock.timers.enable({apis:['setTimeout']});
   t.mock.method(globalThis,'fetch',async(_url,{signal})=>new Promise((_resolve,reject)=>signal.addEventListener('abort',()=>reject(signal.reason),{once:true})));
   const promise=generateContent({apiKey:'test-only',model:'test',prompt:'test'});
-  const rejected=assert.rejects(promise,{name:'AbortError'}); t.mock.timers.tick(6000); await rejected;
+  const rejected=assert.rejects(promise,{name:'AbortError'});
+  t.mock.timers.tick(14999);
+  t.mock.timers.tick(1); await rejected;
+});
+
+test('a valid seven-second Gemini response is allowed to finish', async t => {
+  t.mock.timers.enable({apis:['setTimeout']});
+  let requestSignal;
+  t.mock.method(globalThis,'fetch',async(_url,{signal}) => {
+    requestSignal=signal;
+    return new Promise((resolve,reject) => {
+      signal.addEventListener('abort',()=>reject(signal.reason),{once:true});
+      setTimeout(()=>resolve(success()),7000);
+    });
+  });
+  const promise=generateContent({apiKey:'test-only',model:'test',prompt:'test'});
+  t.mock.timers.tick(6000);
+  assert.equal(requestSignal.aborted,false);
+  t.mock.timers.tick(1000);
+  assert.deepEqual(JSON.parse(await promise),[selection]);
+});
+
+test('unsupported AI associations cannot replace saved evidence-backed cards', async t => {
+  enableTestAi(t);
+  const fetchMock=t.mock.method(globalThis,'fetch',async()=>success());
+  const req=request('unsupported'); const first=await recommendations(req);
+  for (const output of [
+    [{factId:'tenant:invented',actionId:'discuss_payment_options'}],
+    [{...selection, text:'Corpuz Family owes 42552'}],
+    [{...selection,actionId:'discuss_payment_options'}],
+    [{title:'Loyalty discount',text:'Give a discount',category:'insight'}],
+  ]) {
+    fetchMock.mock.mockImplementation(async()=>success(output));
+    const result=await recommendations({...req,body:{...req.body,force:true}});
+    assert.equal(result.fallback,true); assert.deepEqual(result.items,first.items); assert.equal(result.updatedAt,first.updatedAt);
+  }
+});
+
+test('legacy free-text cache is replaced on success and never exposed on failure', async t => {
+  enableTestAi(t);
+  const records=new Map();
+  const req=request('legacy',records);
+  const key='legacy|2026-01-01|Monthly';
+  const legacy={items:[{title:'Old unverified claim',text:'Corpuz Family has 37 accounts',category:'warning',page:'Billing'}],generated_at:'2026-01-01T00:00:00Z'};
+  records.set(key,legacy);
+  const fetchMock=t.mock.method(globalThis,'fetch',async()=>success());
+  const current=await recommendations(req);
+  assert.equal(current.items[0].evidenceVersion,1); assert.equal(fetchMock.mock.callCount(),1);
+  records.set(key,legacy);
+  fetchMock.mock.mockImplementation(async()=>new Response('{}',{status:429}));
+  const failed=await recommendations(req);
+  assert.deepEqual(failed.items,[]); assert.equal(failed.updatedAt,null); assert.equal(failed.reason,'quota');
+  await recommendations(req); assert.equal(fetchMock.mock.callCount(),2);
 });
 
 test('client previews preserve failure metadata and dates, separate periods and clear across account changes',()=>{

@@ -3,143 +3,18 @@ import { report } from '../models/reports.js';
 import { generateContent } from '../models/gemini.js';
 import * as validate from './validation.js';
 import { today } from '../models/billing.js';
+import { buildRecommendationFacts, recommendationPrompt, assembleRecommendations, hasVerifiedEvidence } from './recommendationFacts.js';
 import { loadSavedRecommendations, saveRecommendations, saveRecommendationFailure } from '../models/savedAiRecommendations.js';
 
 const CACHE_TTL_MS = 12 * 60 * 60 * 1000;
 const pending = new Map();
 
-const CATEGORIES = ['warning', 'opportunity', 'attention', 'insight'];
-const PAGES = ['Billing', 'Rooms', 'Tenants', 'Customer Requests'];
-const CATEGORY_PAGE = { warning: 'Billing', opportunity: 'Rooms', attention: 'Customer Requests', insight: 'Billing' };
-function buildPayload(snapshot, month) {
-  const late = [...(snapshot.late || [])].sort((a, b) => b.balance - a.balance).slice(0, 10)
-    .map(b => ({ name: b.name, room: b.room, balance: b.balance, due_date: b.due_date }));
-  const repeat = (snapshot.collectionHealth?.repeatLatePayers || []).slice(0, 5)
-    .map(t => ({ name: t.name, room: t.room, lateBills: t.lateBillCount, overdue: t.overdueBalance }));
-  return {
-    month,
-    cutoff: snapshot.cutoff,
-    overdue: snapshot.overdue,
-    outstanding: snapshot.outstanding,
-    collected: snapshot.collected,
-    occupancy: Math.round((snapshot.occupancy || 0) * 10) / 10,
-    availableRooms: snapshot.available,
-    vacancyGap: snapshot.vacancyGap,
-    lateCount: (snapshot.late || []).length,
-    topOverdue: late,
-    repeatLatePayers: repeat,
-    openRequests: (snapshot.openRequests || []).length,
-    openInquiries: (snapshot.openInquiries || []).length,
-  };
-}
-
-function buildPrompt(payload) {
-  return [
-    'You are an apartment operations assistant. Recommend up to 4 useful actions for the admin.',
-    'Write every item as a constructive recommendation, not as an alert or warning. Lead with the action the admin can take.',
-    'Use calm, supportive language. Mention the supporting number after the recommended action.',
-    'Rules: use ONLY tenant names from the input; never invent names, amounts, or rooms.',
-    'Each item needs a concrete number and one action. Titles max 60 chars, texts max 140 chars.',
-    'Cover only conditions present in the data: overdue/late = "warning", vacant rooms = "opportunity",',
-    'pending requests/inquiries = "attention", collections/occupancy summary = "insight". Omit empty categories.',
-    'When late bills or repeat late payers exist, recommend a supportive admin check-in and suggest discussing',
-    'optional installments or a due-date adjustment as a case-by-case way to help the tenant catch up and support retention.',
-    'Frame this only as an option for the admin to discuss: do not claim payment plans are built into the system,',
-    'promise approval, or invent payment policies. Use repeatLatePayers for named repeat-late cases.',
-    'If a tenant has every bill Paid across 6 or more bills, include an "insight" celebrating them by name',
-    'with their settled count and suggest a loyalty discount this month.',
-    'Return a bare JSON array, no markdown: [{"title":"...","text":"...","category":"warning|opportunity|attention|insight"}].',
-    'Data: ' + JSON.stringify(payload),
-  ].join(' ');
-}
-
-const peso = value => new Intl.NumberFormat('en-PH', { style: 'currency', currency: 'PHP' }).format(Number(value) || 0);
-
-export function consistentPayers(rows) {
-  const byName = new Map();
-  for (const b of rows || []) {
-    const entry = byName.get(b.name) || { name: b.name, total: 0, paid: 0 };
-    entry.total += 1;
-    if ((b.balance || 0) <= 0.005) entry.paid += 1;
-    byName.set(b.name, entry);
-  }
-  return [...byName.values()]
-    .filter(e => e.total >= 6 && e.paid === e.total && e.name && e.name !== 'Unknown tenant')
-    .sort((a, b) => b.total - a.total || a.name.localeCompare(b.name))
-    .slice(0, 2);
-}
-
-export function buildLocalInsights(snapshot, month) {
-  const items = [];
-  const late = [...(snapshot.late || [])].sort((a, b) => b.balance - a.balance);
-  if ((snapshot.overdue || 0) > 0 && late.length) {
-    const repeat = (snapshot.collectionHealth?.repeatLatePayers || [])
-      .filter(t => t.name && t.name !== 'Unknown tenant')
-      .sort((a, b) => (b.lateBillCount || 0) - (a.lateBillCount || 0))[0];
-    items.push(repeat ? {
-      title: `Offer ${repeat.name} a payment check-in`,
-      text: `Consider discussing installments or a due-date change; ${repeat.lateBillCount} bills currently need follow-up.`,
-      category: 'warning', page: 'Billing',
-    } : {
-      title: `Schedule payment follow-ups`,
-      text: `Consider flexible options case by case for ${late.length} bill${late.length === 1 ? '' : 's'} totaling ${peso(snapshot.overdue)}.`,
-      category: 'warning', page: 'Billing',
-    });
-  }
-  for (const star of consistentPayers(snapshot.rows).slice(0, 1)) {
-    items.push({
-      title: `${star.name} never missed a bill`,
-      text: `${star.paid}/${star.total} bills settled. Consider a loyalty discount.`,
-      category: 'insight', page: 'Billing',
-    });
-  }
-  if ((snapshot.available || 0) > 0) {
-    items.push({
-      title: `${snapshot.available} vacant room${snapshot.available === 1 ? '' : 's'} ready`,
-      text: `${peso(snapshot.vacancyGap)} in monthly rates idle. Review listings.`,
-      category: 'opportunity', page: 'Rooms',
-    });
-  }
-  const requests = (snapshot.openRequests || []).length;
-  const inquiries = (snapshot.openInquiries || []).length;
-  if (requests + inquiries > 0 && items.length < 3) {
-    items.push({
-      title: `${requests + inquiries} request${requests + inquiries === 1 ? '' : 's'} need review`,
-      text: `${requests} tenant, ${inquiries} guest. Respond to unblock tenants.`,
-      category: 'attention', page: 'Customer Requests',
-    });
-  }
-  const requestNote = requests + inquiries > 0 ? ` ${requests + inquiries} requests await review.` : '';
-  items.push({
-    title: `${month} at ${peso(snapshot.collected)}`,
-    text: `Occupancy ${Math.round(snapshot.occupancy || 0)}%. Outstanding ${peso(snapshot.outstanding)}.${requestNote}`,
-    category: 'insight', page: 'Billing',
-  });
-  return items.slice(0, 4);
-}
-function sanitize(raw, allowedNames) {  if (!Array.isArray(raw)) return [];
-  const items = [];
-  for (const entry of raw) {
-    if (!entry || typeof entry.title !== 'string' || typeof entry.text !== 'string') continue;
-    const category = CATEGORIES.includes(entry.category) ? entry.category : null;
-    if (!category) continue;
-    const title = entry.title.trim().slice(0, 60);
-    const text = entry.text.trim().slice(0, 140);
-    if (!title || !text) continue;
-    const page = PAGES.includes(entry.page) ? entry.page : CATEGORY_PAGE[category];
-    items.push({ title, text, category, page });
-    if (items.length >= 4) break;
-  }
-  void allowedNames;
-  return items;
-}
-
 function savedResult(saved, { cached = true, cutoff } = {}) {
-  const items = saved?.items || [];
+  const items = (saved?.items || []).filter(hasVerifiedEvidence);
   const failure = saved?.last_failure || null;
   const stale = Boolean(failure) || !saved?.generated_at || Date.parse(saved.generated_at) + CACHE_TTL_MS <= Date.now() || saved.reporting_cutoff !== cutoff;
   return { items, fallback: Boolean(failure), reason: failure, source: items.length ? (failure ? 'cache' : 'ai') : 'none',
-    updatedAt: saved?.generated_at || null, cached: items.length ? cached || Boolean(failure) : false, stale,
+    updatedAt: items.length ? saved?.generated_at || null : null, cached: items.length ? cached || Boolean(failure) : false, stale,
     refreshRecommended: !failure && Boolean(items.length) && stale };
 }
 
@@ -155,7 +30,9 @@ export async function recommendations(req) {
   // Read durable state even on a warm server so another instance's limit
   // response cannot be hidden by an older in-memory successful result.
   const saved = await loadSavedRecommendations(req.db, req.user.id, month, period);
-  if (enabled && body.force !== true && saved) return savedResult(saved, { cutoff });
+  // Older free-text cards are not evidence-checked and must never be reused.
+  const legacy = saved?.items?.length && !saved.items.every(hasVerifiedEvidence);
+  if (enabled && body.force !== true && saved && (!legacy || saved.last_failure)) return savedResult(saved, { cutoff });
   const key = req.user.id + '|' + month + '|' + period + '|' + cutoff;
   if (pending.has(key)) return pending.get(key);
   const startedAt = new Date(Date.now()).toISOString();
@@ -174,8 +51,9 @@ async function generateRecommendations(req, scope) {
     const data = await report(req.db, 'analytics_report', { p_month: month + '-01', p_period: period, p_export: false });
     snapshot = data.snapshot;
   } catch { return fail('unavailable'); }
-  const payload = buildPayload(snapshot, month);
-  const prompt = buildPrompt(payload);
+  const facts = buildRecommendationFacts(snapshot, month);
+  if (!facts.length) return fail('unavailable');
+  const prompt = recommendationPrompt(facts, month, snapshot.cutoff);
   const models = [...new Set([process.env.AI_MODEL || 'gemini-3.5-flash-lite', process.env.AI_FALLBACK_MODEL || 'gemini-flash-lite-latest'])];
   let rawText = null, lastError = null;
   for (const model of models) {
@@ -192,8 +70,7 @@ async function generateRecommendations(req, scope) {
   }
   let parsed;
   try { parsed = JSON.parse(rawText); } catch { return fail('unavailable'); }
-  const allowedNames = new Set([...payload.topOverdue.map(t => t.name), ...payload.repeatLatePayers.map(t => t.name)]);
-  const items = sanitize(parsed, allowedNames);
+  const items = assembleRecommendations(parsed, facts);
   if (!items.length) return fail('unavailable');
   const saved = await saveRecommendations(req.db, { ...scope, items });
   return savedResult(saved, { cached: false, cutoff });

@@ -5,9 +5,10 @@ export const loadAiRecommendations = (client, month, period = 'Monthly', force =
 // api.js clears this cache when signing in/out or switching accounts.
 const previews = new Map();
 const previewKey = (month, period) => month + '|' + period;
+export const hasRecommendationEvidence = item => item?.evidenceVersion === 1 && typeof item.subject === 'string' && typeof item.evidence === 'string';
 export const getRecommendationPreview = (month, period = 'Monthly') => previews.get(previewKey(month, period)) || null;
 export function saveRecommendationPreview(month, result, period = 'Monthly') {
-  previews.set(previewKey(month, period), { ...result, cached: true });
+  previews.set(previewKey(month, period), { ...result, items: (result.items || []).filter(hasRecommendationEvidence), cached: true });
 }
 export const clearRecommendationPreviews = () => previews.clear();
 

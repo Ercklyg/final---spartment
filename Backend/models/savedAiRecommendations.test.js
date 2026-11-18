@@ -56,6 +56,14 @@ test('a failure without saved insights stores no fabricated generation date or r
   assert.equal(failed.last_failure, 'quota'); assert.equal((await savedRows()).length, 1);
 });
 
+test('evidence-backed cards survive database storage and provider failures without losing source identifiers', async () => {
+  const card={...items[0],evidenceVersion:1,factId:'tenant:'+tenant,actionId:'follow_up_tenant',tenantId:tenant,subject:'Test Tenant',room:'Main / 101',evidence:'₱5,319.00 overdue · 5 late bills in the last 6 months'};
+  const original=await save({data:[card]});
+  assert.deepEqual(original.items,[card]);
+  const failed=await fail();
+  assert.deepEqual(failed.items,[card]); assert.equal(failed.generated_at,original.generated_at);
+});
+
 test('successful refresh replaces cards and clears the failure while keeping only one result for the scope', async () => {
   await save(); await fail();
   const updated = await save({ data: [{ ...items[0], title: 'Updated recommendation' }], started: '2026-11-19T00:03:00Z' });
