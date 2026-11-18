@@ -1,6 +1,10 @@
 import { today } from './billing.js';
 import { readAll } from './readAll.js';
 
+const billMonth = payment => String(payment.bills?.billing_period ?? payment.billing_period ?? '').slice(0, 7);
+const receivedBy = (payment, asOf) => !payment.payment_date || payment.payment_date <= asOf;
+const paymentColumns = 'amount,payment_date,bills!inner(billing_period)';
+
 // The selected month is the forecast target. Never use an incomplete month
 // as source history, even if an API caller requests a future report month.
 export function forecastWindow(month, asOf = today()) {
@@ -14,7 +18,7 @@ export function forecastWindow(month, asOf = today()) {
 export function collectionForecast(payments, month, asOf = today()) {
   const { forecastMonth, labels } = forecastWindow(month, asOf);
   const forecastMonths = labels.map(label => {
-    const rows = payments.filter(payment => String(payment.payment_date).slice(0, 7) === label);
+    const rows = payments.filter(payment => billMonth(payment) === label && receivedBy(payment, asOf));
     const cents = rows.reduce((sum, payment) => sum + Math.round(Number(payment.amount) * 100), 0);
     return { label, value: cents / 100, paymentCount: rows.length };
   });
@@ -27,8 +31,9 @@ export function collectionForecast(payments, month, asOf = today()) {
 
 export async function loadCollectionForecast(client, month, asOf = today()) {
   const { sourceStart, sourceEnd } = forecastWindow(month, asOf);
-  const payments = await readAll(() => client.from('payments').select('amount,payment_date')
-    .gte('payment_date', sourceStart).lt('payment_date', sourceEnd).order('payment_date').order('id'));
+  const payments = await readAll(() => client.from('payments').select(paymentColumns)
+    .gte('bills.billing_period', sourceStart).lt('bills.billing_period', sourceEnd)
+    .lte('payment_date', asOf).order('id'));
   return collectionForecast(payments, month, asOf);
 }
 
@@ -44,8 +49,8 @@ export function forecastValidation(payments, month, asOf = today()) {
   const throughMonth = month < currentMonth ? month : shiftMonth(currentMonth, -1);
   const totals = new Map();
   for (const payment of payments) {
-    const label = String(payment.payment_date).slice(0, 7);
-    if (label > throughMonth) continue;
+    const label = billMonth(payment);
+    if (!/^\d{4}-\d{2}$/.test(label) || label > throughMonth || !receivedBy(payment, asOf)) continue;
     const value = totals.get(label) || { cents: 0, count: 0 };
     value.cents += Math.round(Number(payment.amount) * 100);
     value.count++;
@@ -81,7 +86,7 @@ export async function loadForecastReport(client, month, asOf = today()) {
   const end = (target < asOf.slice(0, 7) ? shiftMonth(target, 1) : target) + '-01';
   // One paginated history read serves both the current SMA and all eligible
   // backtests. The selected historical month is the latest permitted target.
-  const payments = await readAll(() => client.from('payments').select('amount,payment_date')
-    .lt('payment_date', end).order('payment_date').order('id'));
+  const payments = await readAll(() => client.from('payments').select(paymentColumns)
+    .lt('bills.billing_period', end).lte('payment_date', asOf).order('id'));
   return { ...collectionForecast(payments, month, asOf), forecastValidation: forecastValidation(payments, month, asOf) };
 }

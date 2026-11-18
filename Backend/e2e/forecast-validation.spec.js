@@ -3,7 +3,7 @@ import { mockAdminApi } from './helpers/mockApi.js';
 import { collectionForecast, forecastValidation } from '../models/collectionForecast.js';
 
 test('analytics shows retrospective SMA validation, matching benchmark, pagination, exclusions and PDF export', async ({ page }, testInfo) => {
-  const history = Array.from({ length: 10 }, (_, index) => ({ payment_date: `2026-${String(index + 1).padStart(2, '0')}-15`, amount: (index + 1) * 1000 }));
+  const history = Array.from({ length: 10 }, (_, index) => ({ billing_period: `2026-${String(index + 1).padStart(2, '0')}-15`, amount: (index + 1) * 1000 }));
   const analyticsData = { ...collectionForecast(history, '2026-11', '2026-11-18'), forecastValidation: forecastValidation(history, '2026-11', '2026-11-18') };
   await mockAdminApi(page, { startAuthenticated: true, analyticsData });
   const errors = [];
@@ -75,7 +75,7 @@ test('analytics shows retrospective SMA validation, matching benchmark, paginati
   expect(content).toContain('Months checked');
 
   await dashboard.getByRole('button',{name:'View backtesting report'}).click();
-  analyticsData.forecastValidation = forecastValidation(history.filter(row => row.payment_date.slice(0, 7) !== '2026-08'), '2026-11', '2026-11-18');
+  analyticsData.forecastValidation = forecastValidation(history.filter(row => row.billing_period.slice(0, 7) !== '2026-08'), '2026-11', '2026-11-18');
   await report.getByRole('button',{name:'Close backtesting report'}).click();
   await page.getByRole('button', { name: 'Refresh', exact: true }).click();
   await dashboard.getByRole('button',{name:'View backtesting report'}).click();
@@ -103,8 +103,8 @@ test('single-month comparisons explain below, above, exact and zero collections 
   await page.locator('button[aria-label="Analytics & Reports"]:visible').click();
   const report = page.getByRole('region', { name: 'Forecast vs Actual', exact: true });
   for (const [actual, description] of [[900, 'below actual collections'], [300, 'above actual collections'], [600, 'matched actual collections'], [0, 'above actual collections']]) {
-    const rows = ['07', '08', '09'].map(month => ({ payment_date: `2026-${month}-15`, amount: 600 }));
-    rows.push({ payment_date: '2026-10-15', amount: actual });
+    const rows = ['07', '08', '09'].map(month => ({ billing_period: `2026-${month}-15`, amount: 600 }));
+    rows.push({ billing_period: '2026-10-15', amount: actual });
     Object.assign(analyticsData, collectionForecast(rows, '2026-11', '2026-11-18'), { forecastValidation: forecastValidation(rows, '2026-11', '2026-11-18') });
     await page.getByRole('button', { name: 'Refresh', exact: true }).click();
     await expect(report).toContainText('Based on 1 completed month.');
@@ -130,4 +130,40 @@ test('single-month comparisons explain below, above, exact and zero collections 
   await forecast.getByText('How this is calculated', { exact: true }).click();
   await expect(forecast).not.toContainText('AI is not used in the computation.');
   await expect(forecast).toContainText('÷ 3');
+});
+
+test('paying an October bill in November updates October forecast history on return to analytics', async ({ page }) => {
+  const history = [7, 8, 9, 10].map((month, index) => ({
+    bills: { billing_period: `2026-${String(month).padStart(2, '0')}-01` },
+    payment_date: `2026-${String(month).padStart(2, '0')}-15`, amount: [150, 300, 600, 900][index],
+  }));
+  const analyticsData = {};
+  const update = () => Object.assign(analyticsData, collectionForecast(history, '2026-11', '2026-11-18'), { forecastValidation: forecastValidation(history, '2026-11', '2026-11-18') });
+  update();
+  await mockAdminApi(page, { startAuthenticated: true, analyticsData });
+  let saved = false;
+  await page.route('**/api/billing/payments', async route => {
+    const body = route.request().postDataJSON();
+    expect(body.billId).toBe('77777777-7777-4777-8777-777777777777');
+    expect(body.form.date).toBe('2026-11-18');
+    history.push({ bills: { billing_period: '2026-10-01' }, payment_date: body.form.date, amount: Number(body.form.amount) });
+    update(); saved = true;
+    await route.fallback();
+  });
+  await page.goto('/');
+  await page.locator('button[aria-label="Analytics & Reports"]:visible').click();
+  const forecast = page.getByRole('region', { name: 'Estimated Collections', exact: true });
+  await expect(forecast).toContainText('₱600.00');
+  await page.locator('button[aria-label="Billing"]:visible').click();
+  await page.getByLabel('Month', { exact: true }).fill('2026-10');
+  await page.getByRole('button', { name: 'Record payment', exact: true }).first().click();
+  const payment = page.getByRole('dialog', { name: 'Record payment', exact: true });
+  await payment.getByLabel('Payment date', { exact: true }).fill('2026-11-18');
+  await payment.getByRole('button', { name: 'Save payment', exact: true }).click();
+  await expect(payment).toBeHidden();
+  expect(saved).toBe(true);
+  await page.locator('button[aria-label="Analytics & Reports"]:visible').click();
+  await expect(forecast).toContainText('₱1,433.33');
+  await expect(forecast).toContainText('₱3,400.00');
+  await expect(forecast).toContainText('Payments count toward the bill month, even if received later.');
 });

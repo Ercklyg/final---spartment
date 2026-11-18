@@ -13,7 +13,7 @@ test('collections forecast shows a consistent target history and insufficient-hi
   await page.goto('/');
   await adminNavigationButton(page,'Analytics & Reports').click();
   const forecast=page.getByRole('region',{name:'Estimated Collections'});
-  await expect(forecast).toContainText('Based on the average collections from the previous three completed months.');
+  await expect(forecast).toContainText('Based on payments applied to the previous three completed bill months.');
   await expect(forecast).toContainText('₱600.00');
   await expect(forecast).toContainText('Aug 26');
   await expect(forecast).toContainText('Sep 26');

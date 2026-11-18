@@ -149,7 +149,7 @@ function createPdfPages(data, month, period) {
   sectionTitle("Revenue trend", `Billed by billing period and collected by payment date · Through ${snapshot.cutoff || "-"}`);
   drawTable(["Period", "Billed (PHP)", "Collected (PHP)"], (data.series || []).map(point => [point.label, fmt(point.billed), fmt(point.value)]), [170, 170, 171], "No collection data.");
 
-  sectionTitle("Estimated Collections", "Based on the average collections from the previous three completed months.");
+  sectionTitle("Estimated Collections", "Average payments applied to the previous three completed bill months. Payments count toward the bill month, even if received later.");
   const forecastMonth = monthTitle(data.forecastMonth || month);
   const forecastText = data.forecast == null
     ? 'Insufficient completed-month payment history'
@@ -235,7 +235,7 @@ function createPdfPages(data, month, period) {
     ["Collected", "Recorded payments grouped by payment date; a payment may settle an older bill."],
     ["Outstanding", "Bill total less recorded payments as of the report cutoff."],
     ["Overdue", "Outstanding balance on bills whose due date is before the report cutoff."],
-    ["Forecast", "Simple average of recorded collections in the three completed source months; not guaranteed income."],
+    ["Forecast", "Average payments applied to the three completed source bill months, including payments received later; not guaranteed income. Forecast comparisons follow bill months, while the revenue trend follows payment dates."],
     ["Inventory", "Current room status and not a historical snapshot for the selected period."],
   ], [130, 381]);
 

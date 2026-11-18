@@ -239,7 +239,7 @@ const AnalyticsReport = memo(function AnalyticsReport({ data, month, period }) {
           <p className={"analytics-forecast-number" + (forecast === null ? " analytics-forecast-number--muted" : "")} aria-live="polite">{forecast === null ? "Not enough history" : money(forecast)}</p>
           <p className="analytics-muted">{forecastLabel}</p>
         </div>
-        <p className="analytics-footnote">Based on the average collections from the previous three completed months.</p>
+        <p className="analytics-footnote">Based on payments applied to the previous three completed bill months. Payments count toward the bill month, even if received later.</p>
         <div className="analytics-forecast-months forecast-exact-months" aria-label="Monthly collections used in the forecast">
           {forecastMonths.map(point => <div className="analytics-forecast-month" key={point.label}>
             <span>{periodLabel(point.label)}</span>

@@ -1,7 +1,7 @@
 import { money } from './billing.js';
 
-export const validationMethod = 'For each completed target month, SMA averages only the preceding three months. The benchmark uses the previous month’s collections. Both are tested on the same months; lower mean absolute error (MAE) is better.';
-export const validationLimits = 'Retrospective results use currently recorded payments grouped by payment date, including later corrections. They are not saved predictions issued in the past. Missing-payment months are excluded, not assumed to be zero. These records have not been independently verified by this report.';
+export const validationMethod = 'Payments count toward the month of the bill being paid, even when received later. For each completed bill month, SMA averages payments applied to the preceding three bill months. The benchmark uses the total for the previous bill month. Both are tested on the same months; lower mean absolute error (MAE) is better.';
+export const validationLimits = 'Retrospective results use currently recorded payments grouped by bill month, including later payments and corrections. They are not saved predictions issued in the past. Missing-payment months are excluded, not assumed to be zero. These records have not been independently verified by this report.';
 
 export function validationSummary(validation) {
   if (!validation) return 'Past comparisons are unavailable. Refresh the report to load the latest results.';

@@ -61,7 +61,8 @@ export function analyticsSnapshot(data,month,asOf=today()) {
   };
 }
 export function forecastCollections(data,month) {
-  return collectionForecast(data.payments,month).forecast;
+  const billPeriods = new Map(data.bills.map(bill => [bill.id, bill.billing_period]));
+  return collectionForecast(data.payments.map(payment => ({ ...payment, billing_period: billPeriods.get(payment.bill_id) })),month).forecast;
 }
 export function csvCell(value) {
   let text=String(value??'');if(/^[\s]*[=+@-]/.test(text))text="'"+text;
