@@ -115,6 +115,7 @@ export const requestAttachmentUrl=async(req)=>maintenanceAttachmentUrl(req.db,va
 export const inquiry=async(req)=>{
   const body=validate.object(req.body),form=validate.object(body.form,'Inquiry details');
   const clean={fullName:validate.text(form.fullName,'name',160),email:validate.email(form.email),contact:validate.text(form.contact,'phone',40,true),preferredRoom:validate.text(form.preferredRoom,'preferred room',160,true),moveInDate:validate.date(form.moveInDate,'move-in date',true),message:validate.text(form.message,'message',4000)};
+  if (!/^[0-9]{0,11}$/.test(clean.contact)) throw new HttpError(400,'Enter a contact number with up to 11 digits.');
   await submitInquiry(createUserClient(),clean,validate.uuid(body.id,'inquiry ID'));return ({ok:true});
 };
 export const notifications=async(req)=>loadNotifications(req.db,req.user.id,validate.page(req.query),req.query.before);

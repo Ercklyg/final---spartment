@@ -62,7 +62,7 @@ function InquiryForm({ onBack, prefilledRoom = "" }) {
       setDateError("Please choose today or a future date.");
       return;
     }
-    setFormData((previous) => ({ ...previous, [name]: value }));
+    setFormData((previous) => ({ ...previous, [name]: name === "contact" ? value.replace(/\D/g, "").slice(0, 11) : value }));
     if (name === "moveInDate") {
       setDateError("");
     }
@@ -143,9 +143,20 @@ function InquiryForm({ onBack, prefilledRoom = "" }) {
               id="contact"
               name="contact"
               type="tel"
+              inputMode="numeric"
+              maxLength={11}
+              pattern="[0-9]{0,11}"
+              title="Use up to 11 digits."
               placeholder="09xx xxx xxxx"
               value={formData.contact}
               onChange={handleChange}
+              onPaste={(event) => {
+                event.preventDefault();
+                const input = event.currentTarget;
+                const digits = event.clipboardData.getData("text").replace(/\D/g, "");
+                const next = input.value.slice(0, input.selectionStart) + digits + input.value.slice(input.selectionEnd);
+                setFormData(previous => ({ ...previous, contact: next.slice(0, 11) }));
+              }}
               className={inputClass}
             />
           </div>
