@@ -10,6 +10,14 @@ const types={
  'image/webp':{extension:'webp',matches:b=>b.length>=12&&b.subarray(0,4).toString()==='RIFF'&&b.subarray(8,12).toString()==='WEBP'},
  'application/pdf':{extension:'pdf',matches:b=>b.length>=5&&b.subarray(0,5).toString()==='%PDF-'},
 };
+const resolvedMessage='This maintenance request has been resolved. New attachments are no longer accepted.';
+const resolvedError=()=>new HttpError(409,resolvedMessage,'request_resolved');
+async function requireOpenRequest(client,requestId){
+ const request=await client.from('tenant_requests').select('status').eq('id',requestId).eq('kind','maintenance').maybeSingle();
+ if(request.error)throw serviceError(503,'Unable to check the maintenance request. Please retry.',request.error);
+ if(!request.data)throw new HttpError(404,'Maintenance request not found.');
+ if(request.data.status==='Resolved')throw resolvedError();
+}
 export function validateMaintenanceFile(buffer,mimeType,originalName){
  if(!Buffer.isBuffer(buffer)||!buffer.length)throw new HttpError(400,'Choose a file to upload.');
  if(buffer.length>maxAttachmentBytes)throw new HttpError(413,'Each attachment must be 10 MB or smaller.');
@@ -19,13 +27,14 @@ export function validateMaintenanceFile(buffer,mimeType,originalName){
 }
 export async function uploadMaintenanceAttachment(client,userId,requestId,buffer,mimeType,originalName){
  const file=validateMaintenanceFile(buffer,mimeType,originalName),id=randomUUID(),path=`${requestId}/${id}.${file.extension}`;
+ await requireOpenRequest(client,requestId);
  const existing=await client.from('maintenance_attachments').select('id',{count:'exact',head:true}).eq('request_id',requestId);
  if(existing.error)throw new HttpError(404,'Maintenance request not found.');
  if((existing.count||0)>=maxAttachments)throw new HttpError(400,`A maintenance request can have up to ${maxAttachments} attachments.`);
  const uploaded=await client.storage.from(maintenanceBucket).upload(path,buffer,{contentType:mimeType,upsert:false,cacheControl:'3600'});
- if(uploaded.error)throw new HttpError(400,uploaded.error.message?.includes('row-level security')?'You cannot add files to this request.':'Unable to upload the attachment. Please retry.');
+ if(uploaded.error){await requireOpenRequest(client,requestId);throw new HttpError(400,uploaded.error.message?.includes('row-level security')?'You cannot add files to this request.':'Unable to upload the attachment. Please retry.');}
  const registered=await client.rpc('register_maintenance_attachment',{p_id:id,p_request:requestId,p_path:path,p_name:file.name,p_type:mimeType,p_size:buffer.length});
- if(registered.error){await client.storage.from(maintenanceBucket).remove([path]);throw serviceError(400,'Unable to save the attachment. Please retry.',registered.error);}
+ if(registered.error){await client.storage.from(maintenanceBucket).remove([path]);if(registered.error.message?.includes('maintenance request has been resolved'))throw resolvedError();throw serviceError(400,'Unable to save the attachment. Please retry.',registered.error);}
  return {id,request_id:requestId,original_name:file.name,mime_type:mimeType,size_bytes:buffer.length,created_at:new Date().toISOString(),uploaded_by:userId};
 }
 export async function maintenanceAttachmentUrl(client,requestId,attachmentId){

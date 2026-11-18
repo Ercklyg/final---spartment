@@ -23,6 +23,7 @@ function SelectedFile({file,onRemove}){
 
 function MaintenanceForm({ onBack, prefilledRoom = "" }) {
   const online=useOnlineStatus();
+  const [resolved,setResolved]=useState(false);
   const draftKey='spartment-ui:maintenance-draft';
   const busy=useRef(false); const attempt=useRef(null); const [saving,setSaving]=useState(false); const [submitError,setSubmitError]=useState(""); const [sent,setSent]=useState(false); const [files,setFiles]=useState([]); const [progress,setProgress]=useState("");
   const [formData, setFormData] = useState(()=>{
@@ -45,11 +46,12 @@ function MaintenanceForm({ onBack, prefilledRoom = "" }) {
     if(busy.current)return;
     busy.current=true;setSaving(true);setSubmitError("");
     const signature=JSON.stringify([formData,files.map(file=>[file.name,file.size,file.type,file.lastModified])]);if(attempt.current?.signature!==signature)attempt.current={signature,id:crypto.randomUUID(),uploaded:new Set(),requestSaved:false};
-    try{await submitTenantRequest(api,'maintenance',formData,attempt.current.id);attempt.current.requestSaved=true;for(let index=0;index<files.length;index++){const file=files[index],key=`${file.name}:${file.size}:${file.lastModified}`;if(attempt.current.uploaded.has(key))continue;setProgress(`Uploading ${index+1} of ${files.length}: ${file.name}`);await uploadRequestAttachment(api,attempt.current.id,file);attempt.current.uploaded.add(key);}try{sessionStorage.removeItem(draftKey);}catch{/* Draft cleanup is optional. */}setFormData({roomNumber:prefilledRoom,issue:'',description:'',priority:'Normal'});setFiles([]);attempt.current=null;setSent(true);}catch(error){setSubmitError(attempt.current?.requestSaved&&attempt.current.uploaded.size<files.length?`Your request was saved, but an attachment needs retrying: ${error.message}`:error.message);}finally{busy.current=false;setSaving(false);setProgress("");}
+    try{await submitTenantRequest(api,'maintenance',formData,attempt.current.id);attempt.current.requestSaved=true;for(let index=0;index<files.length;index++){const file=files[index],key=`${file.name}:${file.size}:${file.lastModified}`;if(attempt.current.uploaded.has(key))continue;setProgress(`Uploading ${index+1} of ${files.length}: ${file.name}`);await uploadRequestAttachment(api,attempt.current.id,file);attempt.current.uploaded.add(key);}try{sessionStorage.removeItem(draftKey);}catch{/* Draft cleanup is optional. */}setFormData({roomNumber:prefilledRoom,issue:'',description:'',priority:'Normal'});setFiles([]);attempt.current=null;setSent(true);}catch(error){if(error.code==='request_resolved'){setResolved(true);try{sessionStorage.removeItem(draftKey);}catch{/* Draft cleanup is optional. */}}else setSubmitError(attempt.current?.requestSaved&&attempt.current.uploaded.size<files.length?`Your request was saved, but an attachment needs retrying: ${error.message}`:error.message);}finally{busy.current=false;setSaving(false);setProgress("");}
   }
 
   function chooseFiles(event){const chosen=[...event.target.files];const allowed=new Set(['image/jpeg','image/png','image/webp','application/pdf']);if(files.length+chosen.length>5){setSubmitError('You can attach up to 5 files.');event.target.value='';return;}const invalid=chosen.find(file=>!allowed.has(file.type)||file.size>10*1024*1024);if(invalid){setSubmitError(`${invalid.name} must be a JPG, PNG, WebP, or PDF no larger than 10 MB.`);event.target.value='';return;}setFiles(previous=>[...previous,...chosen]);setSent(false);setSubmitError('');event.target.value='';}
 
+  if(resolved)return <SubmissionSuccess title="Maintenance resolved" message="This maintenance request has already been resolved. New attachments are no longer accepted. Submit a new request if you need further help." onBack={onBack}/>;
   if(sent)return <SubmissionSuccess title="Request submitted" message="Your maintenance request was sent to the administrator." onBack={onBack}/>;
 
   return (
