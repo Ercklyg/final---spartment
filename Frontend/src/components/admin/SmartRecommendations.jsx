@@ -15,10 +15,10 @@ function SmartRecommendations({ onNavigate, aiItems: receivedItems = [], aiLoadi
   const fallback = aiFallback || Boolean(aiError);
   const saved = aiItems.length > 0 && (fallback || aiCached || aiSource === 'cache');
   const generatedAt = formatInsightDate(aiUpdatedAt);
-  return <section aria-label="Smart Recommendations" className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
+  return <section aria-label="Insights & Recommendations" className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
     <div className="flex flex-wrap items-start gap-3 sm:flex-nowrap sm:items-center sm:gap-4">
       <Lightbulb size={25} className="mt-0.5 shrink-0 text-amber-400 sm:mt-0" />
-      <div className="min-w-0 flex-1"><h2 className="text-lg font-bold leading-tight sm:text-xl">Smart Recommendations</h2><p className="text-xs leading-5 text-slate-500 sm:text-sm">Suggested actions based on recorded property data.</p></div>
+      <div className="min-w-0 flex-1"><h2 className="text-lg font-bold leading-tight sm:text-xl">Insights &amp; Recommendations</h2><p className="text-xs leading-5 text-slate-500 sm:text-sm">Property highlights and suggested next steps.</p></div>
       {onRefreshAi && <button type="button" onClick={onRefreshAi} disabled={aiLoading} className="flex w-full items-center justify-center gap-2 rounded-xl border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-50 sm:w-auto"><RefreshCw size={14} className={aiLoading ? "animate-spin" : ""} />{aiLoading ? "Refreshing..." : fallback ? "Try again" : aiItems.length ? "Refresh insights" : "Generate insights"}</button>}
     </div>
     {!fallback && generatedAt && <p className="mt-3 text-xs leading-5 text-slate-500">{saved ? 'Saved insights · ' : ''}Generated {generatedAt}</p>}

@@ -19,7 +19,7 @@ test('recommendation cards separate tenant evidence from property totals on desk
   ],facts);
   await page.route('**/api/analytics/recommendations',route=>route.fulfill({contentType:'application/json',body:JSON.stringify({items,updatedAt:'2026-11-19T00:00:00Z',fallback:false,cached:true})}));
   await page.goto('/');
-  const panel=page.getByRole('region',{name:'Smart Recommendations'});
+  const panel=page.getByRole('region',{name:'Insights & Recommendations'});
   const tenant=panel.getByRole('button',{name:/Discuss payment options/});
   await expect(tenant).toContainText('Corpuz Family · Building 2 / 202');
   await expect(tenant.locator('strong')).toHaveText('₱5,319.00 overdue');
@@ -45,7 +45,7 @@ test('unverified legacy cards are not shown by the dashboard',async({page})=>{
   await mockAdminApi(page,{startAuthenticated:true});
   await page.route('**/api/analytics/recommendations',route=>route.fulfill({contentType:'application/json',body:JSON.stringify({items:[{title:'Unsupported claim',text:'Corpuz Family has 37 accounts',category:'warning'}],fallback:true,reason:'quota'})}));
   await page.goto('/');
-  const panel=page.getByRole('region',{name:'Smart Recommendations'});
+  const panel=page.getByRole('region',{name:'Insights & Recommendations'});
   await expect(panel.getByRole('status')).toContainText('No previous AI recommendations are saved');
   await expect(panel).not.toContainText('Unsupported claim');
   await expect(panel).not.toContainText('Corpuz Family');
