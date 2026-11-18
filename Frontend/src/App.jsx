@@ -21,14 +21,15 @@ const AdminTenantsPage = lazy(() => import("./pages/AdminTenantsPage.jsx"));
 const AdminBillingPage = lazy(() => import("./pages/AdminBillingPage.jsx"));
 const AdminRequestsPage = lazy(() => import("./pages/AdminRequestsPage.jsx"));
 const AdminAnalyticsPage = lazy(() => import("./pages/AdminAnalyticsPage.jsx"));
+const AdminAnnouncementsPage = lazy(() => import("./pages/AdminAnnouncementsPage.jsx"));
 
 const skeletons = {
   admin: 'dashboard', Rooms: 'rooms', Tenants: 'tenants', Billing: 'billing',
-  'Customer Requests': 'table', 'Analytics & Reports': 'analytics',
+  'Customer Requests': 'table', 'Analytics & Reports': 'analytics', Announcements: 'list',
   tenant: 'dashboard', billing: 'tenant-billing', settings: 'account', guest: 'rooms',
 };
 
-const adminPages = { admin: AdminDashboardPage, Rooms: AdminRoomsPage, Tenants: AdminTenantsPage, Billing: AdminBillingPage, "Customer Requests": AdminRequestsPage, "Analytics & Reports": AdminAnalyticsPage };
+const adminPages = { admin: AdminDashboardPage, Rooms: AdminRoomsPage, Tenants: AdminTenantsPage, Billing: AdminBillingPage, "Customer Requests": AdminRequestsPage, "Analytics & Reports": AdminAnalyticsPage, Announcements: AdminAnnouncementsPage };
 const tenantPages = { tenant: TenantDashboardPage, billing: TenantBillingPage, settings: TenantSettingsPage };
 const lastPageKey = userId => `${uiStatePrefix}last-page:${userId}`;
 

@@ -1,15 +1,15 @@
 import { useState } from "react";
-import { Building2, ChartNoAxesCombined, CreditCard, LayoutDashboard, MessageSquare, PanelLeftClose, PanelLeftOpen, UsersRound } from "lucide-react";
+import { Building2, ChartNoAxesCombined, CreditCard, LayoutDashboard, Megaphone, MessageSquare, PanelLeftClose, PanelLeftOpen, UsersRound } from "lucide-react";
 
 const groups = [
   { label: "Property", items: [["Dashboard", "Home", LayoutDashboard], ["Rooms", "Units", Building2], ["Tenants", "People", UsersRound]] },
-  { label: "Operations", items: [["Billing", "Bills", CreditCard], ["Customer Requests", "Inbox", MessageSquare]] },
+  { label: "Operations", items: [["Billing", "Bills", CreditCard], ["Customer Requests", "Inbox", MessageSquare], ["Announcements", "Announce", Megaphone]] },
   { label: "Insights", items: [["Analytics & Reports", "Reports", ChartNoAxesCombined]] },
 ];
 const items = groups.flatMap(group => group.items);
 
 function DesktopItem({ label, Icon, active, collapsed, onNavigate }) {
-  return <button type="button" aria-label={label} title={collapsed ? label : undefined} onClick={() => onNavigate?.(label)} className={`group relative flex w-full items-center rounded-xl py-2.5 text-left text-sm font-semibold transition-all ${collapsed ? "justify-center px-2" : "gap-3 px-3"} ${active ? "bg-blue-50 text-blue-700" : "text-slate-600 hover:translate-x-0.5 hover:bg-white hover:text-slate-900"}`}>
+  return <button type="button" aria-label={label} aria-current={active ? "page" : undefined} title={collapsed ? label : undefined} onClick={() => onNavigate?.(label)} className={`group relative flex w-full items-center rounded-xl py-2.5 text-left text-sm font-semibold transition-all ${collapsed ? "justify-center px-2" : "gap-3 px-3"} ${active ? "bg-blue-50 text-blue-700" : "text-slate-600 hover:translate-x-0.5 hover:bg-white hover:text-slate-900"}`}>
     {active && <span className="absolute -left-2 h-7 w-1 rounded-full bg-blue-600" />}
     <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg transition-colors ${active ? "bg-blue-600 text-white shadow-sm shadow-blue-200" : "bg-slate-100 text-slate-500 group-hover:bg-blue-50 group-hover:text-blue-600"}`}><Icon size={18}/></span>
     {!collapsed && <span className="min-w-0 flex-1 truncate">{label}</span>}
@@ -35,7 +35,7 @@ function AdminSidebar({ activePage = "Dashboard", onNavigate }) {
       <div className="mt-4 border-t border-slate-200 pt-4"><button type="button" onClick={() => setCollapsed(value => !value)} aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"} title={collapsed ? "Expand sidebar" : "Collapse sidebar"} className="flex w-full items-center justify-start rounded-xl px-3 py-2.5 text-slate-500 transition hover:bg-slate-50 hover:text-slate-900">{collapsed ? <PanelLeftOpen size={19}/> : <PanelLeftClose size={19}/>}</button></div>
     </aside>
     </div>
-    <aside className="fixed inset-x-0 bottom-0 z-50 flex h-[68px] border-t border-slate-200 bg-white/95 px-1 pb-[env(safe-area-inset-bottom)] shadow-[0_-6px_20px_rgba(15,23,42,0.06)] backdrop-blur-md lg:hidden"><nav className="grid flex-1 grid-cols-6" aria-label="Admin mobile navigation">{items.map(([label, mobileLabel, Icon]) => { const active = activePage === label; return <button key={label} type="button" aria-label={label} title={label} onClick={() => onNavigate?.(label)} className={`relative flex min-w-0 flex-col items-center justify-center gap-1 px-0.5 text-[9px] font-semibold transition-colors ${active ? "text-blue-700" : "text-slate-500 hover:bg-slate-50"}`}>{active && <span className="absolute inset-x-2 top-0 h-0.5 rounded-full bg-blue-600" />}<span className={`flex h-8 w-8 items-center justify-center rounded-lg ${active ? "bg-blue-50 text-blue-700" : ""}`}><Icon size={18}/></span><span className="max-w-full truncate">{mobileLabel}</span></button>; })}</nav></aside>
+    <aside className="fixed inset-x-0 bottom-0 z-50 flex h-[68px] border-t border-slate-200 bg-white/95 px-0 pb-[env(safe-area-inset-bottom)] shadow-[0_-6px_20px_rgba(15,23,42,0.06)] backdrop-blur-md lg:hidden"><nav className="grid flex-1 grid-cols-7" style={{ fontSize: 9, fontWeight: 600, lineHeight: 1.2 }} aria-label="Admin mobile navigation">{items.map(([label, mobileLabel, Icon]) => { const active = activePage === label; return <button key={label} type="button" aria-label={label} aria-current={active ? "page" : undefined} title={label} onClick={() => onNavigate?.(label)} className={`relative flex min-w-0 flex-col items-center justify-center gap-1 px-0.5 text-[9px] font-semibold transition-colors ${active ? "text-blue-700" : "text-slate-500 hover:bg-slate-50"}`}>{active && <span className="absolute inset-x-2 top-0 h-0.5 rounded-full bg-blue-600" />}<span className={`flex h-8 w-8 items-center justify-center rounded-lg ${active ? "bg-blue-50 text-blue-700" : ""}`}><Icon size={18}/></span><span className="max-w-full truncate">{mobileLabel}</span></button>; })}</nav></aside>
   </>;
 }
 

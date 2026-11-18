@@ -2,7 +2,7 @@ import webpush from 'web-push';
 import { HttpError } from '../middleware/errors.js';
 
 const configured=()=>Boolean(process.env.VAPID_PUBLIC_KEY&&process.env.VAPID_PRIVATE_KEY&&process.env.VAPID_SUBJECT);
-const category={bill:'billing_enabled',payment:'payment_enabled',request:'request_enabled',account:'account_enabled'};
+const category={bill:'billing_enabled',payment:'payment_enabled',request:'request_enabled',account:'account_enabled',announcement:'account_enabled'};
 const cleanupInterval=24*60*60*1000,deliveryRetention=90*24*60*60*1000;
 let lastCleanup=0;
 
