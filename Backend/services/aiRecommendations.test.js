@@ -6,7 +6,7 @@ import { ACTIONS } from './recommendationFacts.js';
 import { analytics } from './appService.js';
 import { getRecommendationPreview, saveRecommendationPreview, clearRecommendationPreviews, formatInsightDate, recommendationFallbackMessage } from '../../Frontend/src/lib/aiRecommendations.js';
 
-const snapshot = { cutoff: '2026-01-31', occupancy: 70, collected: 100, outstanding: 0, rows: [], late: [] };
+const snapshot = { cutoff: '2026-01-31', occupancy: 70, collected: 100, selected: [{paid:100}], outstanding: 0, rows: [], late: [] };
 const selection = { factId: 'property:collections', actionId: 'review_collections' };
 const item = { evidenceVersion: 1, ...selection, title: ACTIONS.review_collections.title, text: ACTIONS.review_collections.text, category: 'insight', subject: 'Collections for 2026-01', evidence: '₱100.00 collected' };
 const success = (items = [selection]) => new Response(JSON.stringify({ candidates: [{ content: { parts: [{ text: JSON.stringify(items) }] } }] }));
@@ -67,7 +67,8 @@ test('quota failure preserves original generation time and survives a service re
   assert.equal(failed.fallback,true); assert.equal(failed.reason,'quota'); assert.equal(failed.source,'cache'); assert.equal(failed.refreshRecommended,false);
   const restarted = await import('./aiRecommendations.js?restart=' + Date.now());
   const restored = await restarted.recommendations(request('quota-admin',req.records));
-  assert.deepEqual(restored,failed); assert.equal(fetchMock.mock.callCount(),2);
+  assert.deepEqual({...restored,figuresCheckedAt:null},{...failed,figuresCheckedAt:null}); assert.equal(fetchMock.mock.callCount(),2);
+  assert.ok(Number.isFinite(Date.parse(restored.figuresCheckedAt)));
   fetchMock.mock.mockImplementation(async () => success());
   const now=Date.now(); t.mock.method(Date,'now',() => now+60000);
   const retry = await restarted.recommendations({ ...req, body: { ...req.body, force:true } });
@@ -193,13 +194,16 @@ test('saved AI selections use current operational evidence without consuming a m
   const provider=t.mock.method(globalThis,'fetch',async()=>{throw new Error('Provider must not be called');});
   const current=await recommendations(req);
   assert.notEqual(current.items[0].evidence,old.evidence);
-  assert.match(current.items[0].evidence,/100\.00 collected/);
+  assert.match(current.items[0].evidence,/100\.00 paid toward 2026-01 bills/);
+  assert.equal(current.figuresAsOf,'2026-01-31');
+  assert.ok(Number.isFinite(Date.parse(current.figuresCheckedAt)));
+  assert.ok(current.items[0].reason); assert.ok(current.items[0].actionLabel);
   assert.equal(current.updatedAt,'2026-01-01T00:00:00Z');
   assert.equal(current.refreshRecommended,false); assert.equal(provider.mock.callCount(),0);
   const rpc=req.db.rpc;
   req.db.rpc=(name,args)=>name==='analytics_report'?{error:{message:'Unavailable'}}:rpc(name,args);
   const unavailable=await recommendations(req);
-  assert.deepEqual(unavailable.items,[]); assert.equal(unavailable.reason,'unavailable');
+  assert.deepEqual(unavailable.items,[]); assert.equal(unavailable.reason,'unavailable'); assert.equal(unavailable.figuresCheckedAt,null);
 });
 
 test('dashboard and saved recommendations share concurrent report work without calling Gemini', async t => {
@@ -224,6 +228,6 @@ test('dashboard and saved recommendations share concurrent report work without c
   const [data, ai] = await Promise.all([dashboard, insights]);
   assert.equal(req.stats.reports, 1);
   assert.equal(data.snapshot.collected, 100);
-  assert.match(ai.items[0].evidence, /100\.00 collected/);
+  assert.match(ai.items[0].evidence, /100\.00 paid toward 2026-01 bills/);
   assert.equal(ai.cached, true);
 });

@@ -62,6 +62,7 @@ router.post('/notifications/push-subscriptions',app.pushSubscribe);
 router.delete('/notifications/push-subscriptions',app.pushUnsubscribe);
 router.get('/analytics',requireAdmin,app.analytics);
 router.post('/analytics/recommendations',requireAdmin,app.aiRecommendations);
+router.get('/analytics/recommendations/records',requireAdmin,app.recommendationRecords);
 router.post('/tenants',requireAdmin,controller.createTenant);
 router.post('/payments/corrections',requireAdmin,controller.action('correctPayment'));
 router.patch('/requests/:id',requireAdmin,controller.changeRequest);

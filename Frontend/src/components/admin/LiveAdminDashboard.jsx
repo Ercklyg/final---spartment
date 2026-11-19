@@ -67,7 +67,7 @@ export default function LiveAdminDashboard({ onNavigate }) {
           <AdminAttention snapshot={data.snapshot} onNavigate={onNavigate} />
           <AdminNotifications key={data.loadedAt} />
           <AdminMetrics snapshot={data.snapshot} onNavigate={onNavigate} />
-          <SmartRecommendations onNavigate={onNavigate} aiItems={shownAi.items} aiLoading={shownAi.loading} aiError={shownAi.error} aiUpdatedAt={shownAi.updatedAt} aiCached={shownAi.cached} aiSource={shownAi.source} aiFallback={shownAi.fallback} aiReason={shownAi.reason} onRefreshAi={() => fetchAi(true)} />
+          <SmartRecommendations onNavigate={onNavigate} reportMonth={month} aiItems={shownAi.items} aiLoading={shownAi.loading} aiError={shownAi.error} aiUpdatedAt={shownAi.updatedAt} aiFiguresCheckedAt={shownAi.figuresCheckedAt} aiFiguresAsOf={shownAi.figuresAsOf} aiCached={shownAi.cached} aiSource={shownAi.source} aiFallback={shownAi.fallback} aiReason={shownAi.reason} onRefreshAi={() => fetchAi(true)} />
           <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3 text-[11px] text-slate-500 shadow-sm sm:text-xs">
             <p>Dashboard updated {new Date(data.loadedAt).toLocaleString('en-PH')}</p>
             <button disabled={loading} onClick={reload} className="rounded-lg border border-slate-200 px-3 py-1.5 font-semibold text-blue-600 hover:bg-blue-50 disabled:opacity-50">{loading ? "Refreshing..." : "Refresh dashboard"}</button>

@@ -9,12 +9,13 @@ import { loadSavedRecommendations, saveRecommendations, saveRecommendationFailur
 const CACHE_TTL_MS = 12 * 60 * 60 * 1000;
 const pending = new Map();
 
-function savedResult(saved, { cached = true, cutoff } = {}) {
+function savedResult(saved, { cached = true, cutoff, figuresCheckedAt = null } = {}) {
   const items = (saved?.items || []).filter(hasVerifiedEvidence);
   const failure = saved?.last_failure || null;
   const stale = Boolean(failure) || !saved?.generated_at || Date.parse(saved.generated_at) + CACHE_TTL_MS <= Date.now() || saved.reporting_cutoff !== cutoff;
   return { items, fallback: Boolean(failure), reason: failure, source: items.length ? (failure ? 'cache' : 'ai') : 'none',
     updatedAt: items.length ? saved?.generated_at || null : null, cached: items.length ? cached || Boolean(failure) : false, stale,
+    figuresCheckedAt: items.length ? figuresCheckedAt : null, figuresAsOf: items.length ? cutoff : null,
     refreshRecommended: false };
 }
 
@@ -43,19 +44,20 @@ export async function recommendations(req) {
   try {
     snapshot = (await loadAnalyticsReport(req,{p_month:month+'-01',p_period:period,p_export:false})).snapshot;
   } catch { return savedResult({...saved,items:[],last_failure:'unavailable'},{cutoff}); }
-  if (enabled && body.force !== true && saved && (!legacy || saved.last_failure)) return savedResult(groundSaved(saved,snapshot,month), { cutoff });
+  const figuresCheckedAt = new Date().toISOString();
+  if (enabled && body.force !== true && saved && (!legacy || saved.last_failure)) return savedResult(groundSaved(saved,snapshot,month), { cutoff, figuresCheckedAt });
   const key = req.user.id + '|' + month + '|' + period + '|' + cutoff;
   if (pending.has(key)) return pending.get(key);
   const startedAt = new Date(Date.now()).toISOString();
-  const task = generateRecommendations(req, { month, period, cutoff, startedAt, enabled, snapshot });
+  const task = generateRecommendations(req, { month, period, cutoff, startedAt, enabled, snapshot, figuresCheckedAt });
   pending.set(key, task);
   try { return await task; }
   finally { if (pending.get(key) === task) pending.delete(key); }
 }
 
 async function generateRecommendations(req, scope) {
-  const { month, period, cutoff, enabled, snapshot } = scope;
-  const fail = async reason => savedResult(groundSaved(await saveRecommendationFailure(req.db, { ...scope, reason }),snapshot,month), { cutoff });
+  const { month, period, cutoff, enabled, snapshot, figuresCheckedAt } = scope;
+  const fail = async reason => savedResult(groundSaved(await saveRecommendationFailure(req.db, { ...scope, reason }),snapshot,month), { cutoff, figuresCheckedAt });
   if (!enabled) return fail('unavailable');
   const facts = buildRecommendationFacts(snapshot, month);
   if (!facts.length) return fail('unavailable');
@@ -79,5 +81,5 @@ async function generateRecommendations(req, scope) {
   const items = assembleRecommendations(parsed, facts);
   if (!items.length) return fail('unavailable');
   const saved = await saveRecommendations(req.db, { ...scope, items });
-  return savedResult(saved, { cached: false, cutoff });
+  return savedResult(saved, { cached: false, cutoff, figuresCheckedAt });
 }

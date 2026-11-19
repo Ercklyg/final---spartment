@@ -50,13 +50,30 @@ export function buildRecommendationFacts(snapshot, month) {
     facts.push({ id: 'property:requests', kind: 'requests', category: 'attention', page: 'Customer Requests', subject: 'Unresolved requests and inquiries',
       metrics: { requests, inquiries }, evidence: `${requests} unresolved tenant request${requests === 1 ? '' : 's'} · ${inquiries} guest inquir${inquiries === 1 ? 'y' : 'ies'}` });
   }
-  if (money(snapshot.collected) && money(snapshot.outstanding)) {
+  const selectedCollections = Array.isArray(snapshot.selected) && snapshot.selected.every(bill => money(bill.paid))
+    ? snapshot.selected.reduce((sum, bill) => sum + Math.round(bill.paid * 100), 0) / 100 : null;
+  if (money(selectedCollections) && money(snapshot.outstanding)) {
     const occupancy = typeof snapshot.occupancy === 'number' && Number.isFinite(snapshot.occupancy) && snapshot.occupancy >= 0 && snapshot.occupancy <= 100 ? Math.round(snapshot.occupancy * 10) / 10 : null;
     facts.push({ id: 'property:collections', kind: 'collections', category: 'insight', page: 'Billing', subject: `Collections for ${month}`,
-      metrics: { collected: snapshot.collected, outstanding: snapshot.outstanding, ...(occupancy == null ? {} : { occupancy }) },
-      evidence: `${peso(snapshot.collected)} collected · ${peso(snapshot.outstanding)} outstanding${occupancy == null ? '' : ` · ${occupancy}% occupancy`}` });
+      metrics: { collected: selectedCollections, outstanding: snapshot.outstanding, ...(occupancy == null ? {} : { occupancy }) },
+      evidence: `${peso(selectedCollections)} paid toward ${month} bills · ${peso(snapshot.outstanding)} outstanding across all bill months${occupancy == null ? '' : ` · ${occupancy}% current occupancy`}` });
   }
-  return facts;
+  return facts.map(fact => {
+    const reason = {
+      tenant_overdue: fact.metrics.lateBillsSixMonths >= 2
+        ? 'This account has overdue bills and repeated late payments in the last six months.'
+        : 'This account has an unpaid balance past its due date.',
+      property_overdue: 'Unpaid bills across the property have passed their due dates.',
+      vacancy: 'Available rooms can be offered to prospective tenants at their listed monthly rates.',
+      requests: fact.metrics.requests && fact.metrics.inquiries
+        ? 'Tenant requests and guest inquiries remain unresolved.'
+        : fact.metrics.requests ? 'Tenant requests remain unresolved.' : 'Guest inquiries still need follow-up.',
+      collections: "Payments applied to this month's bills can be reviewed alongside outstanding balances across all billing months.",
+    }[fact.kind];
+    const actionLabel = { tenant_overdue: "Review tenant's bills", property_overdue: 'Review overdue bills',
+      vacancy: 'View available rooms', requests: 'Review unresolved items', collections: "Review this month's bills" }[fact.kind];
+    return { ...fact, reason, actionLabel, reportMonth: month };
+  });
 }
 
 export function recommendationPrompt(facts, month, cutoff) {
@@ -85,6 +102,7 @@ export function assembleRecommendations(raw, facts) {
     used.add(fact.category);
     items.push({ evidenceVersion: 1, factId: fact.id, actionId: selection.actionId, title: action.title, text: action.text,
       category: fact.category, page: fact.page, subject: fact.subject, evidence: fact.evidence,
+      reason: fact.reason, actionLabel: fact.actionLabel, reportMonth: fact.reportMonth,
       ...(fact.tenantId ? { tenantId: fact.tenantId, room: fact.room } : {}) });
     if (items.length === 4) break;
   }

@@ -5,7 +5,7 @@ import { buildRecommendationFacts, recommendationPrompt, assembleRecommendations
 const first='11111111-1111-4111-8111-111111111111';
 const second='22222222-2222-4222-8222-222222222222';
 const bill=(id,tenant_id,name,balance)=>({id:`00000000-0000-4000-8000-${String(id).padStart(12,'0')}`,tenant_id,name,balance,room:'Main / 101'});
-const snapshot={cutoff:'2026-11-19',collected:44295,outstanding:50000,occupancy:84.8,available:5,vacancyGap:18000,overdue:42552,
+const snapshot={cutoff:'2026-11-19',collected:44295,selected:[{paid:12345}],outstanding:50000,occupancy:84.8,available:5,vacancyGap:18000,overdue:42552,
   late:[bill(1,first,'Corpuz Family',3000),bill(2,first,'Corpuz Family',2319),bill(3,second,'Another Tenant',37233)],
   collectionHealth:{repeatLatePayers:[{tenantId:first,name:'Wrong label must not be used',lateBillCount:5,overdueBalance:999999}]},
   openRequests:[{},{},{},{}],openInquiries:[{}]};
@@ -66,13 +66,30 @@ test('valid selections retain Gemini priority, enforce category limits and deriv
   assert.equal(cards.length,4); assert.equal(cards[0].factId,'property:vacancy');
   assert.match(cards[0].evidence,/5 available rooms.*18,000\.00 potential monthly rent/);
   assert.match(cards[2].evidence,/4 unresolved tenant requests.*1 guest inquiry/);
-  assert.match(cards[3].evidence,/44,295\.00 collected.*50,000\.00 outstanding.*84.8% occupancy/);
+  assert.match(cards[3].evidence,/12,345\.00 paid toward 2026-11 bills.*50,000\.00 outstanding across all bill months.*84.8% current occupancy/);
   assert.ok(cards.every(card=>card.evidenceVersion===1));
 });
 
 test('missing or invalid source values do not become invented zero-value facts',()=>{
   assert.deepEqual(buildRecommendationFacts({},'2026-11'),[]);
   assert.deepEqual(buildRecommendationFacts({collected:NaN,outstanding:0,available:-1,vacancyGap:100,overdue:Infinity},'2026-11'),[]);
-  const facts=buildRecommendationFacts({collected:0,outstanding:0},'2026-11');
+  assert.deepEqual(buildRecommendationFacts({collected:100,outstanding:0},'2026-11'),[]);
+  const facts=buildRecommendationFacts({selected:[],outstanding:0},'2026-11');
   assert.equal(facts.length,1); assert.match(facts[0].evidence,/0\.00/);
+});
+
+test('reasons and review labels come from verified facts, not model prose',()=>{
+  const facts=buildRecommendationFacts(snapshot,'2026-11');
+  const card=assembleRecommendations([{factId:'tenant:'+first,actionId:'discuss_payment_options'}],facts)[0];
+  assert.match(card.reason,/overdue bills and repeated late payments/);
+  assert.equal(card.actionLabel,"Review tenant's bills"); assert.equal(card.reportMonth,'2026-11');
+  const withoutHistory=buildRecommendationFacts({...snapshot,collectionHealth:{}},'2026-11').find(fact=>fact.id==='tenant:'+first);
+  assert.doesNotMatch(withoutHistory.reason,/repeated/);
+  assert.match(withoutHistory.reason,/unpaid balance past its due date/);
+});
+
+test('collection facts use selected bill payments in cents and never payment-date receipts',()=>{
+  const fact=buildRecommendationFacts({...snapshot,selected:[{paid:0.10},{paid:0.20}]},'2026-11').find(fact=>fact.kind==='collections');
+  assert.equal(fact.metrics.collected,0.30); assert.doesNotMatch(fact.evidence,/44,295/);
+  assert.ok(!buildRecommendationFacts({...snapshot,selected:[{paid:NaN}]},'2026-11').some(fact=>fact.kind==='collections'));
 });
