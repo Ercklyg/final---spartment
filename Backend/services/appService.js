@@ -12,6 +12,7 @@ import { loadPaymentReceipt } from '../models/paymentReceipt.js';
 import { analyticsCsv, comparisonTotals } from '../models/adminAnalytics.js';
 import { loadForecastReport } from '../models/collectionForecast.js';
 import { reportingPeriod } from '../models/reportingPeriod.js';
+import { loadAnalyticsReport } from './analyticsReport.js';
 import { changePassword } from '../models/changePassword.js';
 import { signInWithPassword } from '../models/authentication.js';
 import { authFailure } from '../models/authErrors.js';
@@ -187,11 +188,21 @@ export const analytics=async(req)=>{
   if(!/^\d{4}-(0[1-9]|1[0-2])$/.test(month||'')||!['Monthly','Quarterly','Yearly'].includes(period))throw new HttpError(400,'Invalid report period.');
   const exportType=req.query.export;
   if(exportType && !['csv','pdf'].includes(exportType))throw new HttpError(400,'Invalid report export format.');
+  const dashboard=req.query.view==='dashboard';
+  if(req.query.view && !dashboard)throw new HttpError(400,'Invalid analytics view.');
+  if(dashboard && (period!=='Monthly'||exportType))throw new HttpError(400,'Dashboard requests require a monthly view without an export.');
   const reporting=await reportingPeriod(req.db,month);
   month=reporting.reportMonth;
-  const data=await report(req.db,'analytics_report',{p_month:month+'-01',p_period:period,p_export:exportType==='csv'||exportType==='pdf'});
-  const {snapshot,series}=data;
-  if(req.query.export==='csv')return {csv:analyticsCsv(snapshot,series,month)};
-  const forecastData=await loadForecastReport(req.db,month);
+  const reportTask=loadAnalyticsReport(req,{p_month:month+'-01',p_period:period,p_export:exportType==='csv'||exportType==='pdf'});
+  if(dashboard){
+    const {snapshot}=await reportTask;
+    return {snapshot,...reporting,loadedAt:new Date().toISOString()};
+  }
+  if(exportType==='csv'){
+    const {snapshot,series}=await reportTask;
+    return {csv:analyticsCsv(snapshot,series,month)};
+  }
+  const [data,forecastData]=await Promise.all([reportTask,loadForecastReport(req.db,month)]);
+  const {series}=data;
   return {...data,...reporting,comparison:comparisonTotals(series),...forecastData,loadedAt:new Date().toISOString()};
 };

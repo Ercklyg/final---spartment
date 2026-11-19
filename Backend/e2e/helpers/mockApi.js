@@ -42,7 +42,9 @@ export async function mockAdminApi(page,{startAuthenticated=false,analyticsData=
     if(path==='/analytics'){
       const report={...dashboard,...analyticsData};
       const requestedMonth=url.searchParams.get('month');
-      return json(route,{...report,reportMonth:report.availableMonths.includes(requestedMonth)?requestedMonth:report.availableMonths.at(-1)||requestedMonth});
+      const reportMonth=report.availableMonths.includes(requestedMonth)?requestedMonth:report.availableMonths.at(-1)||requestedMonth;
+      if(url.searchParams.get('view')==='dashboard')return json(route,{snapshot:report.snapshot,availableMonths:report.availableMonths,loadedAt:report.loadedAt,reportMonth});
+      return json(route,{...report,reportMonth});
     }
     if(path==='/analytics/recommendations')return json(route,{fallback:true,reason:'Disabled in browser tests.'});
     if(path==='/notifications/admin')return json(route,[]);

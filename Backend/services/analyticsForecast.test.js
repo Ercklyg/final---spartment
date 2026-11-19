@@ -2,6 +2,29 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { analytics } from './appService.js';
 
+test('dashboard returns the selected-month snapshot without querying forecast history', async () => {
+  const calls = [];
+  const snapshot = { selected: [{ paid: 540 }], collected: 590, occupancy: 90 };
+  const db = { rpc(name, args) {
+    calls.push(name);
+    if (name === 'reporting_months') return { data: ['2026-11'] };
+    assert.equal(name, 'analytics_report');
+    assert.deepEqual(args, { p_month: '2026-11-01', p_period: 'Monthly', p_export: false });
+    return { data: { snapshot, series: [{ value: 999 }], forecastMonths: [] } };
+  } };
+  const response = await analytics({ query: { month: '2099-01', view: 'dashboard' }, db });
+  assert.deepEqual(calls, ['reporting_months', 'analytics_report']);
+  assert.equal(response.snapshot, snapshot); assert.equal(response.reportMonth, '2026-11');
+  assert.equal(response.series, undefined); assert.equal(response.forecastValidation, undefined);
+});
+
+test('dashboard mode rejects unsupported views, exports and groupings before reading data', async () => {
+  const db = { rpc() { assert.fail('invalid requests must not read records'); } };
+  for (const options of [{ view: 'other' }, { view: 'dashboard', export: 'pdf' }, { view: 'dashboard', period: 'Quarterly' }]) {
+    await assert.rejects(analytics({ query: { month: '2026-11', ...options }, db }), { status: 400 });
+  }
+});
+
 test('analytics overrides legacy database forecast months together with the forecast amount', async () => {
   const payments = [
     { billing_period: '2025-10-01', amount: 300 },

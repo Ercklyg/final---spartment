@@ -1,6 +1,6 @@
 import PageSkeleton from "../PageSkeleton.jsx";
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { loadAdminAnalytics } from '../../lib/adminAnalytics.js';
+import { loadAdminDashboard } from '../../lib/adminAnalytics.js';
 import { today } from '../../lib/billing.js';
 import { useRemoteData } from '../../lib/useRemoteData.js';
 import { api } from '../../lib/api.js';
@@ -13,7 +13,7 @@ import SmartRecommendations from './SmartRecommendations.jsx';
 
 export default function LiveAdminDashboard({ onNavigate }) {
   const [requestedMonth, setMonth] = useState(today().slice(0, 7));
-  const loader = useCallback(client => loadAdminAnalytics(client, requestedMonth), [requestedMonth]);
+  const loader = useCallback(client => loadAdminDashboard(client, requestedMonth), [requestedMonth]);
   const { data, error, loading, reload } = useRemoteData(loader);
   const month = data?.reportMonth || requestedMonth;
   const [ai, setAi] = useState(() => ({ ...getRecommendationPreview(month), month, loading: true, error: '' }));

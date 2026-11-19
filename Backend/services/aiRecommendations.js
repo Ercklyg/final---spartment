@@ -1,5 +1,5 @@
 import { HttpError } from '../middleware/errors.js';
-import { report } from '../models/reports.js';
+import { loadAnalyticsReport } from './analyticsReport.js';
 import { generateContent } from '../models/gemini.js';
 import * as validate from './validation.js';
 import { today } from '../models/billing.js';
@@ -41,7 +41,7 @@ export async function recommendations(req) {
   const legacy = saved?.items?.length && !saved.items.every(hasVerifiedEvidence);
   let snapshot;
   try {
-    snapshot = (await report(req.db,'analytics_report',{p_month:month+'-01',p_period:period,p_export:false})).snapshot;
+    snapshot = (await loadAnalyticsReport(req,{p_month:month+'-01',p_period:period,p_export:false})).snapshot;
   } catch { return savedResult({...saved,items:[],last_failure:'unavailable'},{cutoff}); }
   if (enabled && body.force !== true && saved && (!legacy || saved.last_failure)) return savedResult(groundSaved(saved,snapshot,month), { cutoff });
   const key = req.user.id + '|' + month + '|' + period + '|' + cutoff;

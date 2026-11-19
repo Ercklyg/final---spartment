@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { recommendations } from './aiRecommendations.js';
 import { generateContent } from '../models/gemini.js';
 import { ACTIONS } from './recommendationFacts.js';
+import { analytics } from './appService.js';
 import { getRecommendationPreview, saveRecommendationPreview, clearRecommendationPreviews, formatInsightDate, recommendationFallbackMessage } from '../../Frontend/src/lib/aiRecommendations.js';
 
 const snapshot = { cutoff: '2026-01-31', occupancy: 70, collected: 100, outstanding: 0, rows: [], late: [] };
@@ -199,4 +200,30 @@ test('saved AI selections use current operational evidence without consuming a m
   req.db.rpc=(name,args)=>name==='analytics_report'?{error:{message:'Unavailable'}}:rpc(name,args);
   const unavailable=await recommendations(req);
   assert.deepEqual(unavailable.items,[]); assert.equal(unavailable.reason,'unavailable');
+});
+
+test('dashboard and saved recommendations share concurrent report work without calling Gemini', async t => {
+  enableTestAi(t);
+  const req = request('shared-dashboard');
+  req.headers = { cookie: 'spartment-access=shared; __Host-spartment-access=shared' };
+  req.records.set('shared-dashboard|2026-01-01|Monthly', { items: [item], generated_at: '2026-01-01T00:00:00Z', reporting_cutoff: '2026-01-31', last_failure: null });
+  t.mock.method(globalThis, 'fetch', async () => { assert.fail('saved recommendations must not call Gemini'); });
+  const rpc = req.db.rpc;
+  let release;
+  const gate = new Promise(resolve => { release = resolve; });
+  req.db.rpc = async (name, args) => {
+    if (name === 'reporting_months') return { data: ['2026-01'] };
+    const result = await rpc(name, args);
+    if (name === 'analytics_report') await gate;
+    return result;
+  };
+  const dashboard = analytics({ ...req, query: { month: '2026-01', view: 'dashboard' } });
+  const insights = recommendations(req);
+  await new Promise(resolve => setImmediate(resolve));
+  release();
+  const [data, ai] = await Promise.all([dashboard, insights]);
+  assert.equal(req.stats.reports, 1);
+  assert.equal(data.snapshot.collected, 100);
+  assert.match(ai.items[0].evidence, /100\.00 collected/);
+  assert.equal(ai.cached, true);
 });
