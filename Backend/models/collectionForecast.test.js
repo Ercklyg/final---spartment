@@ -50,7 +50,7 @@ test('history loader queries exactly the three source months and sums all respon
   const db = { rpc: table => {
     assert.equal(table, 'forecast_payments');
     const query = {
-      select() { return this; }, gte(field, value) { filters.push([field, '>=', value]); return this; },
+      select(columns) { assert.equal(columns, 'id,amount,payment_date,billing_period'); return this; }, gte(field, value) { filters.push([field, '>=', value]); return this; },
       lt(field, value) { filters.push([field, '<', value]); return this; }, lte(field, value) { assert.equal(field, 'payment_date'); assert.equal(value, '2026-11-03'); return this; }, order() { return this; },
       async range() { return { data: pages.shift() }; },
     };

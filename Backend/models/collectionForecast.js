@@ -3,7 +3,8 @@ import { readAll } from './readAll.js';
 
 const billMonth = payment => String(payment.bills?.billing_period ?? payment.billing_period ?? '').slice(0, 7);
 const receivedBy = (payment, asOf) => !payment.payment_date || payment.payment_date <= asOf;
-const paymentColumns = 'amount,payment_date,billing_period';
+// PostgREST's record-returning RPC must project the column used for ordering.
+const paymentColumns = 'id,amount,payment_date,billing_period';
 
 // The selected month is the forecast target. Never use an incomplete month
 // as source history, even if an API caller requests a future report month.

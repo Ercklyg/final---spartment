@@ -70,7 +70,7 @@ test('report loader reads every history page once and caps records at the correc
     const db = { rpc(table) {
       assert.equal(table, 'forecast_payments');
       const query = {
-        select(columns) { assert.equal(columns, 'amount,payment_date,billing_period'); return query; },
+        select(columns) { assert.equal(columns, 'id,amount,payment_date,billing_period'); return query; },
         lt(column, value) { calls.push([column, value]); return query; },
         lte(column, value) { assert.equal(column, 'payment_date'); assert.equal(value, '2026-06-18'); return query; },
         order() { return query; },
@@ -108,7 +108,7 @@ test('bill-month backtesting includes later payments in the correct target and e
   assert.equal(result.smaMae, 650);
 });
 
-test('the actual Supabase query joins bill periods and filters receipt dates independently', async () => {
+test('the actual Supabase RPC projects its ordering ID and filters bill periods and receipt dates independently', async () => {
   const requests = [];
   const client = createClient('https://example.test', 'test-key', {
     auth: { persistSession: false, autoRefreshToken: false },
@@ -127,7 +127,7 @@ test('the actual Supabase query joins bill periods and filters receipt dates ind
   assert.equal(result.forecast, 600);
   assert.equal(requests.length, 2);
   for (const url of requests) {
-    assert.equal(url.searchParams.get('select'), 'amount,payment_date,billing_period');
+    assert.equal(url.searchParams.get('select'), 'id,amount,payment_date,billing_period');
     assert.equal(url.searchParams.get('billing_period'), 'lt.2026-11-01');
     assert.equal(url.searchParams.get('payment_date'), 'lte.2026-11-18');
     assert.equal(url.searchParams.get('order'), 'id.asc');
