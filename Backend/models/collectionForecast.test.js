@@ -47,8 +47,8 @@ test('history loader queries exactly the three source months and sums all respon
     [{ billing_period: '2026-08-01', amount: 300 }],
     [{ billing_period: '2026-09-01', amount: 600 }, { billing_period: '2026-10-01', amount: 900 }], [],
   ];
-  const db = { from: table => {
-    assert.equal(table, 'payments');
+  const db = { rpc: table => {
+    assert.equal(table, 'forecast_payments');
     const query = {
       select() { return this; }, gte(field, value) { filters.push([field, '>=', value]); return this; },
       lt(field, value) { filters.push([field, '<', value]); return this; }, lte(field, value) { assert.equal(field, 'payment_date'); assert.equal(value, '2026-11-03'); return this; }, order() { return this; },
@@ -58,7 +58,7 @@ test('history loader queries exactly the three source months and sums all respon
   } };
   const result = await loadCollectionForecast(db, '2026-11', '2026-11-03');
   assert.equal(result.forecast, 600);
-  assert.ok(filters.every(([field, operator, date]) => field === 'bills.billing_period' && date === (operator === '>=' ? '2026-08-01' : '2026-11-01')));
+  assert.ok(filters.every(([field, operator, date]) => field === 'billing_period' && date === (operator === '>=' ? '2026-08-01' : '2026-11-01')));
   assert.deepEqual(result.forecastMonths.map(point => point.value), [300, 600, 900]);
 });
 

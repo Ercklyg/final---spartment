@@ -3,6 +3,8 @@ import { money, today } from "../../lib/billing.js";
 import PageControls from "../PageControls.jsx";
 import { BellRing, RefreshCw, Search, X } from "lucide-react";
 
+import { TestBadge } from "./TestRecords.jsx";
+
 const BillPaymentsDialog = lazy(() => import("../billing/BillPaymentsDialog.jsx"));
 const ReminderDialog = lazy(() => import("./ReminderDialog.jsx"));
 const BulkReminderDialog = lazy(() => import("./BulkReminderDialog.jsx"));
@@ -81,7 +83,7 @@ export default function BillingLedger({ type, bills, summary, onPayment, onRemin
       {!desktop&&<div className="divide-y divide-slate-200 border-t border-slate-200">
         {shown.map(bill=><article key={bill.id} className="billing-mobile-record p-4 sm:p-5">
           <div className="flex min-w-0 items-start justify-between gap-3">
-            <div className="min-w-0"><h3 className="break-words font-bold text-slate-900">{bill.leases?.profiles?.full_name || "Unknown tenant"}</h3><p className="text-sm text-slate-600">{bill.leases?.rooms?.buildings?.name || "Building"} / Room {bill.leases?.rooms?.room_number || "Unassigned"}</p></div>
+            <div className="min-w-0"><h3 className="break-words font-bold text-slate-900">{bill.leases?.profiles?.full_name || "Unknown tenant"}{bill.is_test && <TestBadge/>}</h3><p className="text-sm text-slate-600">{bill.leases?.rooms?.buildings?.name || "Building"} / Room {bill.leases?.rooms?.room_number || "Unassigned"}</p></div>
             <StatusBadge status={bill.displayStatus}/>
           </div>
           <div className="mt-3 grid grid-cols-2 gap-x-4 gap-y-3 border-t border-slate-100 pt-3 text-sm">
@@ -103,7 +105,7 @@ export default function BillingLedger({ type, bills, summary, onPayment, onRemin
 
       {desktop&&<div className="w-full"><table className="billing-ledger-table w-full table-fixed text-left text-sm"><thead><tr>{["Tenant / Room","Period / Due date",...(utility?["Electricity","Water"]:[]),"Total","Paid","Balance","Status","Actions"].map(title=><th key={title} className={["Electricity","Water","Total","Paid","Balance"].includes(title)?"text-right":title==="Actions"?"w-[390px] text-center":""}>{title}</th>)}</tr></thead>
         <tbody aria-busy={loading}>{shown.map(bill=><tr key={bill.id} className="border-t border-slate-200 transition-colors hover:bg-blue-50/50">
-          <td><strong>{bill.leases?.profiles?.full_name || "Unknown tenant"}</strong><p className="text-slate-600">{bill.leases?.rooms?.buildings?.name} / Room {bill.leases?.rooms?.room_number || "Unassigned"}</p></td>
+          <td><strong>{bill.leases?.profiles?.full_name || "Unknown tenant"}{bill.is_test && <TestBadge/>}</strong><p className="text-slate-600">{bill.leases?.rooms?.buildings?.name} / Room {bill.leases?.rooms?.room_number || "Unassigned"}</p></td>
           <td><p>{bill.billing_period.slice(0,7)}</p><p className="whitespace-nowrap text-sm text-slate-600">Due {bill.due_date}</p></td>
           {utility&&<><td className="text-right tabular-nums">{money(bill.electricity_amount)}</td><td className="text-right tabular-nums">{money(bill.water_amount)}</td></>}
           <td className="text-right font-medium tabular-nums">{money(bill.total)}</td><td className="text-right font-medium text-emerald-700 tabular-nums">{money(bill.paid)}</td><td className={"text-right font-semibold tabular-nums "+(bill.balance>0?"text-rose-700":"text-emerald-700")}>{money(bill.balance)}</td>

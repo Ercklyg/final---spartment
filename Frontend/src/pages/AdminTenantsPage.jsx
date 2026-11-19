@@ -10,10 +10,11 @@ import AdminHeader from "../components/admin/AdminHeader.jsx";
 import AdminSidebar from "../components/admin/AdminSidebar.jsx";
 import TenantCardGrid from "../components/admin/TenantCardGrid.jsx";
 import TenantsToolbar from "../components/admin/TenantsToolbar.jsx";
+import { TestRecordToggle } from "../components/admin/TestRecords.jsx";
 
 const loadRooms=client=>client.get('/rooms',{cacheMs:30_000});
 const TENANTS_PER_PAGE = 30;
-function TenantModal({onAdd,onClose,tenants}) {
+function TenantModal({onAdd,onClose,tenants,showTest}) {
   const {data,error,loading,reload}=useRemoteData(loadRooms);
   if (loading || error) return <div role="dialog" aria-modal="true" aria-labelledby="tenant-modal-loading-title" className="fixed inset-0 z-[70] flex items-center justify-center bg-slate-950/40 p-4">
     <section className="w-full max-w-xl rounded-2xl bg-white p-6 shadow-xl">
@@ -24,10 +25,10 @@ function TenantModal({onAdd,onClose,tenants}) {
       {loading ? <PageSkeleton variant="form" label="Loading available rooms..."/> : <div className="mt-6"><p role="alert" className="text-sm text-rose-700">{error}</p><button type="button" onClick={reload} className="mt-4 rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700">Retry</button></div>}
     </section>
   </div>;
-  return <AddTenantModal rooms={data} existingTenants={tenants} onAdd={onAdd} onClose={onClose}/>;
+  return <AddTenantModal rooms={data.filter(room => showTest || !room.is_test)} existingTenants={tenants} onAdd={onAdd} onClose={onClose}/>;
 }
-const loadWorkspace = async (client,offset,search) => {
-  const page=await client.get(`/tenants?${new URLSearchParams({limit:TENANTS_PER_PAGE,offset,search})}`);
+const loadWorkspace = async (client,offset,search,includeTest) => {
+  const page=await client.get(`/tenants?${new URLSearchParams({limit:TENANTS_PER_PAGE,offset,search,includeTest})}`);
   return {
     ...page,tenants: page.data.map(tenant => ({
       ...tenant, name: tenant.full_name, room: tenant.rooms?.room_number || "Unassigned",
@@ -39,10 +40,11 @@ const loadWorkspace = async (client,offset,search) => {
 
 export default function AdminTenantsPage({ onNavigate, onLogout }) {
   const [isAddOpen, setIsAddOpen] = useState(false);
+  const [showTest, setShowTest] = useState(false);
   const [offset,setOffset]=useSessionState("admin-tenants-offset-30",0);
   const [search,setSearch]=useSessionState("admin-tenants-search","");
   const settledSearch=useDebouncedValue(search);
-  const loader=useCallback(client=>loadWorkspace(client,offset,settledSearch),[offset,settledSearch]);
+  const loader=useCallback(client=>loadWorkspace(client,offset,settledSearch,showTest),[offset,settledSearch,showTest]);
   const { data, loading:fetching, error, reload } = useRemoteData(loader,{keepPrevious:true});
   const loading=fetching||search!==settledSearch;
   const addTenant = async account => {
@@ -54,12 +56,13 @@ export default function AdminTenantsPage({ onNavigate, onLogout }) {
     <div className="min-w-0 flex-1"><AdminHeader onLogout={onLogout} />
       <div className="mx-auto max-w-[1480px] px-4 pb-24 sm:px-6 lg:pb-10 xl:px-10">
         <TenantsToolbar count={data?.total ?? null} search={search} onSearch={value => { setSearch(value); setOffset(0); }} onAdd={() => setIsAddOpen(true)} onRefresh={reload} loading={loading} />
+        <TestRecordToggle checked={showTest} onChange={value => { setShowTest(value); setOffset(0); }}/>
         {loading&&!data ? <PageSkeleton variant="tenants" label="Loading tenants and billing balances..."/>
           : error&&!data ? <p role="alert" className="mb-4 text-rose-700">{error} <button onClick={reload} className="underline">Retry</button></p>
             : <>{error&&<p role="alert" className="mb-3 text-sm text-rose-700">{error} <button onClick={reload} className="underline">Retry</button></p>}<p className="mb-4 text-sm text-slate-600">Balances include all issued rent and utility bills.</p><TenantCardGrid addedTenants={data.tenants} search={search} onClearSearch={() => { setSearch(""); setOffset(0); }} onChanged={reload} /><PageControls disabled={loading} offset={offset} limit={TENANTS_PER_PAGE} total={data.total} onChange={setOffset}/></>}
       </div>
     </div>
-    {isAddOpen && <TenantModal tenants={data?.tenants || []} onAdd={addTenant} onClose={() => setIsAddOpen(false)} />}
+    {isAddOpen && <TenantModal showTest={showTest} tenants={data?.tenants || []} onAdd={addTenant} onClose={() => setIsAddOpen(false)} />}
   </main>;
 }
 

@@ -92,7 +92,11 @@ export const password=async(req)=>{
 };
 export const profile=async(req)=>req.profile;
 export const account=async(req)=>(await loadTenantAccount(req.db,req.user));
-export const bills=async(req)=>{const bills=await loadBills(req.db);return req.query.view==='overview'?{bills,summary:billingOverview(bills)}:bills;};
+export const bills=async(req)=>{
+  const all=await loadBills(req.db);
+  const bills=all.filter(b=>req.role!=='admin'||req.query.includeTest==='true'||!b.is_test);
+  return req.query.view==='overview'?{bills,summary:billingOverview(req.role==='admin'?all.filter(b=>!b.is_test):all)}:bills;
+};
 export const billCreate=async(req)=>{const result=await createBill(req.db,req.body);await deliverPush(req.db);return result;};
 export const paymentCreate=async(req)=>{
   const body=validate.object(req.body),form=validate.object(body.form,'Payment details');
@@ -141,7 +145,11 @@ export const pushSubscribe=async(req)=>savePushSubscription(req.db,req.user.id,r
 export const pushUnsubscribe=async(req)=>removePushSubscription(req.db,req.user.id,req.body?.endpoint);
 export const flushPushNotifications=deliverPush;
 export const rooms=async(req)=>readAll(()=>req.db.from('rooms').select(roomColumns).order('floor').order('room_number').order('id'));
-export const publicRooms=async()=>{const db=createUserClient();return readAll(()=>db.from('rooms').select('id,room_number,floor,status,size_sqm,capacity,monthly_rate,description,buildings(name)').eq('status','available').order('floor').order('room_number').order('id'));};
+export const publicRooms=async()=>{const db=createUserClient();return readAll(()=>db.from('rooms').select('id,room_number,floor,status,size_sqm,capacity,monthly_rate,description,buildings(name)').eq('status','available').eq('is_test',false).order('floor').order('room_number').order('id'));};
+export const testRecord=async(req)=>{
+  if(typeof req.body?.isTest!=='boolean')throw new HttpError(400,'Invalid test record flag.');
+  return report(req.db,'set_test_record',{p_kind:validate.choice(req.body?.kind,['room','tenant'],'record type'),p_id:validate.uuid(req.body?.id,'record ID'),p_is_test:req.body.isTest});
+};
 export const roomCreate=async(req)=>createRoom(req.db,req.body);
 export const roomUpdate=async(req)=>updateRoom(req.db,req.params.id,req.body);
 export const roomDelete=async(req)=>deleteRoom(req.db,req.params.id);
@@ -149,23 +157,23 @@ export const roomStatus=async(req)=>{validate.uuid(req.params.id,'room ID');vali
 export const tenants=async(req)=>{
   const search=validate.text(req.query.search,'search',160,true).trim().toLowerCase();
   const page=validate.page(req.query);
-  return report(req.db,'tenant_directory_search_page',{p_search:search,...page});
+  return report(req.db,'tenant_directory_search_page_v2',{p_search:search,...page,p_include_test:req.query.includeTest==='true'});
 };
 export const billingLeases=async(req)=>{
   const {month,type}=req.query;
-  if(month==null&&type==null)return loadBillingLeases(req.db);
+  if(month==null&&type==null)return loadBillingLeases(req.db,null,null,req.query.includeTest==='true');
   if(typeof month!=='string'||!/^\d{4}-(0[1-9]|1[0-2])$/.test(month))throw new HttpError(400,'Invalid billing month.');
-  return loadBillingLeases(req.db,month,validate.choice(type,['rent','utility'],'bill type'));
+  return loadBillingLeases(req.db,month,validate.choice(type,['rent','utility'],'bill type'),req.query.includeTest==='true');
 };
 export const billingWorkspace=async(req)=>{
   if(req.query.month){
     const {month,type,status='All',search=''}=req.query;
     if(typeof month!=='string'||!/^\d{4}-(0[1-9]|1[0-2])$/.test(month))throw new HttpError(400,'Invalid billing month.');
-    const data=await report(req.db,'billing_page',{p_month:month+'-01',p_type:validate.choice(type,['rent','utility'],'bill type'),p_status:validate.choice(status,['All','Paid','Pending','Partially paid','Late'],'status'),p_search:validate.text(search,'search',160,true),...validate.page(req.query)});
+    const data=await report(req.db,'billing_page_v2',{p_month:month+'-01',p_type:validate.choice(type,['rent','utility'],'bill type'),p_status:validate.choice(status,['All','Paid','Pending','Partially paid','Late'],'status'),p_search:validate.text(search,'search',160,true),...validate.page(req.query),p_include_test:req.query.includeTest==='true'});
     return {...data,bills:await addReminderTimes(req.db,data.bills),summary:{months:{[month]:{[type]:data.totals}}}};
   }
   const [bills,leases]=await Promise.all([loadBills(req.db),loadBillingLeases(req.db)]);
-  return ({bills:await addReminderTimes(req.db,bills),summary:billingOverview(bills),leases});
+  return ({bills:await addReminderTimes(req.db,bills.filter(b=>req.query.includeTest==='true'||!b.is_test)),summary:billingOverview(bills.filter(b=>!b.is_test)),leases});
 };
 export const requestWorkspace=async(req)=>report(req.db,'request_workspace_page',{
   p_filter:validate.choice(req.query.filter??'All',['All','Maintenance','Other','Inquiry'],'request filter'),

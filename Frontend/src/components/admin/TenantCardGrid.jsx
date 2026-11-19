@@ -5,6 +5,7 @@ import { api } from "../../lib/api.js";
 import { leaseHistory, moveOut } from "../../lib/tenancy.js";
 import MoveOutDialog from "./MoveOutDialog.jsx";
 import { closeFromBackdrop } from "../../lib/dialog.js";
+import { TestBadge } from "./TestRecords.jsx";
 
 const tone = {
   Paid: "bg-emerald-50 text-emerald-800",
@@ -21,7 +22,17 @@ const cardAccent = {
 };
 const amountLabel = value => value == null ? "Unavailable" : money(value);
 
-function TenantDetails({ tenant, leases, leasesLoading, onClose, onMoveOut }) {
+function TenantDetails({ tenant, leases, leasesLoading, onClose, onMoveOut, onChanged }) {
+  const [classifying, setClassifying] = useState(false);
+  const [classificationError, setClassificationError] = useState('');
+  const classify = async () => {
+    setClassifying(true); setClassificationError('');
+    try {
+      await api.patch('/records/test-status', {kind:'tenant',id:tenant.id,isTest:!tenant.test_account});
+      onClose(); onChanged?.();
+    } catch (error) { setClassificationError(error.message); }
+    finally { setClassifying(false); }
+  };
   const dialog = useRef(null);
   useEffect(() => {
     const previous = document.activeElement;
@@ -31,7 +42,13 @@ function TenantDetails({ tenant, leases, leasesLoading, onClose, onMoveOut }) {
   const activeLease = (leases || []).find(lease => lease.status === "active");
   return <dialog ref={dialog} onMouseDown={event=>closeFromBackdrop(event,onClose)} onCancel={onClose} aria-labelledby="tenant-details-heading" className="m-auto max-h-[85dvh] w-[calc(100%-2rem)] max-w-md overflow-y-auto rounded-2xl bg-white p-5 backdrop:bg-slate-950/40 sm:p-6">
     <button type="button" onClick={onClose} aria-label="Close tenant details" className="float-right rounded-lg p-1 hover:bg-slate-100"><X /></button>
-    <h2 id="tenant-details-heading" className="break-words text-xl font-bold leading-tight sm:text-2xl">{tenant.name}</h2><p className="mt-1 break-all text-sm text-slate-500">{tenant.email}</p>
+    <h2 id="tenant-details-heading" className="break-words text-xl font-bold leading-tight sm:text-2xl">{tenant.name}{tenant.is_test && <TestBadge/>}</h2><p className="mt-1 break-all text-sm text-slate-500">{tenant.email}</p>
+    <div className="mt-4 rounded-xl border border-violet-100 bg-violet-50/50 p-3 text-sm">
+      <p>{tenant.is_test ? 'Test records remain accessible and are excluded from operational reports.' : 'This account is included in operational reports.'}</p>
+      {tenant.room_is_test && <p className="mt-1 text-xs text-slate-600">The assigned room is also a test room. Change its classification in Rooms to include its records.</p>}
+      <button type="button" disabled={classifying} onClick={classify} className="mt-2 rounded-lg border border-violet-200 bg-white px-3 py-2 font-semibold text-violet-700 disabled:opacity-50">{classifying ? 'Saving...' : tenant.test_account ? 'Remove test account flag' : 'Mark as test account'}</button>
+      {classificationError && <p role="alert" className="mt-2 text-rose-700">{classificationError}</p>}
+    </div>
     <dl className="mt-5 grid gap-2.5 text-sm sm:mt-6 sm:grid-cols-2 [&>div]:rounded-xl [&>div]:border [&>div]:border-slate-100 [&>div]:bg-slate-50/70 [&>div]:p-3">
       <div><dt className="text-slate-500">Phone number</dt><dd className="mt-1 font-semibold">{tenant.phone}</dd></div>
       <div><dt className="text-slate-500">Emergency contact</dt><dd className="mt-1 font-semibold">{tenant.emergencyName} · {tenant.emergencyPhone} ({tenant.relationship})</dd></div>
@@ -86,7 +103,7 @@ export default function TenantCardGrid({ addedTenants = [], onChanged, search = 
           <span className={`absolute inset-x-0 top-0 h-1 ${cardAccent[status] || cardAccent.Unavailable}`} aria-hidden="true" />
           <div className="flex min-w-0 items-start gap-3">
             <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 text-sm font-bold text-white shadow-sm sm:h-12 sm:w-12 sm:text-base">{tenant.name.trim().split(/\s+/).map(part => part[0]).slice(0, 2).join("")}</span>
-            <div className="min-w-0 flex-1"><h2 className="line-clamp-2 break-words text-sm font-bold leading-5 sm:text-base">{tenant.name}</h2><p className="truncate text-xs text-slate-500 sm:text-sm" title={tenant.email}>{tenant.email}</p></div>
+            <div className="min-w-0 flex-1"><h2 className="line-clamp-2 break-words text-sm font-bold leading-5 sm:text-base">{tenant.name}{tenant.is_test && <TestBadge/>}</h2><p className="truncate text-xs text-slate-500 sm:text-sm" title={tenant.email}>{tenant.email}</p></div>
           </div>
           <div className="mt-4 grid min-w-0 grid-cols-2 gap-3 text-sm sm:mt-5 sm:grid-cols-3 sm:gap-2">
             <div className="min-w-0"><p className="text-slate-500">Room</p><strong className="break-words">{tenant.room}</strong></div>
@@ -97,7 +114,7 @@ export default function TenantCardGrid({ addedTenants = [], onChanged, search = 
         </article>;
       })}
     </section>
-    {selected && !moveOutOpen && <TenantDetails key={selected.id} tenant={selected} leases={leases} leasesLoading={leasesLoading} onClose={() => setSelectedId(null)} onMoveOut={() => setMoveOutOpen(true)} />}
+    {selected && !moveOutOpen && <TenantDetails key={selected.id} tenant={selected} leases={leases} leasesLoading={leasesLoading} onClose={() => setSelectedId(null)} onMoveOut={() => setMoveOutOpen(true)} onChanged={onChanged} />}
     {selected && moveOutOpen && <MoveOutDialog tenant={selected} onClose={() => setMoveOutOpen(false)} onDone={submitMoveOut} />}
   </>;
 }

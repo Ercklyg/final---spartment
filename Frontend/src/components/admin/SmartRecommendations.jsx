@@ -41,7 +41,7 @@ function SmartRecommendations({ onNavigate, aiItems: receivedItems = [], aiLoadi
       </button>;
     })}</div>}
     {!aiLoading && !fallback && aiItems.length === 0 && <p className="mt-4 text-sm text-slate-500">No AI recommendations are available for this month.</p>}
-    {aiItems.length > 0 && <p className="mt-3 text-xs leading-5 text-slate-500">{fallback ? "Property data may have changed since these recommendations were generated." : "AI-selected actions. Review records before acting."}</p>}
+    {aiItems.length > 0 && <p className="mt-3 text-xs leading-5 text-slate-500">AI-selected actions. Figures reflect current operational records. Review records before acting.</p>}
   </section>;
 }
 

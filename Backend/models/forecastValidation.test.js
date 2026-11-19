@@ -67,10 +67,10 @@ test('report loader reads every history page once and caps records at the correc
   for (const [month, boundary, count] of [['2026-06', '2026-06-01', 2], ['2026-04', '2026-05-01', 1]]) {
     const calls = [], offsets = [];
     const source = payments.filter(row => row.billing_period < boundary);
-    const db = { from(table) {
-      assert.equal(table, 'payments');
+    const db = { rpc(table) {
+      assert.equal(table, 'forecast_payments');
       const query = {
-        select(columns) { assert.equal(columns, 'amount,payment_date,bills!inner(billing_period)'); return query; },
+        select(columns) { assert.equal(columns, 'amount,payment_date,billing_period'); return query; },
         lt(column, value) { calls.push([column, value]); return query; },
         lte(column, value) { assert.equal(column, 'payment_date'); assert.equal(value, '2026-06-18'); return query; },
         order() { return query; },
@@ -80,7 +80,7 @@ test('report loader reads every history page once and caps records at the correc
     } };
     const result = await loadForecastReport(db, month, '2026-06-18');
     assert.equal(result.forecastValidation.testedMonths, count);
-    assert.ok(calls.every(([column, value]) => column === 'bills.billing_period' && value === boundary));
+    assert.ok(calls.every(([column, value]) => column === 'billing_period' && value === boundary));
     assert.deepEqual(offsets, source.length === 5 ? [0, 2, 4, 5] : [0, 2, 4]);
     assert.equal(result.forecast, month === '2026-06' ? 400.40 : 200.20);
   }
@@ -88,7 +88,7 @@ test('report loader reads every history page once and caps records at the correc
 
 test('history failures do not produce fabricated validation results', async () => {
   const query = { select() { return query; }, lt() { return query; }, lte() { return query; }, order() { return query; }, range: async () => ({ error: { message: 'Unavailable' } }) };
-  await assert.rejects(loadForecastReport({ from: () => query }, '2026-06', '2026-06-18'), error => error.status === 503);
+  await assert.rejects(loadForecastReport({ rpc: () => query }, '2026-06', '2026-06-18'), error => error.status === 503);
 });
 
 test('bill-month backtesting includes later payments in the correct target and excludes future receipts', () => {
@@ -127,8 +127,8 @@ test('the actual Supabase query joins bill periods and filters receipt dates ind
   assert.equal(result.forecast, 600);
   assert.equal(requests.length, 2);
   for (const url of requests) {
-    assert.equal(url.searchParams.get('select'), 'amount,payment_date,bills!inner(billing_period)');
-    assert.equal(url.searchParams.get('bills.billing_period'), 'lt.2026-11-01');
+    assert.equal(url.searchParams.get('select'), 'amount,payment_date,billing_period');
+    assert.equal(url.searchParams.get('billing_period'), 'lt.2026-11-01');
     assert.equal(url.searchParams.get('payment_date'), 'lte.2026-11-18');
     assert.equal(url.searchParams.get('order'), 'id.asc');
   }

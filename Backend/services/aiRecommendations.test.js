@@ -38,7 +38,7 @@ function request(user = 'admin', records = new Map()) {
   return { role: 'admin', user: { id: user }, body: { month: '2026-01' }, db, stats, records };
 }
 
-test('durable saved insights avoid new analytics/provider calls, expire normally and deduplicate forced refreshes', async t => {
+test('durable saved insights recheck operational facts without provider calls, expire without automatic generation and deduplicate forced refreshes', async t => {
   enableTestAi(t); let calls = 0;
   t.mock.method(globalThis,'fetch',async () => { calls++; return success(); });
   const req = request();
@@ -46,13 +46,13 @@ test('durable saved insights avoid new analytics/provider calls, expire normally
   assert.equal(first.cached,false);
   const cached = await recommendations(req);
   assert.equal(cached.cached,true); assert.equal(cached.updatedAt,first.updatedAt);
-  assert.equal(req.stats.reports,1); assert.equal(calls,1);
+  assert.equal(req.stats.reports,2); assert.equal(calls,1);
   const now = Date.now(); t.mock.method(Date,'now',() => now + 13*60*60*1000);
   const stale = await recommendations(req);
-  assert.equal(stale.stale,true); assert.equal(stale.refreshRecommended,true); assert.equal(req.stats.reports,1);
+  assert.equal(stale.stale,true); assert.equal(stale.refreshRecommended,false); assert.equal(req.stats.reports,3);
   const forced = { ...req, body: { ...req.body, force:true } };
   const [fresh,same] = await Promise.all([recommendations(forced),recommendations(forced)]);
-  assert.deepEqual(fresh,same); assert.equal(fresh.cached,false); assert.equal(calls,2); assert.equal(req.stats.reports,2);
+  assert.deepEqual(fresh,same); assert.equal(fresh.cached,false); assert.equal(calls,2); assert.equal(req.stats.reports,5);
 });
 
 test('quota failure preserves original generation time and survives a service restart without automatic retries', async t => {
@@ -182,4 +182,21 @@ test('client previews preserve failure metadata and dates, separate periods and 
   assert.equal(formatInsightDate('invalid'),null);
   assert.match(recommendationFallbackMessage({reason:'unavailable',hasItems:false}),/No previous AI recommendations/);
   clearRecommendationPreviews(); assert.equal(getRecommendationPreview('2026-01'),null);
+});
+
+test('saved AI selections use current operational evidence without consuming a model request',async t=>{
+  enableTestAi(t);
+  const req=request('operational-evidence');
+  const old={...item,evidence:'Old totals including test payments'};
+  req.records.set('operational-evidence|2026-01-01|Monthly',{items:[old],generated_at:'2026-01-01T00:00:00Z',reporting_cutoff:'2026-01-31',last_failure:null});
+  const provider=t.mock.method(globalThis,'fetch',async()=>{throw new Error('Provider must not be called');});
+  const current=await recommendations(req);
+  assert.notEqual(current.items[0].evidence,old.evidence);
+  assert.match(current.items[0].evidence,/100\.00 collected/);
+  assert.equal(current.updatedAt,'2026-01-01T00:00:00Z');
+  assert.equal(current.refreshRecommended,false); assert.equal(provider.mock.callCount(),0);
+  const rpc=req.db.rpc;
+  req.db.rpc=(name,args)=>name==='analytics_report'?{error:{message:'Unavailable'}}:rpc(name,args);
+  const unavailable=await recommendations(req);
+  assert.deepEqual(unavailable.items,[]); assert.equal(unavailable.reason,'unavailable');
 });

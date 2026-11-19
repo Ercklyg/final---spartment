@@ -10,13 +10,15 @@ import { closeFromBackdrop } from "../lib/dialog.js";
 import AdminSidebar from "../components/admin/AdminSidebar.jsx";
 import FloorRoomGrid from "../components/admin/FloorRoomGrid.jsx";
 import RoomsToolbar from "../components/admin/RoomsToolbar.jsx";
+import { TestRecordToggle } from "../components/admin/TestRecords.jsx";
 
-const toRow = room => [room.room_number, room.floor, room.status[0].toUpperCase() + room.status.slice(1), (room.tenant_assignments?.full_name || room.tenant_assignments?.[0]?.full_name) || (room.status === "occupied" ? "Occupied" : "Unassigned"), room.buildings?.name || "Building", room.id, Number(room.monthly_rate), room.description, room.size_sqm, room.capacity, Boolean(room.tenant_assignments?.full_name || room.tenant_assignments?.length)];
+const toRow = room => [room.room_number, room.floor, room.status[0].toUpperCase() + room.status.slice(1), (room.tenant_assignments?.full_name || room.tenant_assignments?.[0]?.full_name) || (room.status === "occupied" ? "Occupied" : "Unassigned"), room.buildings?.name || "Building", room.id, Number(room.monthly_rate), room.description, room.size_sqm, room.capacity, Boolean(room.tenant_assignments?.full_name || room.tenant_assignments?.length), Boolean(room.is_test)];
 
 export default function AdminRoomsPage({ onNavigate, onLogout }) {
   const [filter, setFilter] = useSessionState("admin-rooms-filter", "All Rooms");
   const [query, setQuery] = useSessionState("admin-rooms-query", "");
   const [rooms, setRooms] = useState([]);
+  const [showTest, setShowTest] = useState(false);
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [editingRoom, setEditingRoom] = useState(null);
   const [deletingRoom, setDeletingRoom] = useState(null);
@@ -63,15 +65,16 @@ export default function AdminRoomsPage({ onNavigate, onLogout }) {
     <div className="min-w-0 flex-1">
       <AdminHeader onLogout={onLogout} />
       <div className="mx-auto max-w-[1280px] px-4 pb-24 sm:px-6 lg:pb-10 xl:px-8">
-        <RoomsToolbar filter={filter} onFilter={setFilter} query={query} onQuery={setQuery} onAdd={() => setIsAddOpen(true)} sort={sort} onSort={setSort} rooms={rooms} loading={loading} error={error} />
+        <RoomsToolbar filter={filter} onFilter={setFilter} query={query} onQuery={setQuery} onAdd={() => setIsAddOpen(true)} sort={sort} onSort={setSort} rooms={rooms.filter(room => !room[11])} loading={loading} error={error} />
+        <TestRecordToggle checked={showTest} onChange={setShowTest}/>
         <div aria-live="polite" aria-atomic="true">{error && <div role="alert" className="mt-4 text-rose-700">{error} <button onClick={() => { setLoading(true); setError(""); setReload(n => n + 1); }} className="underline">Reload rooms</button></div>}</div>
-        {loading ? <PageSkeleton variant="rooms" label="Loading rooms..." /> : <FloorRoomGrid filter={filter} query={query} rooms={rooms} sort={sort} saving={saving} onClearFilters={() => { setFilter("All Rooms"); setQuery(""); }} onStatusChange={(id, status) => { const room = rooms.find(item => item[5] === id); if (room && status !== room[2]) setPendingStatus({ id, status, room }); }} onEdit={setEditingRoom} onDelete={setDeletingRoom} />}
+        {loading ? <PageSkeleton variant="rooms" label="Loading rooms..." /> : <FloorRoomGrid filter={filter} query={query} rooms={rooms.filter(room => showTest || !room[11])} sort={sort} saving={saving} onClearFilters={() => { setFilter("All Rooms"); setQuery(""); }} onStatusChange={(id, status) => { const room = rooms.find(item => item[5] === id); if (room && status !== room[2]) setPendingStatus({ id, status, room }); }} onEdit={setEditingRoom} onDelete={setDeletingRoom} />}
       </div>
     </div>
     {isAddOpen && <AddRoomModal onClose={() => setIsAddOpen(false)} onAdd={addRoom} />}
     {editingRoom && <AddRoomModal key={editingRoom[5]} onClose={() => setEditingRoom(null)} onAdd={editRoom} initialRoom={{
       room: editingRoom[0], building: editingRoom[4], floor: String(editingRoom[1]),
-      size: String(editingRoom[8]), rate: String(editingRoom[6]),
+      size: String(editingRoom[8]), rate: String(editingRoom[6]), isTest: editingRoom[11],
       capacity: String(editingRoom[9] || "2-3").replace(/\s*persons?\s*$/i, ""), notes: editingRoom[7] || "",
     }} />}
     {deletingRoom && <DeleteRoomModal room={deletingRoom} onClose={() => setDeletingRoom(null)} onDelete={deleteRoom} />}

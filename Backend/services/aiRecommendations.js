@@ -15,7 +15,14 @@ function savedResult(saved, { cached = true, cutoff } = {}) {
   const stale = Boolean(failure) || !saved?.generated_at || Date.parse(saved.generated_at) + CACHE_TTL_MS <= Date.now() || saved.reporting_cutoff !== cutoff;
   return { items, fallback: Boolean(failure), reason: failure, source: items.length ? (failure ? 'cache' : 'ai') : 'none',
     updatedAt: items.length ? saved?.generated_at || null : null, cached: items.length ? cached || Boolean(failure) : false, stale,
-    refreshRecommended: !failure && Boolean(items.length) && stale };
+    refreshRecommended: false };
+}
+
+// Saved AI choices retain their generation date, but displayed identities and
+// amounts always come from the current operational records. No model call.
+function groundSaved(saved, snapshot, month) {
+  const choices = (saved?.items || []).filter(hasVerifiedEvidence).map(({factId,actionId}) => ({factId,actionId}));
+  return saved && {...saved,items:snapshot ? assembleRecommendations(choices,buildRecommendationFacts(snapshot,month)) : []};
 }
 
 export async function recommendations(req) {
@@ -32,25 +39,24 @@ export async function recommendations(req) {
   const saved = await loadSavedRecommendations(req.db, req.user.id, month, period);
   // Older free-text cards are not evidence-checked and must never be reused.
   const legacy = saved?.items?.length && !saved.items.every(hasVerifiedEvidence);
-  if (enabled && body.force !== true && saved && (!legacy || saved.last_failure)) return savedResult(saved, { cutoff });
+  let snapshot;
+  try {
+    snapshot = (await report(req.db,'analytics_report',{p_month:month+'-01',p_period:period,p_export:false})).snapshot;
+  } catch { return savedResult({...saved,items:[],last_failure:'unavailable'},{cutoff}); }
+  if (enabled && body.force !== true && saved && (!legacy || saved.last_failure)) return savedResult(groundSaved(saved,snapshot,month), { cutoff });
   const key = req.user.id + '|' + month + '|' + period + '|' + cutoff;
   if (pending.has(key)) return pending.get(key);
   const startedAt = new Date(Date.now()).toISOString();
-  const task = generateRecommendations(req, { month, period, cutoff, startedAt, enabled });
+  const task = generateRecommendations(req, { month, period, cutoff, startedAt, enabled, snapshot });
   pending.set(key, task);
   try { return await task; }
   finally { if (pending.get(key) === task) pending.delete(key); }
 }
 
 async function generateRecommendations(req, scope) {
-  const { month, period, cutoff, enabled } = scope;
-  const fail = async reason => savedResult(await saveRecommendationFailure(req.db, { ...scope, reason }), { cutoff });
+  const { month, period, cutoff, enabled, snapshot } = scope;
+  const fail = async reason => savedResult(groundSaved(await saveRecommendationFailure(req.db, { ...scope, reason }),snapshot,month), { cutoff });
   if (!enabled) return fail('unavailable');
-  let snapshot;
-  try {
-    const data = await report(req.db, 'analytics_report', { p_month: month + '-01', p_period: period, p_export: false });
-    snapshot = data.snapshot;
-  } catch { return fail('unavailable'); }
   const facts = buildRecommendationFacts(snapshot, month);
   if (!facts.length) return fail('unavailable');
   const prompt = recommendationPrompt(facts, month, snapshot.cutoff);

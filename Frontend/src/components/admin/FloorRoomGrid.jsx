@@ -1,4 +1,5 @@
 import { Building2, ChevronDown, DoorOpen, Layers3, LoaderCircle, LockKeyhole, Pencil, SearchX, Square, Trash2, UserRound, UsersRound } from "lucide-react";
+import { TestBadge } from "./TestRecords.jsx";
 
 const statuses = ["Available", "Occupied", "Reserved", "Maintenance"];
 const tones = {
@@ -44,7 +45,7 @@ function FloorRoomGrid({ filter, query, rooms = [], sort, saving, onStatusChange
                 </div>
                 <div className="mt-2.5">
                   <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-slate-600">Room</p>
-                  <h3 className="break-words text-2xl font-bold tracking-tight text-slate-900">{room[0]}</h3>
+                  <h3 className="break-words text-2xl font-bold tracking-tight text-slate-900">{room[0]}{room[11] && <TestBadge/>}</h3>
                 </div>
                 <div className="mt-2.5 flex flex-wrap items-baseline gap-1.5">
                   <p className="text-lg font-semibold tracking-tight text-slate-900">{room[6] == null ? "—" : money.format(Number(room[6]))}</p>

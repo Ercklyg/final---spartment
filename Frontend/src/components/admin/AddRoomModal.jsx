@@ -5,7 +5,7 @@ function AddRoomModal({ onClose, onAdd, initialRoom }) {
   const editing = Boolean(initialRoom);
   const [form, setForm] = useState(() => initialRoom || {
     room: "", building: "Main Building", floor: "1", size: "8",
-    rate: "6500", capacity: "2-3", notes: "",
+    rate: "6500", capacity: "2-3", notes: "", isTest: false,
   });
   const busy = useRef(false);
   const [saving, setSaving] = useState(false);
@@ -53,6 +53,7 @@ function AddRoomModal({ onClose, onAdd, initialRoom }) {
             </label>)}
         </div>
         {editing && <p className="mt-3 text-xs text-slate-500">Changing the listing rate does not change an existing tenant&apos;s lease rent.</p>}
+        <label className="mt-4 flex items-start gap-2 text-sm text-slate-700"><input type="checkbox" checked={Boolean(form.isTest)} onChange={event => update("isTest", event.target.checked)} className="mt-1 h-4 w-4 accent-violet-600"/><span><strong>Test room</strong><span className="mt-1 block text-xs text-slate-500">Exclude this room and its linked financial records from operational reports. Records stay accessible using Show test records.</span></span></label>
         <label className="mt-4 block text-sm font-medium text-slate-700">Room description &amp; amenities
           <textarea value={form.notes} onChange={(e) => update("notes", e.target.value)} maxLength={4000} className="mt-1.5 min-h-20 w-full rounded-xl border border-slate-200 p-3 text-sm placeholder:text-slate-500" placeholder="e.g. Private bathroom, compact kitchenette, double-deck bed, and storage." />
         </label>
