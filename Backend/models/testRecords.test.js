@@ -4,6 +4,7 @@ import { readFile } from 'node:fs/promises';
 import { PGlite } from '@electric-sql/pglite';
 import { collectionForecast, forecastValidation } from './collectionForecast.js';
 import { buildRecommendationFacts } from '../services/recommendationFacts.js';
+import { collectedForSelectedBills } from '../../Frontend/src/lib/adminAnalytics.js';
 
 const admin='11111111-1111-4111-8111-111111111111';
 const real='22222222-2222-4222-8222-222222222222';
@@ -54,6 +55,26 @@ before(async()=>{
   await as(admin);
 });
 after(async()=>{await db?.close();});
+
+test('dashboard bill-month collections exclude older bills, test accounts, and payments after cutoff', async()=>{
+  await db.exec('begin');
+  try {
+    await db.exec('reset role');
+    const insertBill=async(lease,month)=>scalar("insert into public.bills(lease_id,bill_type,billing_period,due_date,electricity_amount,water_amount) values($1,'utility',$2,$2::date+29,540,300) returning id result",[lease,month]);
+    const current=await insertBill(realLease,'2026-11-01');
+    const earlier=await insertBill(realLease,'2026-10-01');
+    const sample=await insertBill(testLease,'2026-11-01');
+    for(const [bill,amount,date] of [[current,500,'2026-11-05'],[current,40,'2026-10-31'],[current,300,'2026-12-01'],[earlier,90,'2026-11-05'],[sample,200,'2026-11-05']]) {
+      await db.query('insert into public.payments(bill_id,amount,payment_date) values($1,$2,$3)',[bill,amount,date]);
+    }
+    await as(admin);
+    const report=await scalar("select public.analytics_report('2026-11-01','Monthly',false) result");
+    assert.equal(report.snapshot.collected,590);
+    assert.equal(collectedForSelectedBills(report.snapshot),540);
+    assert.equal(report.snapshot.selected.length,1);
+    assert.equal(report.snapshot.selected[0].id,current);
+  } finally {await db.exec('rollback');}
+});
 
 test('migration excludes exactly the confirmed test inventory and its linked account, retaining all records',async()=>{
   const report=await scalar("select public.analytics_report('2026-11-01','Monthly',true) result");
