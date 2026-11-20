@@ -13,7 +13,7 @@ import TenantsToolbar from "../components/admin/TenantsToolbar.jsx";
 import { TestRecordToggle } from "../components/admin/TestRecords.jsx";
 
 const loadRooms=client=>client.get('/rooms',{cacheMs:30_000});
-const TENANTS_PER_PAGE = 30;
+const TENANTS_PER_PAGE = 9;
 function TenantModal({onAdd,onClose,tenants,showTest}) {
   const {data,error,loading,reload}=useRemoteData(loadRooms);
   if (loading || error) return <div role="dialog" aria-modal="true" aria-labelledby="tenant-modal-loading-title" className="fixed inset-0 z-[70] flex items-center justify-center bg-slate-950/40 p-4">
@@ -41,7 +41,7 @@ const loadWorkspace = async (client,offset,search,includeTest) => {
 export default function AdminTenantsPage({ onNavigate, onLogout }) {
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [showTest, setShowTest] = useState(false);
-  const [offset,setOffset]=useSessionState("admin-tenants-offset-30",0);
+  const [offset,setOffset]=useSessionState("admin-tenants-offset-9",0);
   const [search,setSearch]=useSessionState("admin-tenants-search","");
   const settledSearch=useDebouncedValue(search);
   const loader=useCallback(client=>loadWorkspace(client,offset,settledSearch,showTest),[offset,settledSearch,showTest]);
