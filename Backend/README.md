@@ -118,6 +118,16 @@ checks the expected active lease, releases the room, records an audit event and
 notifies the tenant. Move-out archives the assignment; account, previous leases,
 bills and payments remain available.
 
+After move-out, tenants retain their notification history, payment confirmations
+and corrections, and reminders for outstanding bills covering their tenancy.
+Reminders stop once a bill is settled; billing periods after the lease ended
+are excluded from individual and bulk reminders. New announcements and edits
+to earlier announcements do not alert former tenants. Existing open requests
+still send updates, including final resolution; later edits while a request
+remains resolved do not alert former tenants. Reopened requests send updates again.
+Apply migration `202611200001_former_tenant_notifications.sql` through the normal
+database migration workflow to activate these rules.
+
 Resource lists support `offset` and `limit` (up to 1000). Workspace readers fetch
 multiple database pages so room, inquiry, request and correction lists are not
 silently cut off at Supabase's response limit. Invalid sessions return 401;

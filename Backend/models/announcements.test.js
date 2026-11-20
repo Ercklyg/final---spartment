@@ -31,6 +31,7 @@ before(async () => {
     create policy notice_update on public.notifications for update to authenticated using (tenant_id=auth.uid()) with check (tenant_id=auth.uid());
   `);
   await db.exec(await readFile(new URL('../supabase/migrations/202611180001_announcements.sql', import.meta.url), 'utf8'));
+  await db.exec(await readFile(new URL('../supabase/migrations/202611200001_former_tenant_notifications.sql', import.meta.url), 'utf8'));
 });
 beforeEach(async () => {
   await db.exec('reset role; truncate public.notifications,public.announcements,public.tenant_assignments,public.profiles cascade;');
@@ -94,7 +95,7 @@ test('a notification insertion failure rolls back all recipients and the announc
   } finally { await db.exec('reset role; drop trigger fail_announcement_test on public.notifications; drop function public.fail_announcement_test();'); }
 });
 
-test('edit resets engagement for original recipients, preserves dates and does not notify new tenants', async () => {
+test('edit alerts current original recipients and preserves former tenants notification history', async () => {
   const original = await post();
   const initial = await notices();
   await db.exec("reset role; update public.notifications set is_read=true,seen_at=now(),acknowledged_at=now();");
@@ -109,8 +110,13 @@ test('edit resets engagement for original recipients, preserves dates and does n
   assert.equal(rows.length, 2);
   rows.forEach((n, i) => {
     assert.equal(n.id, initial[i].id); assert.equal(n.created_at.toISOString(), initial[i].created_at.toISOString());
-    assert.equal(n.title, updated.title); assert.equal(n.message, updated.message);
-    assert.equal(n.is_read, false); assert.equal(n.seen_at, null); assert.equal(n.acknowledged_at, null);
+    if (n.tenant_id === second) {
+      assert.equal(n.title, initial[i].title); assert.equal(n.message, initial[i].message);
+      assert.equal(n.is_read, true); assert.ok(n.seen_at); assert.ok(n.acknowledged_at);
+    } else {
+      assert.equal(n.title, updated.title); assert.equal(n.message, updated.message);
+      assert.equal(n.is_read, false); assert.equal(n.seen_at, null); assert.equal(n.acknowledged_at, null);
+    }
   });
   await db.exec('reset role; update public.notifications set is_read=true;');
   await asUser(admin);
