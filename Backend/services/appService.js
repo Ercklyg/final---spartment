@@ -158,7 +158,8 @@ export const roomStatus=async(req)=>{validate.uuid(req.params.id,'room ID');vali
 export const tenants=async(req)=>{
   const search=validate.text(req.query.search,'search',160,true).trim().toLowerCase();
   const page=validate.page(req.query);
-  return report(req.db,'tenant_directory_search_page_v2',{p_search:search,...page,p_include_test:req.query.includeTest==='true'});
+  const status=validate.choice(req.query.status ?? 'All',['All','Paid','Pending','Overdue'],'payment status');
+  return report(req.db,'tenant_directory_search_page_v3',{p_search:search,...page,p_include_test:req.query.includeTest==='true',p_status:status});
 };
 export const billingLeases=async(req)=>{
   const {month,type}=req.query;

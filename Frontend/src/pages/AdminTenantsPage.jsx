@@ -27,8 +27,8 @@ function TenantModal({onAdd,onClose,tenants,showTest}) {
   </div>;
   return <AddTenantModal rooms={data.filter(room => showTest || !room.is_test)} existingTenants={tenants} onAdd={onAdd} onClose={onClose}/>;
 }
-const loadWorkspace = async (client,offset,search,includeTest) => {
-  const page=await client.get(`/tenants?${new URLSearchParams({limit:TENANTS_PER_PAGE,offset,search,includeTest})}`);
+const loadWorkspace = async (client,offset,search,includeTest,status) => {
+  const page=await client.get(`/tenants?${new URLSearchParams({limit:TENANTS_PER_PAGE,offset,search,includeTest,status})}`);
   return {
     ...page,tenants: page.data.map(tenant => ({
       ...tenant, name: tenant.full_name, room: tenant.rooms?.room_number || "Unassigned",
@@ -43,8 +43,9 @@ export default function AdminTenantsPage({ onNavigate, onLogout }) {
   const [showTest, setShowTest] = useState(false);
   const [offset,setOffset]=useSessionState("admin-tenants-offset-9",0);
   const [search,setSearch]=useSessionState("admin-tenants-search","");
+  const [status,setStatus]=useSessionState("admin-tenants-payment-status","All");
   const settledSearch=useDebouncedValue(search);
-  const loader=useCallback(client=>loadWorkspace(client,offset,settledSearch,showTest),[offset,settledSearch,showTest]);
+  const loader=useCallback(client=>loadWorkspace(client,offset,settledSearch,showTest,status),[offset,settledSearch,showTest,status]);
   const { data, loading:fetching, error, reload } = useRemoteData(loader,{keepPrevious:true});
   const loading=fetching||search!==settledSearch;
   const addTenant = async account => {
@@ -55,11 +56,11 @@ export default function AdminTenantsPage({ onNavigate, onLogout }) {
     <AdminSidebar activePage="Tenants" onNavigate={onNavigate} />
     <div className="min-w-0 flex-1"><AdminHeader onLogout={onLogout} />
       <div className="mx-auto max-w-[1480px] px-4 pb-24 sm:px-6 lg:pb-10 xl:px-10">
-        <TenantsToolbar count={data?.total ?? null} search={search} onSearch={value => { setSearch(value); setOffset(0); }} onAdd={() => setIsAddOpen(true)} onRefresh={reload} loading={loading} />
+        <TenantsToolbar count={data?.total ?? null} search={search} onSearch={value => { setSearch(value); setOffset(0); }} status={status} onStatusChange={value => { setStatus(value); setOffset(0); }} onAdd={() => setIsAddOpen(true)} onRefresh={reload} loading={loading} />
         <TestRecordToggle checked={showTest} onChange={value => { setShowTest(value); setOffset(0); }}/>
         {loading&&!data ? <PageSkeleton variant="tenants" label="Loading tenants and billing balances..."/>
           : error&&!data ? <p role="alert" className="mb-4 text-rose-700">{error} <button onClick={reload} className="underline">Retry</button></p>
-            : <>{error&&<p role="alert" className="mb-3 text-sm text-rose-700">{error} <button onClick={reload} className="underline">Retry</button></p>}<p className="mb-4 text-sm text-slate-600">Balances include all issued rent and utility bills.</p><TenantCardGrid addedTenants={data.tenants} search={search} onClearSearch={() => { setSearch(""); setOffset(0); }} onChanged={reload} /><PageControls disabled={loading} offset={offset} limit={TENANTS_PER_PAGE} total={data.total} onChange={setOffset}/></>}
+            : <>{error&&<p role="alert" className="mb-3 text-sm text-rose-700">{error} <button onClick={reload} className="underline">Retry</button></p>}<p className="mb-4 text-sm text-slate-600">Balances include all issued rent and utility bills.</p><TenantCardGrid addedTenants={data.tenants} search={search} filtered={status!=="All"} onClearSearch={() => { setSearch(""); setStatus("All"); setOffset(0); }} onChanged={reload} /><PageControls disabled={loading} offset={offset} limit={TENANTS_PER_PAGE} total={data.total} onChange={setOffset}/></>}
       </div>
     </div>
     {isAddOpen && <TenantModal showTest={showTest} tenants={data?.tenants || []} onAdd={addTenant} onClose={() => setIsAddOpen(false)} />}

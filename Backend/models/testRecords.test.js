@@ -52,6 +52,7 @@ before(async()=>{
     if(paid)await db.query('insert into public.payments(bill_id,amount,payment_date) values($1,$2,$3)',[bill,paid,`2026-${month}-15`]);
   }
   await db.exec(await readFile(new URL('../supabase/migrations/202611190003_test_records.sql',import.meta.url),'utf8'));
+  await db.exec(await readFile(new URL('../supabase/migrations/202611200002_tenant_payment_filters.sql',import.meta.url),'utf8'));
   await as(admin);
 });
 after(async()=>{await db?.close();});
@@ -152,4 +153,14 @@ test('tenant directory hides tests by default and includes their full account ba
   const account=all.data.find(t=>t.id===tenant);
   assert.equal(account.is_test,true); assert.equal(account.billing.balance,3000);
   assert.equal(account.test_account,true); assert.equal(account.room_is_test,true);
+  const directory=await scalar("select public.tenant_directory_search_page_v3('',0,9,true,'All') result");
+  assert.equal(directory.total,all.total);
+  assert.deepEqual(directory.data,all.data);
+  for(const status of ['Paid','Pending','Overdue']) {
+    const filtered=await scalar('select public.tenant_directory_search_page_v3(\'\',0,9,true,$1) result',[status]);
+    const expected=all.data.filter(row=>status==='Paid' ? row.billing.billCount>0 && row.billing.balance===0
+      : status==='Pending' ? row.billing.balance>0 && row.billing.overdue===0 : row.billing.overdue>0);
+    assert.deepEqual(filtered.data,expected);
+    assert.equal(filtered.total,expected.length);
+  }
 });

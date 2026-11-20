@@ -133,6 +133,12 @@ multiple database pages so room, inquiry, request and correction lists are not
 silently cut off at Supabase's response limit. Invalid sessions return 401;
 temporary Auth or profile lookup failures return 503 without forcing sign-out.
 
+The tenant directory accepts `status=All|Paid|Pending|Overdue` and searches
+building names along with names, emails, phone numbers and room numbers.
+Pending includes partially paid accounts with no overdue amount; accounts with
+no bills appear under All. Status filters apply before pagination and counting.
+Apply `202611200002_tenant_payment_filters.sql` before deploying this API update.
+
 ## Performance queries
 
 Migration 008 moves analytics and tenant balance calculations into RLS-protected
