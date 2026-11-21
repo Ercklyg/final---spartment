@@ -13,16 +13,18 @@ async function roomDetails(db, input) {
   const body = validate.object(input);
   if (body.isTest !== undefined && typeof body.isTest !== 'boolean') throw new HttpError(400, 'Invalid test record flag.');
   const buildingName = validate.text(body.building, 'building name', 160);
+  const capacity = String(body.capacity);
+  if (!/^\d+(-\d+)?$/.test(capacity)) throw new HttpError(400, 'Enter a capacity using numbers or a range, such as 4 or 4-6.');
   const room = {
     room_number: validate.text(body.room, 'room number', 40),
     floor: validate.number(body.floor, 'floor', 1, 1000, true),
     size_sqm: validate.number(body.size, 'room size', 8, 14),
     monthly_rate: validate.amount(body.rate, 'monthly rate'),
-    capacity: validate.choice(String(body.capacity), ['2', '3', '2-3'], 'capacity') + ' persons',
+    capacity: capacity + ' persons',
     description: validate.text(body.notes, 'description', 4000, true),
     ...(body.isTest === undefined ? {} : { is_test: body.isTest }),
   };
-  if (!/^\d{3,}$/.test(room.room_number)) throw new HttpError(400, 'Enter a room number with at least 3 digits.');
+  if (!/^\d{3}$/.test(room.room_number)) throw new HttpError(400, 'Room number must be exactly 3 digits.');
   let building = checked(await db.from('buildings').select('id').eq('name', buildingName).maybeSingle());
   if (!building) building = checked(await db.from('buildings').insert({ name: buildingName }).select('id').single());
   return { ...room, building_id: building.id };

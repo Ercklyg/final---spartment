@@ -3,7 +3,7 @@ import { mockAdminApi } from './helpers/mockApi.js';
 
 const room=(id,number,is_test=false)=>({id,room_number:number,is_test,floor:1,status:'available',size_sqm:8,capacity:'2-3 persons',monthly_rate:2500,buildings:{name:'Main Building'}});
 const actual=room('22222222-2222-4222-8222-222222222222','101');
-const sample=room('33333333-3333-4333-8333-333333333333','4545',true);
+const sample=room('33333333-3333-4333-8333-333333333333','454',true);
 const json=(route,data)=>route.fulfill({contentType:'application/json',body:JSON.stringify(data)});
 const navigate=(page,name)=>page.locator(`button[aria-label="${name}"]:visible`).click();
 
@@ -18,14 +18,14 @@ test('test rooms stay hidden by default, can be opened and edited, and do not ch
   });
   await page.goto('/'); await navigate(page,'Rooms');
   await expect(page.getByRole('article',{name:'Room 101 in Main Building'})).toBeVisible();
-  await expect(page.getByRole('article',{name:'Room 4545 in Main Building'})).toHaveCount(0);
+  await expect(page.getByRole('article',{name:'Room 454 in Main Building'})).toHaveCount(0);
   const counts=page.getByRole('region',{name:'Room filters'});
   await expect(counts.getByRole('button',{name:/All Rooms/})).toHaveText(/All Rooms1/);
   await page.getByLabel('Show test records').check();
-  const card=page.getByRole('article',{name:'Room 4545 in Main Building'});
+  const card=page.getByRole('article',{name:'Room 454 in Main Building'});
   await expect(card.getByText('Test',{exact:true})).toBeVisible();
   await expect(counts.getByRole('button',{name:/All Rooms/})).toHaveText(/All Rooms1/);
-  await card.getByRole('button',{name:'Edit room 4545 in Main Building'}).click();
+  await card.getByRole('button',{name:'Edit room 454 in Main Building'}).click();
   const dialog=page.getByRole('dialog',{name:'Edit room'});
   await expect(dialog.getByLabel('Test room')).toBeChecked();
   await dialog.getByLabel('Room description & amenities').fill('Still available for testing');

@@ -60,10 +60,21 @@ test('Duplicate room numbers return a conflict with an actionable message', asyn
 });
 
 test('Invalid room details do not write to the database', async () => {
-  for (const invalid of [{ floor: 1.5 }, { size: 7.99 }, { size: 14.01 }, { rate: -1 }, { capacity: '5' }, { room: 'abc' }]) {
+  for (const invalid of [{ floor: 1.5 }, { size: 7.99 }, { size: 14.01 }, { rate: -1 }, ...['wow', '-', '2--3', '4.5', '4-', '-4'].map(capacity => ({ capacity })), ...['abc', '12', '1234'].map(room => ({ room }))]) {
     const db = database([{ data: { id } }]);
     await assert.rejects(updateRoom(db, id, { ...input, ...invalid }), error => error.status === 400);
     assert.ok(db.calls.every(call => !call.update && !call.insert));
+  }
+});
+
+test('Capacity accepts numbers and ranges beyond two or three for creation and edits', async () => {
+  for (const capacity of ['1', '5', '10', '4-6', '10-12']) {
+    const createDb = database([{ data: { id: 'building-id' } }, { data: { id } }]);
+    await createRoom(createDb, { ...input, capacity });
+    assert.equal(createDb.calls[1].insert.capacity, capacity + ' persons');
+    const editDb = database([{ data: { id } }, { data: { id: 'building-id' } }, { data: { id } }]);
+    await updateRoom(editDb, id, { ...input, capacity });
+    assert.equal(editDb.calls[2].update.capacity, capacity + ' persons');
   }
 });
 

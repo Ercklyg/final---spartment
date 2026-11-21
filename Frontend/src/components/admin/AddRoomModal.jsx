@@ -5,7 +5,7 @@ function AddRoomModal({ onClose, onAdd, initialRoom }) {
   const editing = Boolean(initialRoom);
   const [form, setForm] = useState(() => initialRoom || {
     room: "", building: "Main Building", floor: "1", size: "8",
-    rate: "6500", capacity: "2-3", notes: "", isTest: false,
+    rate: "2500", capacity: "2-3", notes: "", isTest: false,
   });
   const busy = useRef(false);
   const [saving, setSaving] = useState(false);
@@ -14,11 +14,11 @@ function AddRoomModal({ onClose, onAdd, initialRoom }) {
   const submit = async (event) => {
     event.preventDefault();
     if (busy.current) return;
-    if (!/^\d{3,}$/.test(form.room)) return setError("Enter a valid room number (at least 3 digits).");
+    if (!/^\d{3}$/.test(form.room)) return setError("Room number must be exactly 3 digits.");
     if (!form.building.trim()) return setError("Building name is required.");
     if (!Number.isInteger(Number(form.floor)) || Number(form.floor) < 1 || Number(form.floor) > 1000) return setError("Floor must be a whole number between 1 and 1000.");
     if (!Number.isFinite(Number(form.size)) || Number(form.size) < 8 || Number(form.size) > 14) return setError("Room size must be between 8 and 14 sqm.");
-    if (!["2", "3", "2-3"].includes(form.capacity)) return setError("Capacity must be 2, 3, or 2-3 persons.");
+    if (!/^\d+(-\d+)?$/.test(form.capacity)) return setError("Enter a capacity using numbers or a range, such as 4 or 4-6.");
     if (!Number.isFinite(Number(form.rate)) || Number(form.rate) <= 0) return setError("Monthly rate must be greater than zero.");
     busy.current = true;
     setSaving(true);
@@ -41,14 +41,16 @@ function AddRoomModal({ onClose, onAdd, initialRoom }) {
       </div>
       <fieldset disabled={saving}>
         <div className="mt-5 grid gap-4 sm:grid-cols-2">
-          {[["room", "Room number", "e.g. 211"], ["building", "Building", "e.g. Main Building"], ["floor", "Floor", "e.g. 3"], ["size", "Size (sqm)", "8-14 sqm"], ["rate", "Monthly rate", "e.g. 6500"], ["capacity", "Capacity (persons)", "2-3"]].map(([key, label, placeholder]) =>
+          {[["room", "Room number", "e.g. 211"], ["building", "Building", "e.g. Main Building"], ["floor", "Floor", "e.g. 3"], ["size", "Size (sqm)", "8-14 sqm"], ["rate", "Monthly rate", "e.g. 2500"], ["capacity", "Capacity (persons)", "e.g. 4 or 4-6"]].map(([key, label, placeholder]) =>
             <label key={key} className="text-sm font-medium text-slate-700">{label}
               <input value={form[key]} onChange={(e) => update(key, e.target.value)} required
                 type={["floor", "size", "rate"].includes(key) ? "number" : "text"}
                 min={key === "floor" ? "1" : key === "size" ? "8" : key === "rate" ? "0.01" : undefined}
                 max={key === "size" ? "14" : key === "floor" ? "1000" : undefined}
                 step={key === "size" || key === "rate" ? "0.01" : undefined}
-                maxLength={key === "room" ? 40 : key === "building" ? 160 : undefined}
+                inputMode={key === "room" ? "numeric" : undefined}
+                pattern={key === "room" ? "[0-9]{3}" : key === "capacity" ? "[0-9]+(-[0-9]+)?" : undefined}
+                maxLength={key === "room" ? 3 : key === "building" ? 160 : undefined}
                 className="mt-1.5 h-11 w-full rounded-xl border border-slate-200 px-3 text-sm placeholder:text-slate-500" placeholder={placeholder} />
             </label>)}
         </div>
