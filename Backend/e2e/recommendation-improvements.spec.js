@@ -15,6 +15,7 @@ const choices=[{factId:'tenant:'+tenant,actionId:'discuss_payment_options'},{fac
   {factId:'property:requests',actionId:'respond_to_requests'},{factId:'property:collections',actionId:'review_collections'}];
 
 test('insights explain their source and open the matching records without another AI request',async({page},testInfo)=>{
+  if(testInfo.project.name==='mobile-chrome')await page.setViewportSize({width:320,height:740});
   await mockAdminApi(page,{startAuthenticated:true,analyticsData:{snapshot}});
   let aiCalls=0;
   await page.route('**/api/analytics/recommendations',route=>{
@@ -36,6 +37,13 @@ test('insights explain their source and open the matching records without anothe
   await expect(panel).toContainText('Figures checked November 20, 2026 at 9:15 AM');
   await expect(panel).toContainText('₱1,000.00 paid toward 2026-11 bills');
   await expect(panel).not.toContainText('49,995');
+  const paymentAdvice=panel.getByRole('button',{name:/Discuss payment options/});
+  await expect(paymentAdvice.getByText('Suggested steps',{exact:true})).toBeVisible();
+  await expect(paymentAdvice.getByRole('listitem')).toHaveCount(3);
+  await expect(paymentAdvice).toContainText('₱2,659.50 first and ₱2,659.50 second');
+  await expect(paymentAdvice).toContainText('administrator approval and tenant agreement');
+  await expect(panel.getByRole('button',{name:/View available rooms/})).toContainText('Promote the verified room listings');
+  expect(await panel.evaluate(element=>element.scrollWidth<=element.clientWidth)).toBe(true);
   await panel.screenshot({path:testInfo.outputPath('improved-insights.png')});
   const before=aiCalls;
   await panel.getByRole('button',{name:/Review tenant's bills/}).click();

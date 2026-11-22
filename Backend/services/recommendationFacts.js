@@ -15,6 +15,57 @@ export const ACTIONS = {
   review_collections: { kinds: ['collections'], title: 'Review collection progress', text: 'Review recorded collections and outstanding balances when planning payment follow-ups.' },
 };
 
+function suggestedSteps(actionId, fact) {
+  const metrics = fact.metrics;
+  switch (actionId) {
+    case 'discuss_payment_options': {
+      const cents = Math.round(metrics.overdue * 100);
+      const first = Math.floor(cents / 2);
+      return [
+        cents >= 2
+          ? `Propose two payments toward the ${peso(cents / 100)} overdue balance: ${peso(first / 100)} first and ${peso((cents - first) / 100)} second, subject to administrator approval and tenant agreement.`
+          : `Discuss settling the remaining ${peso(cents / 100)} overdue balance; it is too small to split into two non-zero payments.`,
+        'Contact the tenant to agree on payment dates before confirming the arrangement.',
+        cents >= 2 ? 'After the first payment, review the recorded payment and remaining balance before the next follow-up.'
+          : 'Check the recorded payment and confirm whether the overdue balance has been settled.',
+      ];
+    }
+    case 'follow_up_tenant': return [
+      'Review the unpaid bills and any payments already recorded for this tenant.',
+      `Contact the tenant about the ${peso(metrics.overdue)} overdue balance and ask when they can pay.`,
+      'Agree on a follow-up date and check recorded payments before contacting the tenant again.',
+    ];
+    case 'review_overdue': return [
+      'Review overdue accounts from largest balance to smallest.',
+      'Contact each tenant to discuss the unpaid bills and agree on a follow-up date.',
+      'Track recorded payments against each remaining balance before the next follow-up.',
+    ];
+    case 'promote_rooms': return [
+      `Verify the listings, availability, and monthly rates for the ${metrics.availableRooms} available room${metrics.availableRooms === 1 ? '' : 's'}.`,
+      'Promote the verified room listings and follow up with prospective tenants about viewings.',
+      `Review availability after new move-ins. The ${peso(metrics.potentialMonthlyRent)} potential monthly rent depends on occupancy and payment.`,
+    ];
+    case 'review_room_listings': return [
+      'Check each available room listing for the correct monthly rate, room details, and availability.',
+      'Update inaccurate details before sharing listings with prospective tenants.',
+      'Review guest inquiries and arrange viewings for suitable available rooms.',
+    ];
+    case 'respond_to_requests': return [
+      metrics.requests && metrics.inquiries ? 'Review unresolved tenant requests and guest inquiries.'
+        : metrics.requests ? 'Review unresolved tenant requests.' : 'Review guest inquiries awaiting a response.',
+      metrics.requests && metrics.inquiries ? 'Arrange the appropriate response for each request and follow up with prospective tenants.'
+        : metrics.requests ? 'Arrange the appropriate response or service for each request.' : 'Respond with verified room availability and arrange viewings where appropriate.',
+      'Update each item’s status as work progresses and confirm the outcome before closing it.',
+    ];
+    case 'review_collections': return [
+      `Review payments applied to ${fact.reportMonth} bills alongside outstanding balances across all billing months.`,
+      'Review overdue accounts from largest balance to smallest and prioritize payment follow-ups.',
+      'Track new recorded payments against the remaining balances to assess collection progress.',
+    ];
+    default: return [];
+  }
+}
+
 export function buildRecommendationFacts(snapshot, month) {
   const facts = [];
   const grouped = new Map();
@@ -103,6 +154,7 @@ export function assembleRecommendations(raw, facts) {
     items.push({ evidenceVersion: 1, factId: fact.id, actionId: selection.actionId, title: action.title, text: action.text,
       category: fact.category, page: fact.page, subject: fact.subject, evidence: fact.evidence,
       reason: fact.reason, actionLabel: fact.actionLabel, reportMonth: fact.reportMonth,
+      suggestedSteps: suggestedSteps(selection.actionId, fact),
       ...(fact.tenantId ? { tenantId: fact.tenantId, room: fact.room } : {}) });
     if (items.length === 4) break;
   }

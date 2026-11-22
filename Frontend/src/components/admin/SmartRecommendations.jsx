@@ -37,13 +37,17 @@ function SmartRecommendations({ onNavigate, aiItems: receivedItems = [], aiLoadi
       const showSubject = item.tenantId || item.category === 'warning' || item.category === 'insight';
       return <button key={item.factId || item.title} type="button" onClick={() => reportMonth && item.factId ? setReview(item) : onNavigate?.(item.page)} className={`flex w-full min-w-0 items-start gap-3 rounded-xl border border-slate-200 border-l-4 bg-white p-4 text-left hover:bg-slate-50 sm:gap-4 ${colors[color].split(" ")[0]}`}>
         <span className={`hidden h-10 w-10 shrink-0 items-center justify-center rounded-xl sm:flex ${colors[color].replace(colors[color].split(" ")[0], "")}`}><Icon size={20} /></span>
-        <span className="min-w-0 flex-1 break-words"><span className="flex flex-wrap items-center gap-x-2 gap-y-1.5"><span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold sm:text-xs ${colors[color].replace(colors[color].split(" ")[0], "")}`}>{categoryLabel[item.category] || item.category}</span><span className="block text-sm font-semibold leading-5 sm:text-base">{item.title}</span></span>
+        <div className="min-w-0 flex-1 break-words"><span className="flex flex-wrap items-center gap-x-2 gap-y-1.5"><span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold sm:text-xs ${colors[color].replace(colors[color].split(" ")[0], "")}`}>{categoryLabel[item.category] || item.category}</span><span className="block text-sm font-semibold leading-5 sm:text-base">{item.title}</span></span>
           {showSubject && <span className="mt-2 block text-xs leading-5 text-slate-700 sm:text-sm">{item.subject}{item.room ? ` · ${item.room}` : ''}</span>}
           <span className={`${showSubject ? 'mt-1' : 'mt-2'} block text-xs leading-6 text-slate-500 sm:text-sm`}><strong className="font-semibold text-slate-900">{primaryEvidence}</strong>{supportingEvidence.length > 0 && <span className="text-[11px] sm:text-xs">{` · ${supportingEvidence.join(' · ')}`}</span>}</span>
           {item.reason && <span className="mt-2 block text-xs leading-5 text-slate-600 sm:text-sm"><span className="font-medium text-slate-700">Reason: </span>{item.reason}</span>}
           <span className="mt-2 block text-xs leading-5 text-slate-600 sm:text-sm">{item.text}</span>
+          {Array.isArray(item.suggestedSteps) && item.suggestedSteps.length > 0 && <div className="mt-3 rounded-lg border border-slate-100 bg-slate-50/70 p-3 sm:p-4">
+            <p className="text-xs font-semibold text-slate-800 sm:text-sm">Suggested steps</p>
+            <ol className="mt-2 list-decimal space-y-2 pl-5 text-xs leading-5 text-slate-600 sm:text-sm sm:leading-6">{item.suggestedSteps.slice(0,3).map((step,index)=><li key={index} className="pl-1">{step}</li>)}</ol>
+          </div>}
           <span className="mt-3 inline-flex min-h-6 items-center gap-1.5 text-xs font-semibold text-blue-600 sm:text-sm">{item.actionLabel || 'View supporting records'}<ArrowRight size={14}/></span>
-        </span>
+        </div>
         <ArrowRight size={18} className="hidden shrink-0 sm:block" />
       </button>;
     })}</div>}

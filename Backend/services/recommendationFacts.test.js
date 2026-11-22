@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { buildRecommendationFacts, recommendationPrompt, assembleRecommendations } from './recommendationFacts.js';
+import { ACTIONS, buildRecommendationFacts, recommendationPrompt, assembleRecommendations } from './recommendationFacts.js';
 
 const first='11111111-1111-4111-8111-111111111111';
 const second='22222222-2222-4222-8222-222222222222';
@@ -92,4 +92,39 @@ test('collection facts use selected bill payments in cents and never payment-dat
   const fact=buildRecommendationFacts({...snapshot,selected:[{paid:0.10},{paid:0.20}]},'2026-11').find(fact=>fact.kind==='collections');
   assert.equal(fact.metrics.collected,0.30); assert.doesNotMatch(fact.evidence,/44,295/);
   assert.ok(!buildRecommendationFacts({...snapshot,selected:[{paid:NaN}]},'2026-11').some(fact=>fact.kind==='collections'));
+});
+
+test('payment proposals split current tenant overdue amounts exactly, including odd cents',()=>{
+  for(const [balance,firstAmount,secondAmount] of [[3996.50,'1,998.25','1,998.25'],[100.01,'50.00','50.01'],[0.03,'0.01','0.02']]) {
+    const facts=buildRecommendationFacts({...snapshot,late:[bill(1,first,'Tenant',balance)]},'2026-11');
+    const card=assembleRecommendations([{factId:'tenant:'+first,actionId:'discuss_payment_options'}],facts)[0];
+    assert.equal(card.suggestedSteps.length,3);
+    assert.ok(card.suggestedSteps[0].includes(`₱${firstAmount} first and ₱${secondAmount} second`));
+    assert.match(card.suggestedSteps[0],/administrator approval and tenant agreement/);
+    assert.match(card.suggestedSteps[1],/agree on payment dates/);
+    assert.doesNotMatch(card.suggestedSteps.join(' '),/42,552|discount|penalt/i);
+  }
+  const facts=buildRecommendationFacts({...snapshot,late:[bill(1,first,'Tenant',0.01)]},'2026-11');
+  const card=assembleRecommendations([{factId:'tenant:'+first,actionId:'discuss_payment_options'}],facts)[0];
+  assert.match(card.suggestedSteps[0],/too small to split/);
+  assert.doesNotMatch(card.suggestedSteps.join(' '),/₱0\.00|first payment/);
+});
+
+test('every supported action has concrete steps derived from its own fact scope',()=>{
+  const facts=buildRecommendationFacts(snapshot,'2026-11');
+  for(const [actionId,action] of Object.entries(ACTIONS)) {
+    const fact=facts.find(f=>action.kinds.includes(f.kind));
+    const [card]=assembleRecommendations([{factId:fact.id,actionId}],facts);
+    assert.equal(card.suggestedSteps.length,3);
+    assert.ok(card.suggestedSteps.every(step=>typeof step==='string'&&step.length>0));
+    if(actionId==='promote_rooms') {
+      assert.match(card.suggestedSteps[0],/5 available rooms/);
+      assert.match(card.suggestedSteps[2],/18,000\.00.*depends on occupancy and payment/);
+    }
+  }
+  for(const [requests,inquiries,excluded] of [[[],[{}],/tenant requests|service/],[[{}],[],/guest inquiries|prospective/]]) {
+    const facts=buildRecommendationFacts({...snapshot,openRequests:requests,openInquiries:inquiries},'2026-11');
+    const [card]=assembleRecommendations([{factId:'property:requests',actionId:'respond_to_requests'}],facts);
+    assert.doesNotMatch(card.suggestedSteps.join(' '),excluded);
+  }
 });

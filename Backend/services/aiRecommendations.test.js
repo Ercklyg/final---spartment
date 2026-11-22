@@ -39,6 +39,27 @@ function request(user = 'admin', records = new Map()) {
   return { role: 'admin', user: { id: user }, body: { month: '2026-01' }, db, stats, records };
 }
 
+test('saved installment advice is rebuilt from current balances and removed when paid',async t=>{
+  enableTestAi(t);
+  const originalLate=snapshot.late;
+  t.after(()=>{snapshot.late=originalLate;});
+  const tenantId='11111111-1111-4111-8111-111111111111';
+  const choice={factId:'tenant:'+tenantId,actionId:'discuss_payment_options'};
+  const provider=t.mock.method(globalThis,'fetch',async()=>success([choice]));
+  snapshot.late=[{id:'22222222-2222-4222-8222-222222222222',tenant_id:tenantId,name:'Tenant',balance:3996.50}];
+  const req=request('installment-admin');
+  const initial=await recommendations(req);
+  assert.match(initial.items[0].suggestedSteps[0],/1,998\.25 first and ₱1,998\.25 second/);
+  snapshot.late=[{...snapshot.late[0],balance:100.01}];
+  const refreshed=await recommendations(req);
+  assert.match(refreshed.items[0].suggestedSteps[0],/50\.00 first and ₱50\.01 second/);
+  assert.equal(refreshed.updatedAt,initial.updatedAt);
+  assert.equal(provider.mock.callCount(),1);
+  snapshot.late=[];
+  assert.deepEqual((await recommendations(req)).items,[]);
+  assert.equal(provider.mock.callCount(),1);
+});
+
 test('durable saved insights recheck operational facts without provider calls, expire without automatic generation and deduplicate forced refreshes', async t => {
   enableTestAi(t); let calls = 0;
   t.mock.method(globalThis,'fetch',async () => { calls++; return success(); });
