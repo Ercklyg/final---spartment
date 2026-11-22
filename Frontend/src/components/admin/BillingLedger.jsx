@@ -61,7 +61,8 @@ export default function BillingLedger({ type, bills, summary, onPayment, onRemin
   };
 
   return <>
-    <div className="billing-deferred-panel mt-5">{createForm}</div>
+    {/* The lease menu must escape the form panel and overlay the summary cards. */}
+    <div className="relative z-10 mt-5">{createForm}</div>
     <div className="billing-deferred-panel mt-4 grid grid-cols-2 gap-3 xl:grid-cols-4">{cards.map(([label,value])=><article key={label} className={"min-w-0 rounded-xl border border-t-4 border-slate-200 p-4 shadow-sm sm:p-5 " + cardTones[label]}><p className="text-xs font-medium text-slate-600 sm:text-sm">{label}</p><h2 className="mt-1 break-words text-xl font-bold text-slate-950 sm:mt-2 sm:text-2xl">{money(value)}</h2></article>)}</div>
     <section className="billing-deferred-panel mt-5 overflow-hidden rounded-xl border border-slate-200 bg-white">
       <div className="p-4 sm:p-5">
