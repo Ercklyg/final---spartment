@@ -20,25 +20,26 @@ test('recommendation cards separate tenant evidence from property totals on desk
   await page.route('**/api/analytics/recommendations',route=>route.fulfill({contentType:'application/json',body:JSON.stringify({items,updatedAt:'2026-11-19T00:00:00Z',fallback:false,cached:true})}));
   await page.goto('/');
   const panel=page.getByRole('region',{name:'Insights & Recommendations'});
-  const tenant=panel.getByRole('button',{name:/Discuss payment options/});
+  const tenant=panel.getByRole('article',{name:'Discuss payment options',exact:true});
   await expect(tenant).toContainText('Corpuz Family · Building 2 / 202');
   await expect(tenant.locator('strong')).toHaveText('₱5,319.00 overdue');
   await expect(tenant).toContainText('5 late bills in the last 6 months');
+  await tenant.getByRole('button',{name:'Show advice',exact:true}).click();
   await expect(tenant).toContainText('Contact this tenant');
   await expect(tenant.getByText('Payments',{exact:true})).toBeVisible();
   await expect(panel.getByRole('button',{name:'Refresh insights',exact:true})).toBeVisible();
-  await expect(panel.getByText('Saved insights · Generated November 19, 2026 at 8:00 AM (Philippine time)',{exact:true})).toBeVisible();
+  await expect(panel.getByText('Saved insights · Actions generated November 19, 2026 at 8:00 AM (Philippine time)',{exact:true})).toBeVisible();
   await expect(panel.getByText('Available rooms',{exact:true})).toHaveCount(0);
   await expect(panel.getByText('Unresolved requests and inquiries',{exact:true})).toHaveCount(0);
   await expect(panel).not.toContainText('Suggested action:');
   await expect(tenant).not.toContainText('42,552');
-  await expect(panel.getByRole('button',{name:/Promote available rooms/})).toContainText('₱18,000.00 potential monthly rent');
+  await expect(panel.getByRole('article',{name:'Promote available rooms',exact:true})).toContainText('₱18,000.00 potential monthly rent');
   await expect(panel).not.toContainText('loyalty');
   expect(await panel.evaluate(el=>el.scrollWidth<=el.clientWidth)).toBe(true);
   await tenant.scrollIntoViewIfNeeded();
   await panel.screenshot({path:testInfo.outputPath('evidence-cards.png')});
-  await tenant.click();
-  await expect(page.getByRole('heading',{name:'Billing',exact:true})).toBeVisible();
+  await tenant.getByRole('button',{name:"Review tenant's bills",exact:true}).click();
+  await expect(page.getByRole('dialog',{name:"Review tenant's bills"})).toBeVisible();
 });
 
 test('unverified legacy cards are not shown by the dashboard',async({page})=>{

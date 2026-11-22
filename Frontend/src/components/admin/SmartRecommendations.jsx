@@ -1,5 +1,5 @@
-import { ArrowRight, Lightbulb, RefreshCw, Wallet, DoorOpen, MessagesSquare, ChartNoAxesCombined } from "lucide-react";
-import { lazy, Suspense, useState } from 'react';
+import { ArrowRight, ChevronDown, Lightbulb, RefreshCw, Wallet, DoorOpen, MessagesSquare, ChartNoAxesCombined } from "lucide-react";
+import { lazy, Suspense, useId, useState } from 'react';
 import { formatInsightDate, recommendationFallbackMessage, hasRecommendationEvidence } from '../../lib/aiRecommendations.js';
 const RecommendationRecords = lazy(() => import('./RecommendationRecords.jsx'));
 
@@ -11,6 +11,47 @@ const colors = {
 const categoryColor = { warning: "blue", opportunity: "emerald", attention: "amber", insight: "emerald" };
 const categoryLabel = { warning: "Payments", opportunity: "Vacancies", attention: "Requests", insight: "Collections" };
 const categoryIcon = { warning: Wallet, opportunity: DoorOpen, attention: MessagesSquare, insight: ChartNoAxesCombined };
+
+function RecommendationCard({ item, expanded, onToggle, onReview }) {
+  const adviceId = useId();
+  const titleId = useId();
+  const color = categoryColor[item.category] || 'blue';
+  const [accent, ...tone] = colors[color].split(' ');
+  const Icon = categoryIcon[item.category] || Wallet;
+  const [primaryEvidence, ...supportingEvidence] = item.evidence.split(' · ');
+  const showSubject = item.tenantId || item.category === 'warning' || item.category === 'insight';
+  const control = 'inline-flex min-h-11 items-center justify-center gap-1.5 rounded-lg px-2 text-xs font-semibold outline-none focus-visible:ring-2 focus-visible:ring-blue-600 focus-visible:ring-offset-2 sm:text-sm';
+  return <article aria-labelledby={titleId} className={`min-w-0 rounded-xl border border-slate-200 border-l-2 bg-white p-3 sm:p-3.5 ${accent}`}>
+    <div className="flex min-w-0 items-start gap-2.5">
+      <span className={`hidden h-8 w-8 shrink-0 items-center justify-center rounded-lg sm:flex ${tone.join(' ')}`}><Icon size={17}/></span>
+      <div className="min-w-0 flex-1 break-words">
+        <div className="flex flex-wrap items-center gap-x-2 gap-y-1"><span className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${tone.join(' ')}`}>{categoryLabel[item.category] || item.category}</span><h3 id={titleId} className="text-sm font-semibold leading-5 text-slate-900">{item.title}</h3></div>
+        {showSubject && <p className="mt-1 text-xs leading-5 text-slate-600 sm:text-sm">{item.subject}{item.room ? ` · ${item.room}` : ''}</p>}
+        <p className="mt-1 text-xs leading-5 text-slate-500 sm:text-sm"><strong className="font-semibold text-slate-900">{primaryEvidence}</strong>{supportingEvidence.length > 0 && <span className="text-xs">{` · ${supportingEvidence.join(' · ')}`}</span>}</p>
+        <div className="mt-1 flex flex-wrap items-center justify-between gap-x-3 gap-y-0.5">
+          <button type="button" aria-expanded={expanded} aria-controls={adviceId} onClick={onToggle} className={`${control} -ml-2 text-slate-600 hover:bg-slate-100 hover:text-slate-900`}>{expanded ? 'Hide advice' : 'Show advice'}<ChevronDown aria-hidden="true" size={14} className={expanded ? 'rotate-180' : ''}/></button>
+          <button type="button" onClick={onReview} className={`${control} text-blue-600 hover:bg-blue-50`}>{item.actionLabel || 'View supporting records'}<ArrowRight aria-hidden="true" size={14}/></button>
+        </div>
+        <div id={adviceId} hidden={!expanded} className="mt-2 space-y-2 border-t border-slate-100 pt-3 text-sm leading-6 text-slate-600">
+          {item.reason && <p><span className="font-medium text-slate-700">Reason: </span>{item.reason}</p>}
+          <p>{item.text}</p>
+          {Array.isArray(item.suggestedSteps) && item.suggestedSteps.length > 0 && <div>
+            <p className="font-semibold text-slate-800">Suggested steps</p>
+            <ol className="mt-1.5 list-decimal space-y-1.5 pl-5">{item.suggestedSteps.slice(0,3).map((step,index)=><li key={index} className="pl-0.5">{step}</li>)}</ol>
+          </div>}
+        </div>
+      </div>
+    </div>
+  </article>;
+}
+
+function RecommendationCards({ items, onReview }) {
+  const [expanded, setExpanded] = useState(null);
+  return <div className="mt-3 space-y-2">{items.map(item => {
+    const id = item.factId || item.title;
+    return <RecommendationCard key={id} item={item} expanded={expanded === id} onToggle={() => setExpanded(current => current === id ? null : id)} onReview={() => onReview(item)}/>;
+  })}</div>;
+}
 
 function SmartRecommendations({ onNavigate, aiItems: receivedItems = [], aiLoading = false, aiError = "", aiUpdatedAt = null, aiFiguresCheckedAt = null, aiFiguresAsOf = null, reportMonth, aiCached = false, aiSource = "ai", aiFallback = false, aiReason = null, onRefreshAi }) {
   const [review, setReview] = useState(null);
@@ -30,27 +71,7 @@ function SmartRecommendations({ onNavigate, aiItems: receivedItems = [], aiLoadi
     {fallback && <p role="status" className="mt-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm leading-6 text-amber-900">{recommendationFallbackMessage({ reason: aiReason || aiError, updatedAt: aiUpdatedAt, hasItems: aiItems.length > 0 })}</p>}
     {aiLoading && aiItems.length > 0 && <p role="status" className="mt-2 text-xs text-slate-500">Refreshing insights. Showing saved recommendations.</p>}
     {aiLoading && aiItems.length === 0 && <div className="mt-4 space-y-2" aria-label="Loading AI insights">{[0, 1].map(i => <div key={i} className="h-[76px] animate-pulse rounded-xl bg-slate-100" />)}</div>}
-    {aiItems.length > 0 && <div className="mt-4 space-y-3">{aiItems.map(item => {
-      const color = categoryColor[item.category] || "blue";
-      const Icon = categoryIcon[item.category] || Wallet;
-      const [primaryEvidence, ...supportingEvidence] = item.evidence.split(' · ');
-      const showSubject = item.tenantId || item.category === 'warning' || item.category === 'insight';
-      return <button key={item.factId || item.title} type="button" onClick={() => reportMonth && item.factId ? setReview(item) : onNavigate?.(item.page)} className={`flex w-full min-w-0 items-start gap-3 rounded-xl border border-slate-200 border-l-4 bg-white p-4 text-left hover:bg-slate-50 sm:gap-4 ${colors[color].split(" ")[0]}`}>
-        <span className={`hidden h-10 w-10 shrink-0 items-center justify-center rounded-xl sm:flex ${colors[color].replace(colors[color].split(" ")[0], "")}`}><Icon size={20} /></span>
-        <div className="min-w-0 flex-1 break-words"><span className="flex flex-wrap items-center gap-x-2 gap-y-1.5"><span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold sm:text-xs ${colors[color].replace(colors[color].split(" ")[0], "")}`}>{categoryLabel[item.category] || item.category}</span><span className="block text-sm font-semibold leading-5 sm:text-base">{item.title}</span></span>
-          {showSubject && <span className="mt-2 block text-xs leading-5 text-slate-700 sm:text-sm">{item.subject}{item.room ? ` · ${item.room}` : ''}</span>}
-          <span className={`${showSubject ? 'mt-1' : 'mt-2'} block text-xs leading-6 text-slate-500 sm:text-sm`}><strong className="font-semibold text-slate-900">{primaryEvidence}</strong>{supportingEvidence.length > 0 && <span className="text-[11px] sm:text-xs">{` · ${supportingEvidence.join(' · ')}`}</span>}</span>
-          {item.reason && <span className="mt-2 block text-xs leading-5 text-slate-600 sm:text-sm"><span className="font-medium text-slate-700">Reason: </span>{item.reason}</span>}
-          <span className="mt-2 block text-xs leading-5 text-slate-600 sm:text-sm">{item.text}</span>
-          {Array.isArray(item.suggestedSteps) && item.suggestedSteps.length > 0 && <div className="mt-3 rounded-lg border border-slate-100 bg-slate-50/70 p-3 sm:p-4">
-            <p className="text-xs font-semibold text-slate-800 sm:text-sm">Suggested steps</p>
-            <ol className="mt-2 list-decimal space-y-2 pl-5 text-xs leading-5 text-slate-600 sm:text-sm sm:leading-6">{item.suggestedSteps.slice(0,3).map((step,index)=><li key={index} className="pl-1">{step}</li>)}</ol>
-          </div>}
-          <span className="mt-3 inline-flex min-h-6 items-center gap-1.5 text-xs font-semibold text-blue-600 sm:text-sm">{item.actionLabel || 'View supporting records'}<ArrowRight size={14}/></span>
-        </div>
-        <ArrowRight size={18} className="hidden shrink-0 sm:block" />
-      </button>;
-    })}</div>}
+    {aiItems.length > 0 && <RecommendationCards key={JSON.stringify([reportMonth,aiItems.map(item=>item.factId || item.title)])} items={aiItems} onReview={item => reportMonth && item.factId ? setReview(item) : onNavigate?.(item.page)}/>}
     {!aiLoading && !fallback && aiItems.length === 0 && <p className="mt-4 text-sm text-slate-500">No AI recommendations are available for this month.</p>}
     {aiItems.length > 0 && <p className="mt-3 text-xs leading-5 text-slate-500">AI-selected actions. Figures reflect current operational records. Review records before acting.</p>}
     {review && <Suspense fallback={<p role="status" className="mt-3 text-sm text-slate-500">Opening supporting records...</p>}><RecommendationRecords key={review.factId + reportMonth} item={review} month={reportMonth} onClose={() => setReview(null)} onNavigate={onNavigate}/></Suspense>}
