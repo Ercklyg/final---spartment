@@ -6,9 +6,10 @@ import InquiryForm from "./InquiryForm";
 import MaintenanceForm from "./MaintenanceForm";
 import OtherForm from "./OtherForm";
 
-function Chatbox({ onClose, initialView = "menu", prefilledRoom = "", hideInquiry = false }) {
+function Chatbox({ onClose, initialView = "menu", prefilledRoom = "", hideInquiry = false, canRequestMaintenance = false }) {
   const dialog = useRef(null);
   const [currentView, setCurrentView] = useState(initialView);
+  const visibleView = currentView === "maintenance" && !canRequestMaintenance ? "menu" : currentView;
   useEffect(() => {
     const previous = document.activeElement;
     const element = dialog.current;
@@ -35,6 +36,7 @@ function Chatbox({ onClose, initialView = "menu", prefilledRoom = "", hideInquir
     };
   }, [onClose]);
   function handleSelect(type) {
+    if (type === "maintenance" && !canRequestMaintenance) return;
     setCurrentView(type);
   }
 
@@ -47,11 +49,11 @@ function Chatbox({ onClose, initialView = "menu", prefilledRoom = "", hideInquir
       <ChatboxHeader onClose={onClose} />
 
       <div className="min-h-0 flex-1 overflow-y-auto bg-[#f7f9fc]">
-        {currentView === "menu" && (
-          <ChatboxMenu onSelect={handleSelect} hideInquiry={hideInquiry} />
+        {visibleView === "menu" && (
+          <ChatboxMenu onSelect={handleSelect} hideInquiry={hideInquiry} canRequestMaintenance={canRequestMaintenance} />
         )}
 
-        {currentView === "inquiry" && (
+        {visibleView === "inquiry" && (
           <InquiryForm
             key={prefilledRoom}
             onBack={handleBack}
@@ -59,11 +61,11 @@ function Chatbox({ onClose, initialView = "menu", prefilledRoom = "", hideInquir
           />
         )}
 
-        {currentView === "maintenance" && (
+        {visibleView === "maintenance" && (
           <MaintenanceForm onBack={handleBack} prefilledRoom={prefilledRoom} />
         )}
 
-        {currentView === "other" && (
+        {visibleView === "other" && (
           <OtherForm onBack={handleBack} />
         )}
       </div>

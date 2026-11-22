@@ -30,7 +30,7 @@ const OPTIONS = [
   },
 ];
 
-function ChatboxMenu({ onSelect, hideInquiry = false }) {
+function ChatboxMenu({ onSelect, hideInquiry = false, canRequestMaintenance = false }) {
   return (
     <div className="flex flex-col gap-3 p-4">
       <div className="flex items-start gap-2.5">
@@ -50,7 +50,7 @@ function ChatboxMenu({ onSelect, hideInquiry = false }) {
       </div>
 
       <div className="mt-1 flex flex-col gap-2">
-        {OPTIONS.filter((option) => !hideInquiry || option.id !== "inquiry").map((option) => {
+        {OPTIONS.filter((option) => (!hideInquiry || option.id !== "inquiry") && (canRequestMaintenance || option.id !== "maintenance")).map((option) => {
           const Icon = option.icon;
           return (
             <button
