@@ -159,7 +159,8 @@ export const tenants=async(req)=>{
   const search=validate.text(req.query.search,'search',160,true).trim().toLowerCase();
   const page=validate.page(req.query);
   const status=validate.choice(req.query.status ?? 'All',['All','Paid','Pending','Overdue'],'payment status');
-  return report(req.db,'tenant_directory_search_page_v3',{p_search:search,...page,p_include_test:req.query.includeTest==='true',p_status:status});
+  const tenancyStatus=validate.choice(req.query.tenancyStatus ?? 'All',['All','Active','MovedOut'],'tenancy status');
+  return report(req.db,'tenant_directory_search_page_v4',{p_search:search,...page,p_include_test:req.query.includeTest==='true',p_status:status,p_tenancy_status:tenancyStatus});
 };
 export const billingLeases=async(req)=>{
   const {month,type}=req.query;
