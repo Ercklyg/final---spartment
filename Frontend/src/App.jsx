@@ -9,6 +9,7 @@ import AdminSidebar from "./components/admin/AdminSidebar.jsx";
 import TenantSidebar from "./components/tenant/TenantSidebar.jsx";
 import TenantHeader from "./components/tenant/TenantHeader.jsx";
 import TenantRulesDialog from "./components/tenant/TenantRulesDialog.jsx";
+import AnnouncementPopup from "./components/tenant/AnnouncementPopup.jsx";
 
 const LandingPage = lazy(() => import("./pages/LandingPage.jsx"));
 const GuestPage = lazy(() => import("./pages/GuestPage.jsx"));
@@ -162,6 +163,7 @@ export default function App() {
         </Suspense>
       </div>
       <TenantRulesDialog open={isRulesOpen} onClose={() => setIsRulesOpen(false)}/>
+      <AnnouncementPopup key={userId} userId={userId}/>
     </main>;
   }
   return <PublicLanding onContinueAsGuest={() => navigate("guest")} onSignIn={signIn} />;

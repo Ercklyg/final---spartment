@@ -39,6 +39,6 @@ export default function TenantDashboardPage({ onNavigate, onOpenRules }) {
       <TenantAccountStatus loading={loading} error={error} retry={retry} variant="dashboard" />
       {account && <DashboardContent account={account} onNavigate={onNavigate} requestRevision={requestRevision} onOpenChat={() => setIsChatOpen(true)} />}
     </div>
-    {isChatOpen ? <Chatbox key={account?.room?.id || "unassigned"} hideInquiry canRequestMaintenance={!loading && !error && Boolean(account?.room?.id)} prefilledRoom={account?.room?.room_number || ""} onClose={() => { setIsChatOpen(false); setRequestRevision(n => n + 1); }} /> : <TenantChatLauncher onOpenRules={onOpenRules} onOpen={() => setIsChatOpen(true)} />}
+    {isChatOpen ? <Chatbox key={account?.room?.id || "unassigned"} hideInquiry tenantMode canRequestMaintenance={!loading && !error && Boolean(account?.room?.id)} prefilledRoom={account?.room?.room_number || ""} onClose={() => { setIsChatOpen(false); setRequestRevision(n => n + 1); }} /> : <TenantChatLauncher onOpenRules={onOpenRules} onOpen={() => setIsChatOpen(true)} />}
   </div>;
 }

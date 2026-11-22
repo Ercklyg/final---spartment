@@ -41,3 +41,31 @@ export async function deleteAnnouncement(req) {
   admin(req);
   return checked(await req.db.rpc('delete_announcement', { p_id: validate.uuid(req.params.id, 'announcement ID') }));
 }
+
+function tenant(req) {
+  if (req.role !== 'tenant') throw new HttpError(403, 'Tenant access required.');
+}
+
+export async function unreadAnnouncements(req) {
+  tenant(req);
+  const { p_offset: offset, p_limit: limit } = validate.page(req.query);
+  const result = await req.db.from('notifications')
+    .select('id,title,message,created_at,source_id,announcement_revision', { count: 'exact' })
+    .eq('tenant_id', req.user.id).eq('kind', 'announcement').eq('is_read', false)
+    .order('created_at', { ascending: true }).order('id').range(offset, offset + limit - 1);
+  if (result.error) throw serviceError(503, 'Unable to load announcements. Please retry.', result.error);
+  return { data: result.data, total: result.count, offset, limit };
+}
+
+export async function acknowledgeAnnouncement(req) {
+  tenant(req);
+  const id = validate.uuid(req.params.id, 'notification ID');
+  const revision = validate.number(req.body?.revision, 'announcement revision', 1, 2147483647, true);
+  const now = new Date().toISOString();
+  const result = await req.db.from('notifications').update({ is_read: true, seen_at: now, acknowledged_at: now })
+    .eq('tenant_id', req.user.id).eq('kind', 'announcement').eq('id', id)
+    .eq('announcement_revision', revision).select('id').maybeSingle();
+  if (result.error) throw serviceError(503, 'Unable to acknowledge the announcement. Please retry.', result.error);
+  if (!result.data) throw new HttpError(409, 'This announcement changed or was removed. Refresh and review the latest version.');
+  return { ok: true };
+}

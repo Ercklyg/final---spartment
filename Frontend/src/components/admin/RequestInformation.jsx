@@ -7,6 +7,7 @@ const inquiryStatuses = ["New", "Contacted", "Resolved"];
 const requestStatuses = ["New", "Scheduled", "In progress", "Resolved"];
 
 export default function RequestInformation({ request, inquiry, onClose, onSaved }) {
+  const general = inquiry && request.inquiry_type === "general";
   const [status, setStatus] = useState(request.status);
   const [note, setNote] = useState(request.admin_note || "");
   const [error, setError] = useState("");
@@ -34,14 +35,14 @@ export default function RequestInformation({ request, inquiry, onClose, onSaved 
   return <div className="fixed inset-0 z-[80] flex items-center justify-center bg-slate-950/40 p-3 sm:p-4" onMouseDown={event => { if (event.target === event.currentTarget && !saving) onClose(); }}>
     <section role="dialog" aria-modal="true" aria-labelledby="request-information-title" className="max-h-[calc(100dvh-1.5rem)] w-full max-w-2xl overflow-y-auto rounded-2xl bg-white p-4 shadow-2xl sm:max-h-[90dvh] sm:p-6">
       <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0"><p className="text-xs font-semibold uppercase tracking-wide text-blue-700">{inquiry ? "Room inquiry" : "Customer request"}</p><h2 id="request-information-title" className="mt-1 break-words text-xl font-bold leading-tight">{inquiry ? "Room inquiry" : request.subject}</h2><p className="mt-1 break-words text-sm text-slate-600">{inquiry ? request.full_name : request.profiles?.full_name} · {new Date(request.created_at).toLocaleString("en-PH")}</p></div>
+        <div className="min-w-0"><p className="text-xs font-semibold uppercase tracking-wide text-blue-700">{general ? "Guest message" : inquiry ? "Room inquiry" : "Customer request"}</p><h2 id="request-information-title" className="mt-1 break-words text-xl font-bold leading-tight">{inquiry && !general ? "Room inquiry" : request.subject}</h2><p className="mt-1 break-words text-sm text-slate-600">{inquiry ? request.full_name : request.profiles?.full_name} · {new Date(request.created_at).toLocaleString("en-PH")}</p></div>
         <button type="button" disabled={saving} onClick={onClose} aria-label="Close request information" className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-100"><X size={19}/></button>
       </div>
       <div className="mt-5 overflow-hidden rounded-xl border border-slate-200 bg-slate-50 text-sm">
         <div className="border-b border-slate-200 bg-white px-4 py-2.5 text-xs font-semibold uppercase tracking-wide text-slate-600">{inquiry?"Contact and preference":"Request information"}</div>
         <div className="space-y-3 p-4">
         {inquiry ? <>
-          <p className="break-words"><strong>Email:</strong> {request.email}</p><p className="break-words"><strong>Contact number:</strong> {request.phone || "Not provided"}</p><p><strong>Preferred room:</strong> {request.preferred_room || "Any available room"}</p><p><strong>Preferred move-in date:</strong> {request.move_in_date || "Not specified"}</p>
+          <p className="break-words"><strong>Email:</strong> {request.email || "Not provided"}</p><p className="break-words"><strong>Contact number:</strong> {request.phone || "Not provided"}</p>{!general && <><p><strong>Preferred room:</strong> {request.preferred_room || "Any available room"}</p><p><strong>Preferred move-in date:</strong> {request.move_in_date || "Not specified"}</p></>}
         </> : <>
           <div className="grid grid-cols-2 gap-3"><p><strong className="block text-xs text-slate-600">Type</strong><span className="capitalize">{request.kind}</span></p><p><strong className="block text-xs text-slate-600">Priority</strong><span className="capitalize">{request.priority}</span></p></div><p><strong className="block text-xs text-slate-600">Room</strong>{request.rooms?.buildings?.name ? `${request.rooms.buildings.name} / ` : ""}{request.rooms?.room_number || "Unassigned"}</p>
         </>}

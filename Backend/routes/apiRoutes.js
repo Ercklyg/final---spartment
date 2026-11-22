@@ -18,6 +18,7 @@ router.post('/auth/logout',app.logout);
 router.get('/public/config',app.config);
 router.get('/public/rooms',app.publicRooms);
 router.post('/public/inquiries',app.inquiry);
+router.post('/public/messages',app.guestMessage);
 router.use(authenticate);
 router.get('/announcements',requireAdmin,announcements.list);
 router.post('/announcements',requireAdmin,announcements.post);
@@ -52,6 +53,8 @@ router.post('/requests/:id/attachments',express.raw({type:['image/jpeg','image/p
 router.get('/requests/:id/attachments/:attachmentId',app.requestAttachmentUrl);
 router.patch('/inquiries/:id',requireAdmin,app.inquiryUpdate);
 router.get('/notifications',app.notifications);
+router.get('/notifications/announcements',announcements.unread);
+router.post('/notifications/announcements/:id/acknowledge',announcements.acknowledge);
 router.get('/notifications/admin',requireAdmin,app.adminNotifications);
 router.post('/notifications/read',app.readNotifications);
 router.post('/notifications/engagement',app.notificationEngagement);

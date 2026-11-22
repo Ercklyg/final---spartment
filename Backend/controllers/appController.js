@@ -28,6 +28,7 @@ export const requestCreate=async(req,res)=>res.status(201).json(await service.re
 export const requestAttachment=async(req,res)=>res.status(201).json(await service.requestAttachment(req));
 export const requestAttachmentUrl=async(req,res)=>res.status(200).json(await service.requestAttachmentUrl(req));
 export const inquiry=async(req,res)=>res.status(201).json(await service.inquiry(req));
+export const guestMessage=async(req,res)=>res.status(201).json(await service.guestMessage(req));
 export const notifications=async(req,res)=>res.status(200).json(await service.notifications(req));
 export const adminNotifications=async(req,res)=>res.json(await service.adminNotifications(req));
 export const readNotifications=async(req,res)=>res.status(200).json(await service.readNotifications(req));

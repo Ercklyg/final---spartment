@@ -6,6 +6,7 @@ import { report } from '../models/reports.js';
 import { loadBills, createBill, recordPayment, billingOverview, loadBillingLeases, today } from '../models/billing.js';
 import { loadRequests, submitInquiry, submitTenantRequest } from '../models/requests.js';
 import { uploadMaintenanceAttachment, maintenanceAttachmentUrl } from '../models/maintenanceAttachments.js';
+import { submitGuestMessage } from './guestMessages.js';
 import { loadNotifications, markNotificationsRead, markAllNotificationsRead, updateNotificationEngagement, sendPaymentReminder, addReminderTimes } from '../models/notifications.js';
 import { loadAdminNotifications } from '../models/adminNotifications.js';
 import { loadPaymentReceipt } from '../models/paymentReceipt.js';
@@ -117,6 +118,7 @@ export const requestCreate=async(req)=>{
 };
 export const requestAttachment=async(req)=>uploadMaintenanceAttachment(req.db,req.user.id,validate.uuid(req.params.id,'request ID'),req.body,req.get('Content-Type')?.split(';')[0].trim().toLowerCase(),req.query.name);
 export const requestAttachmentUrl=async(req)=>maintenanceAttachmentUrl(req.db,validate.uuid(req.params.id,'request ID'),validate.uuid(req.params.attachmentId,'attachment ID'));
+export const guestMessage=async(req)=>submitGuestMessage(createUserClient(),req.body);
 export const inquiry=async(req)=>{
   const body=validate.object(req.body),form=validate.object(body.form,'Inquiry details');
   const clean={fullName:validate.text(form.fullName,'name',160),email:validate.email(form.email),contact:validate.text(form.contact,'phone',40,true),preferredRoom:validate.text(form.preferredRoom,'preferred room',160,true),moveInDate:validate.date(form.moveInDate,'move-in date',true),message:validate.text(form.message,'message',4000)};

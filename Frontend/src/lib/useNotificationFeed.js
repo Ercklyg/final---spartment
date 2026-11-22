@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { api } from './api.js';
-import { loadNotificationPreferences } from './notifications.js';
+import { loadNotificationPreferences, notificationsChangedEvent } from './notifications.js';
 
 const empty={data:null,total:0,unreadCount:0,asOf:null,loading:true,error:''};
 export function useNotificationFeed() {
@@ -28,7 +28,8 @@ export function useNotificationFeed() {
     document.addEventListener('visibilitychange',visible);
     window.addEventListener('focus',refresh);
     window.addEventListener('online',refresh);
-    return()=>{clearInterval(timer);document.removeEventListener('visibilitychange',visible);window.removeEventListener('focus',refresh);window.removeEventListener('online',refresh);};
+    window.addEventListener(notificationsChangedEvent,refresh);
+    return()=>{clearInterval(timer);document.removeEventListener('visibilitychange',visible);window.removeEventListener('focus',refresh);window.removeEventListener('online',refresh);window.removeEventListener(notificationsChangedEvent,refresh);};
   },[]);
   const reload=()=>{controller.current?.abort();generation.current++;setState(s=>({...s,loading:true,loadingMore:false,error:''}));setRevision(n=>n+1);};
   const more=async()=>{

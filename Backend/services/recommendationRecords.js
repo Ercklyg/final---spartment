@@ -30,7 +30,7 @@ export async function recommendationRecords(req) {
       subtitle: request.kind === 'maintenance' ? 'Maintenance request' : 'Tenant request', createdAt: request.created_at,
     });
     for (const inquiry of snapshot.openInquiries.filter(item => item.status !== 'Resolved')) records.push({
-      id: inquiry.id, title: 'Guest inquiry', subtitle: 'Room inquiry', status: inquiry.status, createdAt: inquiry.created_at,
+      id: inquiry.id, title: 'Guest inquiry', subtitle: 'Guest inquiry', status: inquiry.status, createdAt: inquiry.created_at,
     });
   } else if (fact) {
     const bills = fact.kind === 'collections' ? snapshot.selected : snapshot.late;

@@ -66,6 +66,28 @@ protected `recovery-state` function and server-only keys described in that guide
 Public: POST /api/auth/login, POST /api/auth/refresh, GET /api/public/rooms,
 POST /api/public/inquiries.
 
+Guest general messages use POST /api/public/messages with a stable submission ID
+and form fields fullName, email, contact, subject, and message. Name, subject,
+message, and at least one contact method are required. Tenant general requests
+continue to use the authenticated request endpoint.
+
+Before deploying the guest-message code, apply migration
+`202611230001_guest_general_messages.sql`. It preserves existing room inquiries,
+adds general-message fields, permits phone-only general messages, and updates
+the administrator request workspace. Deploy backend and frontend after the migration.
+
+For announcement history and the tenant popup, also apply
+`202611230002_announcement_history.sql` before deploying. This fills missing
+announcement notifications for active tenants (including test accounts) and
+delivers retained announcements whenever a tenant assignment becomes active.
+Existing read states are preserved unless announcement content changes.
+Tenant-only GET /api/notifications/announcements provides paginated unread
+announcements. POST /api/notifications/announcements/:id/acknowledge requires
+the displayed revision and acknowledges only the caller's matching notification.
+The in-app popup works without browser-notification permission. Later keeps items
+unread and dismisses their current revisions for the login session; sign-out clears
+that UI state. No production announcements are created by the migration.
+
 Authenticated: GET /api/auth/profile, POST /api/auth/logout,
 POST /api/auth/password, GET /api/account, GET /api/billing,
 GET /api/payments/:id/receipt, GET /api/requests, POST /api/requests/submit,

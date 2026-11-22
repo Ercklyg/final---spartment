@@ -6,7 +6,7 @@ import InquiryForm from "./InquiryForm";
 import MaintenanceForm from "./MaintenanceForm";
 import OtherForm from "./OtherForm";
 
-function Chatbox({ onClose, initialView = "menu", prefilledRoom = "", hideInquiry = false, canRequestMaintenance = false }) {
+function Chatbox({ onClose, initialView = "menu", prefilledRoom = "", hideInquiry = false, canRequestMaintenance = false, tenantMode = false }) {
   const dialog = useRef(null);
   const [currentView, setCurrentView] = useState(initialView);
   const visibleView = currentView === "maintenance" && !canRequestMaintenance ? "menu" : currentView;
@@ -66,7 +66,7 @@ function Chatbox({ onClose, initialView = "menu", prefilledRoom = "", hideInquir
         )}
 
         {visibleView === "other" && (
-          <OtherForm onBack={handleBack} />
+          <OtherForm onBack={handleBack} guest={!tenantMode} />
         )}
       </div>
 
