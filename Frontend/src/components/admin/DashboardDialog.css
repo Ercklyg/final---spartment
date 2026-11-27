@@ -1,0 +1,30 @@
+/* Fixed shells keep category changes from moving or resizing the dialog. */
+.dashboard-dialog--notifications[open], .dashboard-dialog--insights[open] {
+  display: flex;
+  flex-direction: column;
+  height: 90dvh;
+  max-height: 90dvh;
+  overflow: hidden;
+  padding: 20px;
+}
+.dashboard-dialog--notifications { max-width: 900px; }
+.dashboard-dialog--insights { max-width: 1120px; }
+.dashboard-dialog--notifications .dashboard-dialog-header,
+.dashboard-dialog--insights .dashboard-dialog-header { flex-shrink: 0; margin-bottom: 12px; }
+.dashboard-dialog--notifications .dashboard-dialog-body,
+.dashboard-dialog--insights .dashboard-dialog-body { display: flex; flex: 1; min-height: 0; flex-direction: column; }
+.dashboard-dialog--notifications .admin-notification-categories { flex-shrink: 0; margin-top: 0; }
+.dashboard-dialog--notifications .notification-dialog-list { flex: 1; min-height: 0; }
+.dashboard-dialog--insights .insights-dialog-content { display: flex; flex: 1; min-height: 0; flex-direction: column; border: 0; border-radius: 0; padding: 0; box-shadow: none; }
+.dashboard-dialog--insights .insights-dialog-toolbar { display: flex; flex-shrink: 0; align-items: center; justify-content: space-between; gap: 12px; }
+.dashboard-dialog--insights .insights-dialog-toolbar > div { display: none; }
+.dashboard-dialog--insights .insights-dialog-toolbar > svg { display: none; }
+.dashboard-dialog--insights .insights-dialog-toolbar > button { margin-left: auto; min-height: 36px; padding: 6px 12px; }
+.dashboard-dialog--insights .insights-dialog-meta { margin-top: 4px; font-size: 12px; line-height: 18px; }
+.dashboard-dialog--insights .insights-dialog-cards { flex: 1; min-height: 0; overflow-y: auto; margin-top: 12px; padding: 2px; }
+.dashboard-dialog--insights .insights-dialog-cards > article { padding: 10px 12px; }
+.dashboard-dialog--insights .insights-dialog-cards > article button { min-height: 36px; }
+.dashboard-dialog--insights .insights-dialog-footer { margin-top: 8px; font-size: 11px; line-height: 16px; }
+@media (max-width: 639px) {
+  .dashboard-dialog--notifications[open], .dashboard-dialog--insights[open] { height: 92dvh; max-height: 92dvh; padding: 16px; }
+}

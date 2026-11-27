@@ -81,10 +81,6 @@
   padding: 14px 12px;
 }
 
-.admin-billing .billing-ledger-table :is(th, td) {
-  padding: 12px 8px;
-  overflow-wrap: anywhere;
-}
 
 .admin-billing tbody tr {
   border-color: #e2e8f0;
@@ -108,7 +104,27 @@
   contain-intrinsic-size: auto 420px;
 }
 
-.admin-billing .billing-mobile-record {
-  content-visibility: auto;
-  contain-intrinsic-size: auto 340px;
+
+/* Billing history uses its own spacing, independent of forms and summaries. */
+.admin-billing .billing-history { font-size: 14px; line-height: 1.5; }
+.admin-billing .billing-history .text-sm { font-size: 14px; }
+.admin-billing .billing-history .text-xs,
+.admin-billing .billing-history-secondary { font-size: 12px; line-height: 1.5; }
+.admin-billing .billing-history select { min-height: 44px; }
+.admin-billing .billing-history-scroll:focus-visible { outline: 2px solid #2563eb; outline-offset: -2px; }
+.admin-billing .billing-ledger-table { min-width: 1000px; border-collapse: separate; border-spacing: 0; table-layout: auto; }
+.admin-billing .billing-ledger-table :is(th, td) { padding: 16px 20px; overflow-wrap: normal; border-bottom: 1px solid #f1f5f9; vertical-align: middle; }
+.admin-billing .billing-ledger-table thead th { background: #f8fafc; padding-top: 13px; padding-bottom: 13px; color: #64748b; font-size: 12px; font-weight: 500; white-space: nowrap; border-bottom-color: #e2e8f0; }
+.admin-billing .billing-ledger-table tr > :first-child { position: sticky; left: 0; z-index: 1; width: 240px; min-width: 240px; max-width: 240px; background: white; font-weight: 400; }
+.admin-billing .billing-ledger-table thead tr > :first-child { z-index: 2; background: #f8fafc; font-weight: 500; }
+.admin-billing .billing-ledger-table tbody tr:nth-child(even) { background: white; }
+.admin-billing .billing-ledger-table tbody tr:is(:hover, :focus-within),
+.admin-billing .billing-ledger-table tbody tr:is(:hover, :focus-within) > :first-child { background: #f8fafc; }
+.admin-billing .billing-ledger-table tbody tr:last-child > * { border-bottom: 0; }
+.admin-billing .billing-ledger-table tr > :last-child { width: 172px; min-width: 172px; padding-left: 12px; padding-right: 12px; }
+.admin-billing .billing-history-status { font-size: 12px; line-height: 1.5; }
+@media (max-width: 639px) {
+  .admin-billing .billing-ledger-table tr > :first-child { width: 180px; min-width: 180px; max-width: 180px; }
+  .admin-billing .billing-ledger-table tr > :first-child :is(span, p) { max-width: 140px; }
+  .admin-billing .billing-ledger-table :is(th, td) { padding-left: 16px; padding-right: 16px; }
 }

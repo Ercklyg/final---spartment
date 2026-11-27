@@ -33,7 +33,6 @@ router.patch('/rooms/:id/status',requireAdmin,app.roomStatus);
 router.patch('/rooms/:id',requireAdmin,app.roomUpdate);
 router.delete('/rooms/:id',requireAdmin,app.roomDelete);
 router.get('/tenants',requireAdmin,app.tenants);
-router.patch('/records/test-status',requireAdmin,app.testRecord);
 router.post('/tenants/:id/move-out',requireAdmin,tenancy.moveOut);
 router.get('/tenants/:id/leases',requireAdmin,tenancy.history);
 router.get('/billing',app.bills);

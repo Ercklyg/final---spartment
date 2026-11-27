@@ -6,11 +6,11 @@ export const today = () => new Intl.DateTimeFormat('en-CA', {timeZone:'Asia/Mani
 export function summarizeBill(bill) {
   const totalCents = Math.round(Number(bill.rent_amount)*100)+Math.round(Number(bill.electricity_amount)*100)+Math.round(Number(bill.water_amount)*100);
   const paidCents = (bill.payments || []).reduce((sum,p)=>sum+Math.round(Number(p.amount)*100),0);
-  return {...bill,is_test:Boolean(bill.is_test||bill.leases?.profiles?.is_test||bill.leases?.rooms?.is_test),total:totalCents/100,paid:paidCents/100,balance:Math.max(0,totalCents-paidCents)/100,
+  return {...bill,total:totalCents/100,paid:paidCents/100,balance:Math.max(0,totalCents-paidCents)/100,
     displayStatus:paidCents>=totalCents?'Paid':bill.due_date<today()?'Late':paidCents>0?'Partially paid':'Pending'};
 }
 export async function loadBills(client) {
-  const bills=await readAll(()=>client.from('bills').select('id,lease_id,bill_type,billing_period,due_date,rent_amount,electricity_amount,water_amount,status,created_at, payments(id,amount,payment_date,reference_note), leases(tenant_id, profiles(full_name,is_test), rooms(room_number,is_test, buildings(name)))')
+  const bills=await readAll(()=>client.from('bills').select('id,lease_id,bill_type,billing_period,due_date,rent_amount,electricity_amount,water_amount,status,created_at, payments(id,amount,payment_date,reference_note), leases(tenant_id, profiles(full_name), rooms(room_number, buildings(name)))')
     .order('billing_period',{ascending:false}).order('created_at',{ascending:false}).order('id'));
   return bills.map(summarizeBill);
 }
@@ -31,7 +31,7 @@ export function billingOverview(bills) {
   const nextDue = bills.filter(bill => bill.balance > 0).map(bill => bill.due_date).sort()[0] || null;
   return { ...totals(bills), count: bills.length, months, utilityMonth, nextDue };
 }
-export async function loadBillingLeases(client, period = null, type = null, includeTest = false) {
+export async function loadBillingLeases(client, period = null, type = null) {
   async function all(table, columns, activeOnly = false) {
     return readAll(()=>{
       let query = client.from(table).select(columns).order('id');
@@ -40,7 +40,7 @@ export async function loadBillingLeases(client, period = null, type = null, incl
     });
   }
   const [leases, assignments] = await Promise.all([
-    all('leases', 'id,tenant_id,profiles(full_name,is_test),rooms(room_number,monthly_rate,is_test,buildings(name))', true),
+    all('leases', 'id,tenant_id,profiles(full_name),rooms(room_number,monthly_rate,buildings(name))', true),
     all('tenant_assignments', 'id,monthly_rent'),
   ]);
   const rents = new Map(assignments.map(assignment => [assignment.id, assignment.monthly_rent]));
@@ -50,7 +50,7 @@ export async function loadBillingLeases(client, period = null, type = null, incl
     if(error)throw new HttpError(503,'Unable to check existing bills. Please retry.');
     billed=new Set(data.map(bill=>bill.lease_id));
   }
-  return leases.map(lease => ({ ...lease, is_test:Boolean(lease.profiles?.is_test||lease.rooms?.is_test), rent: rents.get(lease.tenant_id) ?? lease.rooms?.monthly_rate, billed: billed.has(lease.id) })).filter(lease=>includeTest||!lease.is_test);
+  return leases.map(lease => ({ ...lease, rent: rents.get(lease.tenant_id) ?? lease.rooms?.monthly_rate, billed: billed.has(lease.id) }));
 }
 
 function validateBillForm(form) {

@@ -1,3 +1,4 @@
+import { openDashboardInsights } from './helpers/dashboard.js';
 import { test, expect } from '@playwright/test';
 import { mockAdminApi } from './helpers/mockApi.js';
 
@@ -20,7 +21,9 @@ test('dashboard cards open without waiting for recommendations or fetching full 
     expect(analytics.length).toBeGreaterThan(0);
     expect(analytics.every(call => new URLSearchParams(call.search).get('view') === 'dashboard')).toBe(true);
   } finally { release(); }
-  await expect(page.getByRole('status').filter({ hasText: 'AI usage limit reached' })).toBeVisible();
+  await openDashboardInsights(page);
+  await expect(page.getByRole('region', { name: 'Insights & Recommendations', exact: true }).getByRole('status').filter({ hasText: 'AI usage limit reached' })).toBeVisible();
+  if (await page.getByRole('dialog', { name: 'All insights & recommendations' }).count()) await page.keyboard.press('Escape');
   await page.locator('button[aria-label="Analytics & Reports"]:visible').click();
   await expect.poll(() => calls.some(call => call.path === '/analytics' && !new URLSearchParams(call.search).has('view'))).toBe(true);
 });

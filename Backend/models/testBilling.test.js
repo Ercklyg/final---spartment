@@ -12,20 +12,20 @@ function database() {
     return query;
   },async rpc(name,args){assert.equal(name,'create_bill');writes.push(args);return {error:null};}};
 }
-test('bulk billing excludes both test accounts and test rooms while explicit test billing remains available',async()=>{
+test('bulk billing includes every active lease regardless of former classification',async()=>{
   const db=database();
-  assert.equal((await loadBillingLeases(db)).length,1);
-  const all=await loadBillingLeases(db,null,null,true);
-  assert.equal(all.length,3); assert.equal(all.filter(l=>l.is_test).length,2);
+  assert.equal((await loadBillingLeases(db)).length,3);
+  const all=await loadBillingLeases(db);
+  assert.equal(all.length,3); assert.ok(all.every(lease=>!('is_test' in lease)));
   const form={lease:'all',type:'rent',period:'2026-11',due:'2026-11-30'};
-  assert.equal((await createBill(db,form)).created,1);
+  assert.equal((await createBill(db,form)).created,3);
   assert.equal(db.writes[0].p_lease,real.id);
   await createBill(db,{...form,lease:testRoom.id,rent:3000});
-  assert.equal(db.writes[1].p_lease,testRoom.id);
+  assert.equal(db.writes[3].p_lease,testRoom.id);
 });
-test('test bill labels follow either linked account or room without losing payments',()=>{
+test('ordinary bill summaries preserve payments without introducing classification labels',()=>{
   for(const lease of [testRoom,testAccount]) {
     const bill=summarizeBill({leases:lease,rent_amount:3000,electricity_amount:0,water_amount:0,payments:[{amount:1000}],due_date:'2099-01-01'});
-    assert.equal(bill.is_test,true); assert.equal(bill.paid,1000); assert.equal(bill.balance,2000);
+    assert.equal('is_test' in bill,false); assert.equal(bill.paid,1000); assert.equal(bill.balance,2000);
   }
 });

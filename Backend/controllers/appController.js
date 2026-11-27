@@ -44,7 +44,6 @@ export const roomCreate=async(req,res)=>res.status(201).json(await service.roomC
 export const roomUpdate=async(req,res)=>res.status(200).json(await service.roomUpdate(req));
 export const roomDelete=async(req,res)=>res.status(200).json(await service.roomDelete(req));
 export const roomStatus=async(req,res)=>res.status(200).json(await service.roomStatus(req));
-export const testRecord=async(req,res)=>res.json(await service.testRecord(req));
 export const tenants=async(req,res)=>res.status(200).json(await service.tenants(req));
 export const billingWorkspace=async(req,res)=>res.status(200).json(await service.billingWorkspace(req));
 export const requestWorkspace=async(req,res)=>res.status(200).json(await service.requestWorkspace(req));

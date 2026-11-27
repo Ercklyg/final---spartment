@@ -78,7 +78,7 @@ the administrator request workspace. Deploy backend and frontend after the migra
 
 For announcement history and the tenant popup, also apply
 `202611230002_announcement_history.sql` before deploying. This fills missing
-announcement notifications for active tenants (including test accounts) and
+announcement notifications for active tenants and
 delivers retained announcements whenever a tenant assignment becomes active.
 Existing read states are preserved unless announcement content changes.
 Tenant-only GET /api/notifications/announcements provides paginated unread

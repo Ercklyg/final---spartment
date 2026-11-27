@@ -18,9 +18,9 @@ export async function recommendationRecords(req) {
   const fact = buildRecommendationFacts(factSnapshot, month).find(item => item.id === factId);
   const records = [];
   if (fact?.kind === 'vacancy') {
-    const rooms = await readAll(() => req.db.from('rooms').select('id,room_number,status,monthly_rate,is_test,buildings(name)')
-      .eq('status', 'available').eq('is_test', false).order('id'));
-    for (const room of rooms.filter(room => !room.is_test && room.status === 'available')) records.push({
+    const rooms = await readAll(() => req.db.from('rooms').select('id,room_number,status,monthly_rate,buildings(name)')
+      .eq('status', 'available').order('id'));
+    for (const room of rooms.filter(room => room.status === 'available')) records.push({
       id: room.id, title: `Room ${room.room_number}`, subtitle: room.buildings?.name || 'Building', status: 'Available',
       amount: Number(room.monthly_rate), amountLabel: 'Monthly rent',
     });

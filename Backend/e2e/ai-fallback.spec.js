@@ -1,3 +1,4 @@
+import { openDashboardInsights } from './helpers/dashboard.js';
 import { test, expect } from '@playwright/test';
 import { mockAdminApi } from './helpers/mockApi.js';
 
@@ -23,6 +24,7 @@ test('quota fallback survives reload and manual retry preserves cards until reco
     await respond(route, saved);
   });
   await page.goto('/');
+  await openDashboardInsights(page);
   const panel = page.getByRole('region', { name: 'Insights & Recommendations' });
   await expect(panel.getByText(items[0].title, { exact: true })).toBeVisible();
   await panel.getByRole('button', { name: 'Refresh insights' }).click();
@@ -31,6 +33,7 @@ test('quota fallback survives reload and manual retry preserves cards until reco
   await expect(panel.getByText('Saved AI recommendations', { exact: true })).toHaveCount(0);
   await expect(panel).not.toContainText('Last generated');
   await page.reload();
+  await openDashboardInsights(page);
   await expect(panel.getByRole('status')).toHaveText(notice);
   await expect(panel.getByText(items[0].title, { exact: true })).toBeVisible();
   expect(calls).toBe(3);
@@ -57,6 +60,7 @@ test('quota without saved recommendations has no invented cards or timestamp', a
     return respond(route, result({ items: [], updatedAt: null, fallback: true, reason: 'quota', source: 'none' }));
   });
   await page.goto('/');
+  await openDashboardInsights(page);
   const panel = page.getByRole('region', { name: 'Insights & Recommendations' });
   await expect(panel.getByRole('status')).toHaveText('AI usage limit reached. No previous AI recommendations are saved for this report yet.');
   await expect(panel.getByRole('button')).toHaveCount(1);
@@ -71,6 +75,7 @@ test('temporary API failure retains the preview with a generic dated notice', as
     ? route.fulfill({ status: 503, contentType: 'application/json', body: JSON.stringify({ error: 'Service unavailable' }) })
     : respond(route, result()));
   await page.goto('/');
+  await openDashboardInsights(page);
   const panel = page.getByRole('region', { name: 'Insights & Recommendations' });
   await expect(panel.getByText(items[0].title, { exact: true })).toBeVisible();
   fail = true;

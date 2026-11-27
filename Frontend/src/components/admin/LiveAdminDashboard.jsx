@@ -1,3 +1,4 @@
+import useCompactDashboard from './useCompactDashboard.js';
 import PageSkeleton from "../PageSkeleton.jsx";
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { loadAdminDashboard } from '../../lib/adminAnalytics.js';
@@ -12,6 +13,7 @@ import AdminMetrics from './AdminMetrics.jsx';
 import SmartRecommendations from './SmartRecommendations.jsx';
 
 export default function LiveAdminDashboard({ onNavigate }) {
+  const compact = useCompactDashboard();
   const [requestedMonth, setMonth] = useState(today().slice(0, 7));
   const loader = useCallback(client => loadAdminDashboard(client, requestedMonth), [requestedMonth]);
   const { data, error, loading, reload } = useRemoteData(loader);
@@ -58,17 +60,17 @@ export default function LiveAdminDashboard({ onNavigate }) {
   }, [fetchAi]);
   const shownAi = ai.month === month ? ai : { items: [], loading: true };
   return <>
-    <AdminHero selectedMonth={month} availableMonths={data?.availableMonths || []} onMonthChange={handleMonthChange} />
-    {data && !data.availableMonths?.length && <p role="status" className="mb-4 text-sm text-slate-500">No recorded bills or payments yet. Reporting months become available when financial records are saved.</p>}
-    {loading && !data ? <PageSkeleton variant="dashboard" label="Loading dashboard..."/>
-      : error && !data ? <p role="alert" className="py-5 text-rose-700">{error} <button onClick={reload} className="underline">Retry</button></p>
-        : <div className="space-y-4 sm:space-y-5" aria-busy={loading}>
-          {error && <p role="alert" className="text-sm text-rose-700">{error} Showing the last loaded dashboard.</p>}
-          <AdminAttention snapshot={data.snapshot} onNavigate={onNavigate} />
-          <AdminNotifications key={data.loadedAt} />
-          <AdminMetrics snapshot={data.snapshot} onNavigate={onNavigate} />
-          <SmartRecommendations onNavigate={onNavigate} reportMonth={month} aiItems={shownAi.items} aiLoading={shownAi.loading} aiError={shownAi.error} aiUpdatedAt={shownAi.updatedAt} aiFiguresCheckedAt={shownAi.figuresCheckedAt} aiFiguresAsOf={shownAi.figuresAsOf} aiCached={shownAi.cached} aiSource={shownAi.source} aiFallback={shownAi.fallback} aiReason={shownAi.reason} onRefreshAi={() => fetchAi(true)} />
-          <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3 text-[11px] text-slate-500 shadow-sm sm:text-xs">
+    <AdminHero compact={compact} updatedAt={data?.loadedAt} loading={loading} onRefresh={reload} selectedMonth={month} availableMonths={data?.availableMonths || []} onMonthChange={handleMonthChange} />
+    {data && !data.availableMonths?.length && <p role="status" className="dashboard-empty-note mb-4 text-sm text-slate-500">No recorded bills or payments yet. Reporting months become available when financial records are saved.</p>}
+    {loading && !data ? <PageSkeleton variant={compact ? "table" : "dashboard"} label="Loading dashboard..."/>
+      : error && !data ? <p role="alert" title={error} className="py-5 text-rose-700">{compact ? "Unable to load the dashboard." : error} <button onClick={reload} className="underline">Retry</button></p>
+        : <div className={compact ? "dashboard-overview" : "space-y-4 sm:space-y-5"} aria-busy={loading}>
+          {error && <p role="alert" title={error} className="text-sm text-rose-700">{compact ? "Refresh failed. Showing saved dashboard figures." : error + " Showing the last loaded dashboard."}</p>}
+          <AdminMetrics compact={compact} snapshot={data.snapshot} onNavigate={onNavigate} />
+          <AdminAttention compact={compact} snapshot={data.snapshot} onNavigate={onNavigate} />
+          <AdminNotifications compact={compact} key={data.loadedAt} />
+          <SmartRecommendations compact={compact} onNavigate={onNavigate} reportMonth={month} aiItems={shownAi.items} aiLoading={shownAi.loading} aiError={shownAi.error} aiUpdatedAt={shownAi.updatedAt} aiFiguresCheckedAt={shownAi.figuresCheckedAt} aiFiguresAsOf={shownAi.figuresAsOf} aiCached={shownAi.cached} aiSource={shownAi.source} aiFallback={shownAi.fallback} aiReason={shownAi.reason} onRefreshAi={() => fetchAi(true)} />
+          <div className={(compact ? "hidden " : "") + "flex flex-wrap items-center justify-between gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3 text-[11px] text-slate-500 shadow-sm sm:text-xs"}>
             <p>Dashboard updated {new Date(data.loadedAt).toLocaleString('en-PH')}</p>
             <button disabled={loading} onClick={reload} className="rounded-lg border border-slate-200 px-3 py-1.5 font-semibold text-blue-600 hover:bg-blue-50 disabled:opacity-50">{loading ? "Refreshing..." : "Refresh dashboard"}</button>
           </div>

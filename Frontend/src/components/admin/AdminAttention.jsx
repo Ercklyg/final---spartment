@@ -8,7 +8,7 @@ const tones = {
   blue: { icon: "bg-blue-50 text-blue-600", hover: "hover:border-blue-200 hover:bg-blue-50/30", action: "text-blue-700" },
 };
 
-function AdminAttention({ onNavigate, snapshot }) {
+function AdminAttention({ onNavigate, snapshot, compact = false }) {
   const collectionHealth = snapshot.collectionHealth || {};
   const lateTenants = snapshot.late || [];
   const riskCount = collectionHealth.repeatLatePayers?.length || 0;
@@ -42,7 +42,7 @@ function AdminAttention({ onNavigate, snapshot }) {
     },
   ];
 
-  return <section className="rounded-2xl border border-amber-100 bg-white p-4 shadow-sm sm:p-5" aria-labelledby="attention-heading">
+  return <section className={(compact ? "dashboard-attention " : "") + "rounded-2xl border border-amber-100 bg-white p-4 shadow-sm sm:p-5"} aria-labelledby="attention-heading">
     <div className="flex items-center gap-3">
       <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-amber-50 text-amber-600"><CircleAlert size={21} /></span>
       <div className="min-w-0">

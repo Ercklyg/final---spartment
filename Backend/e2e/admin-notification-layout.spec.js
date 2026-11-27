@@ -13,7 +13,7 @@ test('notification category buttons fit their container and stay visible while t
   await mockAdminApi(page,{startAuthenticated:true});
   await page.route('**/api/notifications/admin',route=>route.fulfill({json:notices}));
   await page.goto('/');
-  await page.getByRole('button',{name:'View all',exact:true}).click();
+  await page.getByRole('region',{name:'Admin notifications',exact:true}).getByRole('button',{name:'View all',exact:true}).click();
   const dialog=page.getByRole('dialog',{name:'All notifications',exact:true});
   const group=dialog.getByRole('group',{name:'Notification categories'});
   for(const width of [320,768,1280,1920]){

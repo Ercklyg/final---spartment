@@ -1,3 +1,4 @@
+import { openForecastDetails } from './helpers/analytics.js';
 import { test, expect } from '@playwright/test';
 import { mockAdminApi } from './helpers/mockApi.js';
 import { collectionForecast, forecastValidation } from '../models/collectionForecast.js';
@@ -127,9 +128,9 @@ test('single-month comparisons explain below, above, exact and zero collections 
   expect(await detail.locator('details').evaluateAll(items => items.every(item => !item.open))).toBe(true);
   await page.keyboard.press('Escape');
   const forecast = page.getByRole('region', { name: 'Estimated Collections', exact: true });
-  await forecast.getByText('How this is calculated', { exact: true }).click();
-  await expect(forecast).not.toContainText('AI is not used in the computation.');
-  await expect(forecast).toContainText('÷ 3');
+  const calculation=await openForecastDetails(page);
+  await expect(calculation).not.toContainText('AI is not used in the computation.');
+  await expect(calculation).toContainText("÷ 3");
 });
 
 test('paying an October bill in November updates October forecast history on return to analytics', async ({ page }) => {
@@ -155,8 +156,8 @@ test('paying an October bill in November updates October forecast history on ret
   const forecast = page.getByRole('region', { name: 'Estimated Collections', exact: true });
   await expect(forecast).toContainText('₱600.00');
   await page.locator('button[aria-label="Billing"]:visible').click();
-  await page.getByLabel('Month', { exact: true }).fill('2026-10');
-  await page.getByRole('button', { name: 'Record payment', exact: true }).first().click();
+  await page.getByLabel('History month', { exact: true }).fill('2026-10');
+  await page.getByRole('button', { name: /Record payment for Test Tenant/ }).click();
   const payment = page.getByRole('dialog', { name: 'Record payment', exact: true });
   await payment.getByLabel('Payment date', { exact: true }).fill('2026-11-18');
   await payment.getByRole('button', { name: 'Save payment', exact: true }).click();
@@ -165,5 +166,6 @@ test('paying an October bill in November updates October forecast history on ret
   await page.locator('button[aria-label="Analytics & Reports"]:visible').click();
   await expect(forecast).toContainText('₱1,433.33');
   await expect(forecast).toContainText('₱3,400.00');
-  await expect(forecast).toContainText('Payments count toward the bill month, even if received later.');
+  const details=await openForecastDetails(page);
+  await expect(details).toContainText('Payments count toward the bill month, even if received later.');
 });

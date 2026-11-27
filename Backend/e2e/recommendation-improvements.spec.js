@@ -1,3 +1,4 @@
+import { openDashboardInsights } from './helpers/dashboard.js';
 import { test, expect } from '@playwright/test';
 import { mockAdminApi } from './helpers/mockApi.js';
 import { buildRecommendationFacts, assembleRecommendations } from '../services/recommendationFacts.js';
@@ -31,6 +32,7 @@ test('insights explain their source and open the matching records without anothe
     return route.fulfill({json:await recommendationRecords({role:'admin',query,db})});
   });
   await page.goto('/');
+  await openDashboardInsights(page);
   const panel=page.getByRole('region',{name:'Insights & Recommendations'});
   const paymentAdvice=panel.getByRole('article',{name:'Discuss payment options',exact:true});
   const vacancyAdvice=panel.getByRole('article',{name:'Promote available rooms',exact:true});
@@ -64,7 +66,7 @@ test('insights explain their source and open the matching records without anothe
   await vacancyAdvice.getByRole('button',{name:'Hide advice',exact:true}).click();
   await expect(vacancyAdvice.getByRole('button',{name:'Show advice',exact:true})).toHaveAttribute('aria-expanded','false');
   await paymentAdvice.getByRole('button',{name:'Show advice',exact:true}).click();
-  await expect(page.getByRole('dialog')).toHaveCount(0);
+  await expect(page.getByRole('dialog')).toHaveCount(testInfo.project.name === 'mobile-chrome' ? 0 : 1);
   expect(await panel.evaluate(element=>element.scrollWidth<=element.clientWidth)).toBe(true);
   await panel.screenshot({path:testInfo.outputPath('improved-insights.png')});
   const before=aiCalls;

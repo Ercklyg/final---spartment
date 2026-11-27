@@ -1,3 +1,5 @@
+import DashboardPreviewList from './DashboardPreviewList.jsx';
+import DashboardDialog from './DashboardDialog.jsx';
 import { useEffect, useRef, useState } from 'react';
 import { BellRing, X, Wallet, CalendarClock, Wrench, DoorOpen, MessageSquare, Layers, RefreshCw, ArrowUpRight, ArrowRight, CheckCheck } from 'lucide-react';
 import { useRemoteData } from '../../lib/useRemoteData.js';
@@ -58,7 +60,7 @@ function NoticeList({ items, seen, onView }) {
   }) : <div className="flex flex-col items-center rounded-xl border border-dashed border-slate-200 px-4 py-10 text-center"><span className="mb-3 rounded-full bg-emerald-50 p-3 text-emerald-600"><CheckCheck size={23} /></span><p className="text-sm font-semibold text-slate-700">You're all caught up</p><p className="mt-1 text-xs text-slate-500">No notifications in this category.</p></div>;
 }
 
-export default function AdminNotifications() {
+export default function AdminNotifications({ compact = false }) {
   const { data, error, loading, reload } = useRemoteData(load);
   const reloadRef=useRef(reload);
   useEffect(()=>{reloadRef.current=reload;},[reload]);
@@ -75,25 +77,29 @@ export default function AdminNotifications() {
   };
   const filtered = category === 'All' ? notices : notices.filter(item => item.category === category);
   return <>
-    <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
+    <section aria-label="Admin notifications" className={(compact ? "dashboard-notifications " : "") + "rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5"}>
       <div className="flex flex-wrap items-start gap-3 sm:flex-nowrap sm:items-center sm:gap-4">
         <BellRing size={25} className="mt-0.5 shrink-0 text-blue-600 sm:mt-0" />
         <div className="min-w-0 flex-1"><h2 className="text-lg font-bold leading-tight text-slate-900 sm:text-xl">Admin Notifications</h2><p className="text-xs leading-5 text-slate-500 sm:text-sm">Important property updates and items that need your attention.</p></div>
         <button type="button" title="Refresh notifications" aria-label="Refresh notifications" disabled={loading} onClick={reload} className="rounded-lg border border-slate-200 p-2.5 text-slate-500 transition-colors hover:bg-slate-50 focus-visible:outline-blue-600 disabled:opacity-50"><RefreshCw size={16} className={loading ? 'animate-spin' : ''} /></button>
         <button type="button" disabled={!notices.length} onClick={() => setIsAllOpen(true)} className="inline-flex items-center gap-1.5 rounded-lg bg-blue-600 px-3 py-2.5 text-xs font-semibold text-white transition-colors hover:bg-blue-700 disabled:opacity-50">View all <ArrowUpRight size={15} /></button>
       </div>
-      {error && data && <p role="alert" className="mt-3 text-sm text-rose-700">{error} Showing previously loaded notifications.</p>}
-      <CategoryButtons notices={notices} selected={category} onSelect={selectCategory} seen={seen} disabled={!data && (loading || Boolean(error))} />
-      <div className="mt-4 space-y-2">{loading && !data ? <p role="status" className="py-5 text-sm text-slate-500">Loading notifications…</p> : error && !data ? <p role="alert" className="py-5 text-sm text-rose-700">{error}</p> : <NoticeList items={filtered.slice(0, 5)} seen={seen} onView={viewNotice} />}</div>
-      {data && filtered.length > 5 && <p className="mt-2 text-xs text-slate-500">Showing 5 of {filtered.length} {category === 'All' ? 'notifications' : category.toLowerCase()}. Select View all to see the rest.</p>}
+      {error && data && <p role="alert" title={error} className="mt-3 text-sm text-rose-700">{compact ? "Refresh failed. Showing saved notifications." : error + " Showing previously loaded notifications."}</p>}
+      {!compact && <CategoryButtons notices={notices} selected={category} onSelect={selectCategory} seen={seen} disabled={!data && (loading || Boolean(error))} />}
+      {compact ? <DashboardPreviewList items={notices} kind="notifications" loading={loading && !data} error={error && !data ? "Notifications unavailable. Use Refresh to retry." : ""} emptyMessage="No notifications to review." renderItem={item => <button key={item.id} type="button" aria-label={'View notification: ' + item.title} onClick={() => viewNotice(item)} className={'dashboard-preview-row flex w-full min-w-0 items-center gap-3 rounded-xl border border-l-4 px-3 py-2.5 text-left transition-colors ' + (item.priority === 'High' ? 'border-rose-200 border-l-rose-500 bg-rose-50/60 hover:bg-rose-100/70' : item.priority === 'Normal' ? 'border-amber-200 border-l-amber-400 bg-amber-50/60 hover:bg-amber-100/70' : 'border-blue-200 border-l-blue-500 bg-blue-50/60 hover:bg-blue-100/70')}>
+        <span className={'flex h-8 w-8 shrink-0 items-center justify-center rounded-lg ' + (colors[item.priority] || colors.Informational)}><BellRing size={17} aria-hidden="true"/></span>
+        <span className="min-w-0 flex-1"><span className="flex items-center gap-2"><span className="min-w-0 flex-1 truncate text-sm font-semibold text-slate-900">{item.title}</span><span className={'shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold ' + (colors[item.priority] || colors.Informational)}>{item.priority}</span></span><span className="mt-1 block truncate text-xs text-slate-600">{item.text}</span></span>
+        <span className={'h-2 w-2 shrink-0 rounded-full ' + (seen[item.id] !== noticeVersion(item) ? 'bg-blue-600' : 'bg-slate-300')} aria-label={seen[item.id] !== noticeVersion(item) ? 'Unread notification' : 'Read notification'}/>
+      </button>}/> : <>
+        <div className="mt-4 space-y-2">{loading && !data ? <p role="status" className="py-5 text-sm text-slate-500">Loading notifications...</p> : error && !data ? <p role="alert" className="py-5 text-sm text-rose-700">{error}</p> : <NoticeList items={filtered.slice(0,5)} seen={seen} onView={viewNotice}/>}</div>
+        {data && filtered.length > 5 && <p className="mt-2 text-xs text-slate-500">Showing 5 of {filtered.length} {category === 'All' ? 'notifications' : category.toLowerCase()}. Select View all to see the rest.</p>}
+      </>}
     </section>
-    {isAllOpen && <div role="dialog" aria-modal="true" aria-labelledby="all-notifications-title" onMouseDown={event=>closeFromBackdrop(event,()=>setIsAllOpen(false))} onKeyDown={event => { if (event.key === 'Escape') setIsAllOpen(false); }} className="fixed inset-0 z-[70] flex items-center justify-center bg-slate-950/40 p-4">
-      <div className="flex max-h-[85dvh] w-full max-w-2xl flex-col overflow-hidden rounded-2xl bg-white shadow-2xl">
-        <div className="shrink-0 px-4 pb-4 pt-5 sm:px-5"><div className="flex items-start justify-between gap-4"><div><h2 id="all-notifications-title" className="text-xl font-bold">All notifications</h2><p className="mt-1 text-sm text-slate-500">Current alerts across your properties, ordered by priority.</p></div><button autoFocus type="button" onClick={() => setIsAllOpen(false)} aria-label="Close notifications" className="rounded-lg p-2 text-slate-500 hover:bg-slate-100"><X size={20} /></button></div>
-        <CategoryButtons notices={notices} selected={category} onSelect={selectCategory} seen={seen} disabled={loading || Boolean(error)} />
-        </div><div className="min-h-0 flex-1 space-y-2 overflow-y-auto overscroll-contain px-4 pb-5 sm:px-5"><NoticeList items={filtered} seen={seen} onView={viewNotice} /></div>
-      </div>
-    </div>}
+    {isAllOpen && <DashboardDialog layout="notifications" title="All notifications" onClose={() => setIsAllOpen(false)}>
+      {error && <p role="alert" className="mb-3 text-sm text-rose-700">{error}</p>}
+      <CategoryButtons notices={notices} selected={category} onSelect={selectCategory} seen={seen} disabled={loading || Boolean(error)} />
+      <div className="notification-dialog-list mt-4 space-y-2 overflow-y-auto overscroll-contain"><NoticeList items={filtered} seen={seen} onView={viewNotice} /></div>
+    </DashboardDialog>}
     {viewed && <NotificationDetails item={viewed} onClose={() => setViewed(null)} />}
   </>;
 }

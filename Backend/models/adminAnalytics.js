@@ -2,17 +2,6 @@ import { today } from './billing.js';
 import { readAll } from './readAll.js';
 import { collectionForecast } from './collectionForecast.js';
 const cents = value => Math.round(Number(value || 0)*100);
-export function operationalData(data) {
-  const testRooms = new Set(data.rooms.filter(r=>r.is_test).map(r=>r.id));
-  const testTenants = new Set(data.profiles.filter(p=>p.is_test).map(p=>p.id));
-  const excludedLeases = new Set(data.leases.filter(l=>testRooms.has(l.room_id)||testTenants.has(l.tenant_id)).map(l=>l.id));
-  const excludedBills = new Set(data.bills.filter(b=>excludedLeases.has(b.lease_id)).map(b=>b.id));
-  return {...data,rooms:data.rooms.filter(r=>!testRooms.has(r.id)),profiles:data.profiles.filter(p=>!testTenants.has(p.id)),
-    leases:data.leases.filter(l=>!excludedLeases.has(l.id)),bills:data.bills.filter(b=>!excludedBills.has(b.id)),
-    payments:data.payments.filter(p=>!excludedBills.has(p.bill_id)),
-    requests:data.requests.filter(r=>!testTenants.has(r.tenant_id)&&!testRooms.has(r.room_id)),
-    inquiries:data.inquiries.filter(i=>!testRooms.has(i.room_id))};
-}
 export async function loadAdminAnalytics(client) {
   const {data:auth,error}=await client.auth.getUser();
   if(error || !auth.user)throw new Error('Sign in to view analytics.');
@@ -20,14 +9,13 @@ export async function loadAdminAnalytics(client) {
   if(profile.error || profile.data?.role!=='admin')throw new Error('Administrator access required.');
   const all=(table,columns)=>readAll(()=>client.from(table).select(columns).order('id'));
   const [rooms,profiles,leases,bills,payments,requests,inquiries]=await Promise.all([
-    all('rooms','id,room_number,status,monthly_rate,is_test,buildings(name)'),all('profiles','id,full_name,role,is_test'),
+    all('rooms','id,room_number,status,monthly_rate,buildings(name)'),all('profiles','id,full_name,role'),
     all('leases','id,tenant_id,room_id,status'),all('bills','id,lease_id,bill_type,billing_period,due_date,rent_amount,electricity_amount,water_amount'),
     all('payments','id,bill_id,amount,payment_date'),all('tenant_requests','id,tenant_id,room_id,kind,status,subject,created_at'),all('inquiries','id,room_id,status,created_at'),
   ]);
-  return operationalData({rooms,profiles,leases,bills,payments,requests,inquiries,loadedAt:new Date().toISOString()});
+  return {rooms,profiles,leases,bills,payments,requests,inquiries,loadedAt:new Date().toISOString()};
 }
 export function periodSeries(data,month,group='Monthly') {
-  data=operationalData(data);
   const [year,m]=month.split('-').map(Number);const step=group==='Yearly'?12:group==='Quarterly'?3:1;
   const start=group==='Yearly'?0:group==='Quarterly'?Math.floor((m-1)/3)*3:m-1;
   const limit=monthEnd(month)<today()?monthEnd(month):today();
@@ -50,7 +38,6 @@ export function comparisonTotals(series) {
   };
 }
 export function analyticsSnapshot(data,month,asOf=today()) {
-  data=operationalData(data);
   const cutoff=monthEnd(month)<asOf?monthEnd(month):asOf;
   const leaseMap=new Map(data.leases.map(l=>[l.id,l]));const profileMap=new Map(data.profiles.map(p=>[p.id,p]));const roomMap=new Map(data.rooms.map(r=>[r.id,r]));
   const paymentTotals=new Map();
@@ -74,7 +61,6 @@ export function analyticsSnapshot(data,month,asOf=today()) {
   };
 }
 export function forecastCollections(data,month) {
-  data=operationalData(data);
   const billPeriods = new Map(data.bills.map(bill => [bill.id, bill.billing_period]));
   return collectionForecast(data.payments.map(payment => ({ ...payment, billing_period: billPeriods.get(payment.bill_id) })),month).forecast;
 }

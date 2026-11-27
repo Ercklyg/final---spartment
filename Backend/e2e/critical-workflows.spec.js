@@ -1,3 +1,4 @@
+import { openForecastDetails } from './helpers/analytics.js';
 import { test, expect } from '@playwright/test';
 import { mockAdminApi, mockTenantApi } from './helpers/mockApi.js';
 
@@ -13,7 +14,9 @@ test('collections forecast shows a consistent target history and insufficient-hi
   await page.goto('/');
   await adminNavigationButton(page,'Analytics & Reports').click();
   const forecast=page.getByRole('region',{name:'Estimated Collections'});
-  await expect(forecast).toContainText('Based on payments applied to the previous three completed bill months.');
+  const firstDetails=await openForecastDetails(page);
+  await expect(firstDetails).toContainText('Based on payments applied to the previous three completed bill months.');
+  if(await page.getByRole('dialog',{name:'Collection forecast details'}).count())await page.keyboard.press('Escape');
   await expect(forecast).toContainText('₱600.00');
   await expect(forecast).toContainText('Aug 26');
   await expect(forecast).toContainText('Sep 26');
@@ -24,8 +27,8 @@ test('collections forecast shows a consistent target history and insufficient-hi
   analyticsData.forecastMonths[1]={label:'2026-09',value:0,paymentCount:0};
   await page.getByRole('button',{name:'Refresh',exact:true}).click();
   await expect(forecast).toContainText('Not enough history');
-  await forecast.getByText('How this is calculated', {exact:true}).click();
-  await expect(forecast).toContainText('At least one recorded payment is needed in each of the three completed months');
+  const details=await openForecastDetails(page);
+  await expect(details).toContainText('At least one recorded payment is needed in each of the three completed months');
 });
 
 test('sign-in handles invalid credentials and opens the admin application',async({page})=>{
@@ -104,12 +107,12 @@ test('an administrator can record a payment and open its receipt',async({page})=
   const api=await mockAdminApi(page,{startAuthenticated:true});
   await page.goto('/');
   await adminNavigationButton(page,'Billing').click();
-  await page.getByRole('button',{name:'Record payment'}).first().click();
+  await page.getByRole('button', { name: /Record payment for Test Tenant/ }).click();
   await page.getByLabel('Amount',{exact:true}).fill('500');
   await page.getByLabel('Reference note').fill('E2E payment');
   await page.getByRole('button',{name:'Save payment'}).click();
   await expect.poll(()=>api.calls.some(call=>call.method==='POST'&&call.path==='/billing/payments')).toBeTruthy();
-  await page.getByRole('button',{name:'Payments / receipts'}).first().click();
+  await page.getByRole('button', { name: /View details \/ receipts for Test Tenant/ }).click();
   await page.getByRole('button',{name:'Open receipt'}).click();
   await expect(page.getByTitle('Printable payment receipt')).toBeVisible();
 });

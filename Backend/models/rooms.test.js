@@ -5,13 +5,10 @@ import { createRoom, updateRoom, deleteRoom } from './rooms.js';
 const id = '11111111-1111-4111-8111-111111111111';
 const input = { room: '102', building: 'Main Building', floor: 1, size: 9, rate: 6500.25, capacity: '2-3', notes: 'Updated description' };
 
-test('test classification is explicit and rejects non-boolean room flags',async()=>{
-  const db=database([{data:{id:'building-id'}},{data:{id,is_test:true}}]);
+test('rooms are created as ordinary inventory without a classification field',async()=>{
+  const db=database([{data:{id:'building-id'}},{data:{id}}]);
   await createRoom(db,{...input,isTest:true});
-  assert.equal(db.calls[1].insert.is_test,true);
-  const invalid=database([]);
-  await assert.rejects(createRoom(invalid,{...input,isTest:'false'}),error=>error.status===400);
-  assert.equal(invalid.calls.length,0);
+  assert.equal('is_test' in db.calls[1].insert,false);
 });
 
 function database(results) {

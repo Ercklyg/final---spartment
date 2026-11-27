@@ -1,3 +1,4 @@
+import { openDashboardInsights } from './helpers/dashboard.js';
 import { test, expect } from '@playwright/test';
 import { mockAdminApi } from './helpers/mockApi.js';
 import { buildRecommendationFacts, assembleRecommendations } from '../services/recommendationFacts.js';
@@ -19,6 +20,7 @@ test('recommendation cards separate tenant evidence from property totals on desk
   ],facts);
   await page.route('**/api/analytics/recommendations',route=>route.fulfill({contentType:'application/json',body:JSON.stringify({items,updatedAt:'2026-11-19T00:00:00Z',fallback:false,cached:true})}));
   await page.goto('/');
+  await openDashboardInsights(page);
   const panel=page.getByRole('region',{name:'Insights & Recommendations'});
   const tenant=panel.getByRole('article',{name:'Discuss payment options',exact:true});
   await expect(tenant).toContainText('Corpuz Family · Building 2 / 202');
@@ -46,6 +48,7 @@ test('unverified legacy cards are not shown by the dashboard',async({page})=>{
   await mockAdminApi(page,{startAuthenticated:true});
   await page.route('**/api/analytics/recommendations',route=>route.fulfill({contentType:'application/json',body:JSON.stringify({items:[{title:'Unsupported claim',text:'Corpuz Family has 37 accounts',category:'warning'}],fallback:true,reason:'quota'})}));
   await page.goto('/');
+  await openDashboardInsights(page);
   const panel=page.getByRole('region',{name:'Insights & Recommendations'});
   await expect(panel.getByRole('status')).toContainText('No previous AI recommendations are saved');
   await expect(panel).not.toContainText('Unsupported claim');

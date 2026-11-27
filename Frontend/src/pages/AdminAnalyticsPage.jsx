@@ -1,3 +1,6 @@
+import { createPortal } from 'react-dom';
+import DashboardDialog from '../components/admin/DashboardDialog.jsx';
+import useCompactDashboard from '../components/admin/useCompactDashboard.js';
 import PageSkeleton from "../components/PageSkeleton.jsx";
 import ReportMonthPicker from "../components/ReportMonthPicker.jsx";
 import { showFeedback } from "../lib/actionFeedback.js";
@@ -14,7 +17,6 @@ import { useRemoteData } from "../lib/useRemoteData.js";
 import { estimateDifference, methodComparison, validationLimits, validationMethod, validationSummary } from '../lib/forecastValidation.js';
 import "./AdminAnalyticsPage.css";
 
-const agingColors = ["#fbbf24", "#fb923c", "#f87171", "#e11d48"];
 const emptyList = [];
 const compactMoneyFormatter = new Intl.NumberFormat("en-PH", { style: "currency", currency: "PHP", notation: "compact", maximumFractionDigits: 1 });
 const shortPeriodFormatter = new Intl.DateTimeFormat("en-PH", { month: "short", year: "2-digit" });
@@ -109,7 +111,7 @@ function BacktestingDialog({ validation, onClose }) {
       if (opener instanceof HTMLElement && opener.isConnected) opener.focus({ preventScroll: true });
     };
   }, []);
-  return <dialog ref={ref} aria-label="Backtesting report" className="forecast-report-dialog"
+  return createPortal(<dialog ref={ref} aria-label="Backtesting report" className="forecast-report-dialog"
     onCancel={event => { event.preventDefault(); onClose(); }}
     onMouseDown={event => closeFromBackdrop(event, onClose)}
     onKeyDown={event => {
@@ -120,10 +122,10 @@ function BacktestingDialog({ validation, onClose }) {
     }}>
     <div className="forecast-report-toolbar"><h2>Backtesting report</h2><button type="button" onClick={onClose} aria-label="Close backtesting report"><X size={20} aria-hidden="true"/></button></div>
     <div className="forecast-report-body"><DetailedForecastValidation validation={validation}/></div>
-  </dialog>;
+  </dialog>, document.body);
 }
 
-function ForecastValidation({ validation }) {
+function ForecastValidation({ validation, compact = false }) {
   const [open, setOpen] = useState(false);
   const latest = [...(validation?.rows || emptyList)].sort((a, b) => b.month.localeCompare(a.month))[0];
   const maximum = Math.max(1, latest?.forecast || 0, latest?.actual || 0);
@@ -135,7 +137,7 @@ function ForecastValidation({ validation }) {
         <h3>{longPeriodFormatter.format(new Date(latest.month + '-01T12:00:00'))}</h3>
         <ComparisonBar label="Estimated" amount={latest.forecast} maximum={maximum}/>
         <ComparisonBar label="Actually collected" amount={latest.actual} maximum={maximum} tone="actual"/>
-        <p className="forecast-difference">{estimateDifference(latest)}</p>
+        <p className="forecast-difference" title={estimateDifference(latest)}>{compact ? latest.forecast === latest.actual ? "Estimate matched actual collections." : money(Math.abs(latest.forecast-latest.actual)) + (latest.forecast > latest.actual ? " above" : " below") + " actual collections." : estimateDifference(latest)}</p>
       </div> : <p className="analytics-muted">{validation ? 'Not enough history to compare yet.' : 'Past comparisons are unavailable. Refresh the report to try again.'}</p>}
       {latest && <p className="analytics-footnote">Based on {count} completed month{count === 1 ? '' : 's'}.</p>}
       <button type="button" className="forecast-report-trigger" disabled={!validation} aria-haspopup="dialog" onClick={() => setOpen(true)}>View backtesting report</button>
@@ -144,50 +146,16 @@ function ForecastValidation({ validation }) {
   </>;
 }
 
-const AnalyticsReport = memo(function AnalyticsReport({ data, month, period }) {
-  const { snapshot, series, forecast, forecastMonths } = data;
-  const collectionHealth = snapshot.collectionHealth || { aging: [], dueBillCount: 0, onTimeBillCount: 0, onTimeRate: 0, collectionRate: 0, repeatLatePayers: [] };
-  const comparisonCeiling = Math.max(1, ...series.flatMap(point => [point.billed, point.value]));
-  const forecastMax = Math.max(1, ...forecastMonths.map(point => Number(point.value || 0)));
-  const forecastLabel = longPeriodFormatter.format(new Date(`${data.forecastMonth || month}-01T12:00:00`));
-  const overdueAging = collectionHealth.aging.filter(bucket => /^(31-60|61\+)/.test(bucket.label)).reduce((sum, bucket) => sum + Number(bucket.balance || 0), 0);
+function TenantRiskAnalysis({ snapshot }) {
   const [riskPage, setRiskPage] = useState(1);
   const [riskBuilding, setRiskBuilding] = useState("All");
-  const repeatLatePayers = collectionHealth.repeatLatePayers || emptyList;
+  const repeatLatePayers = snapshot.collectionHealth?.repeatLatePayers || emptyList;
   const buildingOptions = useMemo(() => [...new Set(repeatLatePayers.flatMap(item => buildingNames(item.room)))].sort((a, b) => a.localeCompare(b)), [repeatLatePayers]);
   const filteredRiskTenants = useMemo(() => repeatLatePayers.filter(tenant => riskBuilding === "All" || buildingNames(tenant.room).includes(riskBuilding)), [repeatLatePayers, riskBuilding]);
   const riskPageCount = Math.max(1, Math.ceil(filteredRiskTenants.length / TABLE_PAGE_SIZE));
   const currentRiskPage = Math.min(riskPage, riskPageCount);
   const visibleRiskTenants = filteredRiskTenants.slice((currentRiskPage - 1) * TABLE_PAGE_SIZE, currentRiskPage * TABLE_PAGE_SIZE);
-
-  return <>
-    <div className="analytics-report-grid">
-      <div className="analytics-report-column">
-      <section className="analytics-panel analytics-revenue analytics-grid-wide" aria-labelledby="revenue-heading">
-        <SectionHeading
-          id="revenue-heading"
-          icon={Wallet}
-          title="Revenue trend"
-          subtitle={`${period} billed vs. collected · through ${snapshot.cutoff}`}
-          action={<div className="analytics-chart-legend" aria-label="Chart legend"><span><i className="analytics-key analytics-key-billed" />Billed</span><span><i className="analytics-key analytics-key-collected" />Collected</span></div>}
-        />
-        <div className="analytics-chart-scroll"><div className="analytics-chart">
-          <div className="analytics-axis" aria-hidden="true">{[1, .75, .5, .25, 0].map(tick => <span key={tick}>{money(comparisonCeiling * tick)}</span>)}</div>
-          <div className="analytics-plot">
-            <div className="analytics-gridlines" aria-hidden="true">{[0, 1, 2, 3, 4].map(line => <span key={line} />)}</div>
-            {series.map(point => <div className="analytics-column" key={point.label}>
-              <div className="analytics-bar-space analytics-bar-group" role="img" aria-label={`${point.label}: billed ${money(point.billed)}, collected ${money(point.value)}`}>
-                <div className="analytics-bar analytics-bar-billed" style={{ height: point.billed / comparisonCeiling * 100 + "%" }} title={"Billed: " + money(point.billed)} />
-                <div className="analytics-bar analytics-bar-collected" style={{ height: point.value / comparisonCeiling * 100 + "%" }} title={"Collected: " + money(point.value)} />
-              </div>
-              <span className="analytics-bar-value"><span className="analytics-chart-amount-full">{money(point.value)}</span><span className="analytics-chart-amount-compact">{compactMoney(point.value)}</span></span>
-              <span className="analytics-bar-label">{periodLabel(point.label)}</span>
-            </div>)}
-          </div>
-        </div></div>
-        <p className="analytics-footnote">Bills use billing periods; collections use payment dates and may settle older bills. Zero means no saved payments for that period.</p>
-      </section>
-      <section className="analytics-panel analytics-tenant-analysis analytics-risk-analysis analytics-grid-wide" aria-labelledby="tenant-risk-heading">
+  return (<section className="analytics-panel analytics-tenant-analysis analytics-risk-analysis analytics-grid-wide" aria-labelledby="tenant-risk-heading">
         <SectionHeading
           id="tenant-risk-heading"
           icon={TriangleAlert}
@@ -216,7 +184,71 @@ const AnalyticsReport = memo(function AnalyticsReport({ data, month, period }) {
         </ul>
         <TablePagination count={filteredRiskTenants.length} page={currentRiskPage} pageCount={riskPageCount} onPageChange={setRiskPage} label="Tenant payment risk pages" />
         <p className="analytics-footnote">At risk means at least two bills were paid after their due date or remain overdue in the six-month window.</p>
+      </section>);
+}
+
+function CollectionsForecast({ data, month, compact = false }) {
+  const { forecast, forecastMonths } = data;
+  const [detailsOpen, setDetailsOpen] = useState(false);
+  const forecastMax = Math.max(1, ...forecastMonths.map(point => Number(point.value || 0)));
+  const forecastLabel = longPeriodFormatter.format(new Date(`${data.forecastMonth || month}-01T12:00:00`));
+
+  return <>
+      <section className="analytics-panel analytics-forecast analytics-grid-narrow" aria-labelledby="forecast-heading">
+        <SectionHeading id="forecast-heading" icon={TrendingUp} title="Estimated Collections" subtitle={forecastLabel} />
+        <div className="analytics-forecast-value">
+          <p className="analytics-eyebrow">EXPECTED COLLECTIONS</p>
+          <p className={"analytics-forecast-number" + (forecast === null ? " analytics-forecast-number--muted" : "")} aria-live="polite">{forecast === null ? "Not enough history" : money(forecast)}</p>
+          <p className="analytics-muted">{forecastLabel}</p>
+        </div>
+        {!compact && <p className="analytics-footnote">Based on payments applied to the previous three completed bill months. Payments count toward the bill month, even if received later.</p>}
+        <div className="analytics-forecast-months forecast-exact-months" aria-label="Monthly collections used in the forecast">
+          {forecastMonths.map(point => <div className="analytics-forecast-month" key={point.label}>
+            <span>{periodLabel(point.label)}</span>
+            <div className="analytics-forecast-track"><i style={{ width: (Number(point.value || 0) ? Number(point.value) / forecastMax * 100 : 0) + "%" }} /></div>
+            <strong>{money(point.value)}</strong>
+          </div>)}
+        </div>
+        {compact ? <button type="button" className="analytics-detail-button" onClick={() => setDetailsOpen(true)}>How this is calculated</button> : <> <details className="analytics-disclosure forecast-calculation"><summary>How this is calculated</summary><p className="analytics-footnote">{forecast === null ? 'At least one recorded payment is needed in each of the three completed months shown. Missing records are not treated as zero.' : '(' + forecastMonths.map(point => money(point.value)).join(' + ') + ') ÷ 3 = ' + money(forecast)}</p></details>
+        <p className="analytics-footnote">This estimate may differ from actual collections.</p> </>}
       </section>
+    {detailsOpen && <DashboardDialog title="Collection forecast details" onClose={() => setDetailsOpen(false)}><div className="space-y-4 text-sm leading-6 text-slate-600"><p>Based on payments applied to the previous three completed bill months. Payments count toward the bill month, even if received later.</p><p>{forecast === null ? "At least one recorded payment is needed in each of the three completed months shown. Missing records are not treated as zero." : "(" + forecastMonths.map(point => money(point.value)).join(" + ") + ") \u00f7 3 = " + money(forecast)}</p><ul>{forecastMonths.map(point => <li key={point.label}>{periodLabel(point.label)}: {money(point.value)}</li>)}</ul><p>This estimate may differ from actual collections.</p></div></DashboardDialog>}
+  </>;
+}
+
+const AnalyticsReport = memo(function AnalyticsReport({ data, month, period, compact = false }) {
+  const { snapshot, series } = data;
+  const comparisonCeiling = Math.max(1, ...series.flatMap(point => [point.billed, point.value]));
+
+
+  return <>
+    <div className="analytics-report-grid">
+      <div className="analytics-report-column">
+      <section className="analytics-panel analytics-revenue analytics-grid-wide" aria-labelledby="revenue-heading">
+        <SectionHeading
+          id="revenue-heading"
+          icon={Wallet}
+          title="Revenue trend"
+          subtitle={`${period} billed vs. collected · through ${snapshot.cutoff}`}
+          action={<div className="analytics-chart-legend" aria-label="Chart legend"><span><i className="analytics-key analytics-key-billed" />Billed</span><span><i className="analytics-key analytics-key-collected" />Collected</span></div>}
+        />
+        <div className="analytics-chart-scroll"><div className="analytics-chart">
+          <div className="analytics-axis" aria-hidden="true">{[1, .75, .5, .25, 0].map(tick => <span key={tick} title={money(comparisonCeiling * tick)}>{compact ? compactMoney(comparisonCeiling * tick) : money(comparisonCeiling * tick)}</span>)}</div>
+          <div className="analytics-plot">
+            <div className="analytics-gridlines" aria-hidden="true">{[0, 1, 2, 3, 4].map(line => <span key={line} />)}</div>
+            {series.map(point => <div className="analytics-column" key={point.label}>
+              <div className="analytics-bar-space analytics-bar-group" role="img" aria-label={`${point.label}: billed ${money(point.billed)}, collected ${money(point.value)}`}>
+                <div className="analytics-bar analytics-bar-billed" style={{ height: point.billed / comparisonCeiling * 100 + "%" }} title={"Billed: " + money(point.billed)} />
+                <div className="analytics-bar analytics-bar-collected" style={{ height: point.value / comparisonCeiling * 100 + "%" }} title={"Collected: " + money(point.value)} />
+              </div>
+              <span className="analytics-bar-value"><span className="analytics-chart-amount-full">{money(point.value)}</span><span className="analytics-chart-amount-compact">{compactMoney(point.value)}</span></span>
+              <span className="analytics-bar-label">{periodLabel(point.label)}</span>
+            </div>)}
+          </div>
+        </div></div>
+        <p className="analytics-footnote" title="Bills use billing periods; collections use payment dates and may settle older bills. Zero means no saved payments for that period.">{compact ? "Billed by bill month; collected by payment date." : "Bills use billing periods; collections use payment dates and may settle older bills. Zero means no saved payments for that period."}</p>
+      </section>
+      {compact ? <CompactTenantRisk snapshot={snapshot}/> : <TenantRiskAnalysis snapshot={snapshot}/>}
       <section className="analytics-panel analytics-room analytics-grid-wide" aria-labelledby="room-availability-heading">
         <SectionHeading id="room-availability-heading" icon={Building2} title="Vacancy and potential revenue" subtitle="Current availability · independent of the selected report period" />
         <div className="analytics-vacancy-analysis">
@@ -228,68 +260,20 @@ const AnalyticsReport = memo(function AnalyticsReport({ data, month, period }) {
           </div>
           <div><p className="analytics-eyebrow">POTENTIAL MONTHLY RENT</p><strong className="analytics-vacancy-amount">{money(snapshot.vacancyGap)}</strong><p className="analytics-muted">Rental opportunity from {snapshot.available} available {snapshot.available === 1 ? "room" : "rooms"}</p></div>
         </div>
-        <p className="analytics-footnote analytics-vacancy-explanation">Potential rent assumes available rooms are occupied for a full month. Reserved and maintenance rooms are excluded from this estimate.</p>
+        <p className="analytics-footnote analytics-vacancy-explanation" title="Potential rent assumes available rooms are occupied for a full month. Reserved and maintenance rooms are excluded from this estimate.">{compact ? "Full-month rent from available rooms only." : "Potential rent assumes available rooms are occupied for a full month. Reserved and maintenance rooms are excluded from this estimate."}</p>
       </section>
       </div>
       <div className="analytics-report-column">
-      <section className="analytics-panel analytics-forecast analytics-grid-narrow" aria-labelledby="forecast-heading">
-        <SectionHeading id="forecast-heading" icon={TrendingUp} title="Estimated Collections" subtitle={forecastLabel} />
-        <div className="analytics-forecast-value">
-          <p className="analytics-eyebrow">EXPECTED COLLECTIONS</p>
-          <p className={"analytics-forecast-number" + (forecast === null ? " analytics-forecast-number--muted" : "")} aria-live="polite">{forecast === null ? "Not enough history" : money(forecast)}</p>
-          <p className="analytics-muted">{forecastLabel}</p>
-        </div>
-        <p className="analytics-footnote">Based on payments applied to the previous three completed bill months. Payments count toward the bill month, even if received later.</p>
-        <div className="analytics-forecast-months forecast-exact-months" aria-label="Monthly collections used in the forecast">
-          {forecastMonths.map(point => <div className="analytics-forecast-month" key={point.label}>
-            <span>{periodLabel(point.label)}</span>
-            <div className="analytics-forecast-track"><i style={{ width: (Number(point.value || 0) ? Number(point.value) / forecastMax * 100 : 0) + "%" }} /></div>
-            <strong>{money(point.value)}</strong>
-          </div>)}
-        </div>
-        <details className="analytics-disclosure forecast-calculation"><summary>How this is calculated</summary><p className="analytics-footnote">{forecast === null ? 'At least one recorded payment is needed in each of the three completed months shown. Missing records are not treated as zero.' : '(' + forecastMonths.map(point => money(point.value)).join(' + ') + ') ÷ 3 = ' + money(forecast)}</p></details>
-        <p className="analytics-footnote">This estimate may differ from actual collections.</p>
-      </section>
-      <ForecastValidation validation={data.forecastValidation}/>
-      <section className="analytics-panel analytics-collection-health analytics-grid-narrow" aria-labelledby="collection-health-heading">
-        <SectionHeading id="collection-health-heading" icon={Activity} title="Collection health" subtitle={`Aging and payment timing through ${snapshot.cutoff}`} />
-        <div className="analytics-health-rates">
-          <div className="analytics-rate-card">
-            <div className="analytics-rate-ring" style={{ background: `conic-gradient(#059669 ${Math.min(100, Number(collectionHealth.onTimeRate || 0))}%, #e2e8f0 0)` }} role="img" aria-label={`On-time payment rate: ${Number(collectionHealth.onTimeRate || 0).toFixed(1)}%`}><span>{Number(collectionHealth.onTimeRate || 0).toFixed(1)}%</span></div>
-            <p>On-time payments</p>
-            <small>{collectionHealth.onTimeBillCount || 0} of {collectionHealth.dueBillCount || 0} due bills fully paid on time</small>
-          </div>
-          <div className="analytics-rate-card">
-            <div className="analytics-rate-ring" style={{ background: `conic-gradient(#2563eb ${Math.min(100, Number(collectionHealth.collectionRate || 0))}%, #e2e8f0 0)` }} role="img" aria-label={`Collection rate: ${Number(collectionHealth.collectionRate || 0).toFixed(1)}%`}><span>{Number(collectionHealth.collectionRate || 0).toFixed(1)}%</span></div>
-            <p>Collection rate</p>
-            <small>Recorded payments ÷ bills issued through the report date</small>
-          </div>
-        </div>
+      <CollectionsForecast data={data} month={month} compact={compact}/>
+      <ForecastValidation compact={compact} validation={data.forecastValidation}/>
 
-        <p className="analytics-subheading">Aging balances</p>
-        <div className="analytics-aging-bar" role="img" aria-label={collectionHealth.aging.map(bucket => `${bucket.label}: ${money(bucket.balance)}`).join(", ")}>
-          {collectionHealth.aging.map((bucket, index) => Number(bucket.balance) > 0 ? <span key={bucket.label} style={{ flexGrow: Number(bucket.balance || 0), background: agingColors[index % agingColors.length] }} title={`${bucket.label}: ${money(bucket.balance)}`} /> : null)}
-        </div>
-        <ul className="analytics-aging-legend">
-          {collectionHealth.aging.map((bucket, index) => <li key={bucket.label}>
-            <i style={{ background: agingColors[index % agingColors.length] }} />
-            <span>{bucket.label}</span>
-            <strong>{money(bucket.balance)}</strong>
-            <small>{bucket.billCount} {bucket.billCount === 1 ? "bill" : "bills"}</small>
-          </li>)}
-        </ul>
-        <div className="analytics-overdue-alert">
-          <span>Over 30 days overdue</span>
-          <strong>{money(overdueAging)}</strong>
-        </div>
-        <p className="analytics-footnote">A bill is on time only when its full amount was recorded by its due date. Over-30-day balances should be prioritized for follow-up.</p>
-      </section>
       </div>
     </div>
   </>;
 });
 
 export default function AdminAnalyticsPage({ onNavigate, onLogout }) {
+  const compact = useCompactDashboard();
   const [requestedMonth, setMonth] = useSessionState("admin-analytics-month",today().slice(0, 7));
   const [period, setPeriod] = useSessionState("admin-analytics-period","Monthly");
   const [exporting,setExporting]=useState(false);
@@ -322,11 +306,11 @@ export default function AdminAnalyticsPage({ onNavigate, onLogout }) {
     }
   };
 
-  return <main className="flex min-h-screen bg-[#f6f9fd]">
+  return <main className={"admin-analytics " + (compact ? "analytics-compact " : "") + "flex min-h-screen bg-[#f6f9fd]"}>
     <AdminSidebar activePage="Analytics & Reports" onNavigate={onNavigate} />
-    <div className="min-w-0 flex-1"><AdminHeader onLogout={onLogout} />
+    <div className="analytics-main min-w-0 flex-1"><AdminHeader onLogout={onLogout} />
       <div className="analytics-page">
-        <header className="analytics-heading"><div><p className="analytics-eyebrow">PROPERTY PERFORMANCE</p><h1>Analytics &amp; Reports</h1><p className="analytics-muted">Revenue trends, collection health, payment risk, and vacancy analysis.</p></div></header>
+        <header className="analytics-heading"><div><p className="analytics-eyebrow">PROPERTY PERFORMANCE</p><h1>Analytics &amp; Reports</h1><p className="analytics-muted" role={compact && error ? "alert" : undefined} aria-live={compact ? "polite" : undefined} title={compact && error ? error : undefined}>{compact && loading ? "Updating analytics..." : compact && error ? "Unable to refresh. Showing saved report figures." : compact && exporting ? "Preparing your PDF download..." : "Revenue trends, forecasts, payment risk, and vacancy analysis."}{compact && error && <button type="button" onClick={reload} className="ml-2 underline">Retry</button>}</p></div></header>
         <div className="analytics-toolbar">
           <div className="analytics-segments" aria-label="Revenue grouping">{["Monthly", "Quarterly", "Yearly"].map(item => <button key={item} type="button" aria-pressed={period === item} onClick={() => setPeriod(item)}>{item}</button>)}</div>
           <div className="analytics-toolbar-right">
@@ -338,7 +322,7 @@ export default function AdminAnalyticsPage({ onNavigate, onLogout }) {
             {data && <p className="analytics-updated">Updated {new Date(data.loadedAt).toLocaleString("en-PH")}</p>}
           </div>
         </div>
-        {loading&&!data ? <PageSkeleton variant="analytics" label="Loading analytics..."/> : error&&!data ? <p role="alert" className="text-rose-700">{error} <button onClick={reload} className="underline">Retry</button></p> : <><div aria-live="polite">{loading&&<p role="status" className="mb-3 text-sm text-blue-700">Updating analytics while keeping the current report visible…</p>}{error&&<p role="alert" className="mb-3 text-sm text-rose-700">{error} <button onClick={reload} className="underline">Retry</button></p>}{exporting&&<p role="status" className="mb-3 text-sm text-blue-700">Preparing your PDF download…</p>}</div><AnalyticsReport data={data} month={month} period={period} onNavigate={onNavigate} /></>}
+        {loading&&!data ? <PageSkeleton variant={compact ? "table" : "analytics"} label="Loading analytics..."/> : error&&!data ? <p role="alert" title={error} className="text-rose-700">{compact ? "Unable to load analytics." : error} <button onClick={reload} className="underline">Retry</button></p> : <>{!compact && <div className="analytics-live-status" aria-live="polite">{loading&&<p role="status" className="mb-3 text-sm text-blue-700">Updating analytics while keeping the current report visible…</p>}{error&&<p role="alert" className="mb-3 text-sm text-rose-700">{error} <button onClick={reload} className="underline">Retry</button></p>}{exporting&&<p role="status" className="mb-3 text-sm text-blue-700">Preparing your PDF download…</p>}</div>}<AnalyticsReport compact={compact} data={data} month={month} period={period} onNavigate={onNavigate} /></>}
       </div>
     </div>
     {confirmExport && <div onMouseDown={event=>closeFromBackdrop(event,()=>setConfirmExport(false),exporting)} className="fixed inset-0 z-[90] flex items-center justify-center bg-slate-950/45 p-4">
@@ -349,4 +333,17 @@ export default function AdminAnalyticsPage({ onNavigate, onLogout }) {
       </section>
     </div>}
   </main>;
+}
+
+function CompactTenantRisk({ snapshot }) {
+  const [open, setOpen] = useState(false);
+  const tenants = snapshot.collectionHealth?.repeatLatePayers || emptyList;
+  return <>
+    <section className="analytics-panel analytics-risk-summary" aria-label="Tenant payment risk">
+      <SectionHeading id="compact-risk-heading" icon={TriangleAlert} title="Tenant payment risk" action={<button type="button" className="analytics-detail-link" onClick={() => setOpen(true)}>View all</button>}/>
+      <table className="analytics-risk-preview"><caption className="sr-only">Top three tenants with repeated late bills</caption><thead><tr><th>Tenant / Room</th><th>Late bills</th><th>Overdue</th></tr></thead><tbody>{tenants.slice(0,3).map(tenant => <tr key={tenant.tenantId}><th scope="row"><span title={tenant.name}>{tenant.name}</span><small title={tenant.room}>{tenant.room}</small></th><td>{tenant.lateBillCount}</td><td>{money(tenant.overdueBalance)}</td></tr>)}{!tenants.length && <tr><td colSpan={3}>No tenants meet the repeated late-payment rule.</td></tr>}</tbody></table>
+      <p className="analytics-footnote">At least two late bills in the last six months.</p>
+    </section>
+    {open && <DashboardDialog title="Tenant payment risk details" wide onClose={() => setOpen(false)}><div className="analytics-risk-dialog"><TenantRiskAnalysis snapshot={snapshot}/></div></DashboardDialog>}
+  </>;
 }

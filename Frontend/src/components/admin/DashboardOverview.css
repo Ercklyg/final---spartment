@@ -1,0 +1,46 @@
+/* The overview fits a desktop viewport. Smaller windows retain natural flow. */
+@media (min-width: 1280px) and (min-height: 720px) {
+  .admin-dashboard .dashboard-main { display: flex; flex-direction: column; height: 100dvh; min-height: 100dvh; }
+  .admin-dashboard .dashboard-content { display: flex; flex: 1; min-height: 0; flex-direction: column; gap: 12px; width: 100%; padding-top: 16px; padding-bottom: 16px; }
+  .admin-dashboard .dashboard-main > header { flex-shrink: 0; }
+  .dashboard-heading { min-height: 64px; flex-shrink: 0; }
+  .dashboard-overview { display: grid; flex: 1; min-height: 0; grid-template-columns: repeat(2, minmax(0, 1fr)); grid-template-rows: 96px 116px minmax(264px, 1fr); gap: 12px; }
+  .dashboard-overview > [role="alert"] { grid-column: 1 / -1; }
+  .dashboard-overview:has(> [role="alert"]) { grid-template-rows: auto 96px 116px minmax(264px, 1fr); }
+  .dashboard-metrics { order: 1; grid-column: 1 / -1; gap: 12px; }
+  .dashboard-metrics > button { display: grid; grid-template-columns: 40px minmax(0,1fr); column-gap: 12px; align-content: center; padding: 12px 16px; }
+  .dashboard-metrics > button > span:first-child { grid-row: 1 / 4; grid-column: 1; align-self: center; width: 40px; height: 40px; }
+  .dashboard-metrics > button > p:first-of-type { grid-column: 2; margin: 0; font-size: 12px; }
+  .dashboard-metrics h2 { grid-column: 2; font-size: 26px; line-height: 30px; overflow-wrap: anywhere; }
+  .dashboard-metrics > button > span:last-of-type { grid-column: 2; margin: 0; padding: 0; border-radius: 0; background: transparent; color: #64748b; font-size: 11px; line-height: 16px; }
+  .dashboard-metrics > button > p:last-child { display: none; }
+  .dashboard-attention { order: 2; grid-column: 1 / -1; padding: 12px; }
+  .dashboard-attention > div:first-child { height: 16px; }
+  .dashboard-attention > div:first-child > span, .dashboard-attention > div:first-child p { display: none; }
+  .dashboard-attention h2 { font-size: 12px; line-height: 16px; color: #64748b; }
+  .dashboard-attention > div:last-child { margin-top: 8px; gap: 12px; }
+  .dashboard-attention button { padding: 8px 10px; gap: 10px; align-items: center; }
+  .dashboard-attention button > span:first-child { width: 32px; height: 32px; }
+  .dashboard-attention button > span:last-child > span:first-child { font-size: 13px; line-height: 18px; }
+  .dashboard-attention button > span:last-child > span:nth-child(2) { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 11px; line-height: 16px; }
+  .dashboard-attention button > span:last-child > span:last-child { display: none; }
+  .dashboard-notifications { order: 3; min-width: 0; padding: 14px; }
+  .dashboard-insights { order: 4; min-width: 0; padding: 14px; }
+  .dashboard-notifications > div:first-child { align-items: center; gap: 8px; flex-wrap: nowrap; }
+  .dashboard-notifications > div:first-child > svg { width: 20px; height: 20px; }
+  .dashboard-notifications > div:first-child h2 { font-size: 16px; line-height: 22px; }
+  .dashboard-notifications > div:first-child p { display: none; }
+  .dashboard-notifications > div:first-child button { flex-shrink: 0; }
+  .dashboard-notifications > div:first-child button:last-child { background: transparent; color: #2563eb; padding: 8px; }
+  .dashboard-notifications > div:first-child button:last-child > svg { display: none; }
+  .dashboard-notifications > div.mt-4 { margin-top: 12px; }
+  .dashboard-preview-row { min-height: 52px; padding-top: 6px; padding-bottom: 6px; }
+  .dashboard-preview-row .text-sm { font-size: 13px; line-height: 18px; }
+  .dashboard-preview-row .mt-1 { margin-top: 2px; line-height: 16px; }
+  .dashboard-notifications, .dashboard-insights { display: flex; flex-direction: column; }
+  .dashboard-notifications > div:first-child, .dashboard-insights > div:first-child { flex-shrink: 0; }
+  .dashboard-preview-area { display: flex; flex: 1; flex-direction: column; min-height: 0; margin-top: 12px; }
+  .dashboard-preview-list { display: grid; flex: 1; min-height: 0; gap: 8px; grid-template-rows: repeat(var(--preview-rows), minmax(0, 1fr)); }
+  .dashboard-notifications > [role="alert"] { font-size: 12px; line-height: 16px; margin-top: 8px; }
+  .dashboard-empty-note { margin: 0; font-size: 12px; line-height: 16px; }
+}

@@ -140,7 +140,6 @@ function createPdfPages(data, month, period) {
     .sort((a, b) => String(a.due_date).localeCompare(String(b.due_date)) || String(a.name).localeCompare(String(b.name)));
   sectionTitle("Management summary", "Key figures for decision-making. Detailed supporting records appear later in this report.");
   drawTable(["Measure", "Summary"], [
-    ["Collection performance", `${Number(health.collectionRate || 0).toFixed(1)}% collected; ${Number(health.onTimeRate || 0).toFixed(1)}% of due bills paid in full on time`],
     ["Outstanding exposure", `${fmt(snapshot.outstanding)} across ${outstandingRows.length} unpaid bills`],
     ["Overdue exposure", `${fmt(snapshot.overdue)} overdue through ${snapshot.cutoff || "the report date"}`],
     ["Occupancy", `${Number(snapshot.occupancy || 0).toFixed(1)}% occupied; ${snapshot.available || 0} rooms currently available`],
@@ -210,12 +209,6 @@ function createPdfPages(data, month, period) {
 
   sectionTitle("Current room inventory", `Current availability · ${Number(snapshot.occupancy || 0).toFixed(1)}% occupied · Potential monthly vacancy rent ${fmt(snapshot.vacancyGap)}`);
   drawTable(["Room status", "Rooms"], (snapshot.inventory || []).map(room => [room.status, room.count]), [340, 171]);
-
-  sectionTitle("Collection health", "Recorded payment performance through the report date.");
-  drawTable(["Measure", "Result"], [["Collection rate", `${Number(health.collectionRate || 0).toFixed(1)}%`], ["On-time payment rate", `${Number(health.onTimeRate || 0).toFixed(1)}%`], ["Bills due", health.dueBillCount || 0], ["Bills paid in full by due date", health.onTimeBillCount || 0]], [340, 171]);
-
-  sectionTitle("Outstanding balance aging", "Outstanding balances grouped by days past due.");
-  drawTable(["Age", "Balance (PHP)", "Bills"], (health.aging || []).map(bucket => [bucket.label, fmt(bucket.balance), bucket.billCount]), [200, 200, 111]);
 
   sectionTitle("Tenant payment risk", "At least two bills paid late or still unpaid in the six-month window.");
   drawTable(["Tenant", "Room", "Late bills", "Overdue balance"], (health.repeatLatePayers || []).map(tenant => [tenant.name, tenant.room, tenant.lateBillCount, fmt(tenant.overdueBalance)]), [135, 190, 70, 116], "No tenants meet the repeated late-payment rule.");

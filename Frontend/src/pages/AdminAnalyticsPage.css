@@ -94,7 +94,6 @@
 .analytics-forecast .forecast-calculation[open] { padding-bottom:18px; }
 .analytics-forecast .forecast-calculation[open] > summary { border-bottom:1px solid #e2e8f0; }
 .analytics-forecast .forecast-calculation > .analytics-footnote { margin-top:14px; line-height:1.8; overflow-wrap:anywhere; }
-.analytics-collection-health { order:3; }
 .analytics-risk-analysis { order:4; }
 .analytics-room { order:5; }
 .analytics-full-width { grid-column:1/-1; min-width:0; }
@@ -115,7 +114,6 @@
 .analytics-revenue { border-top:3px solid #3b82f6; background:linear-gradient(155deg,#eff6ff 0%,#fff 42%); }
 .analytics-forecast { background:linear-gradient(155deg,#eff6ff85,#fff 55%); }
 .analytics-tenant-analysis { background:linear-gradient(150deg,#f8fafc,#fff 55%); }
-.analytics-collection-health { border-color:#fed7aa; background:linear-gradient(150deg,#fff7ed90,#fff 55%); }
 .analytics-risk-analysis { border-color:#fecdd3; background:linear-gradient(150deg,#fff1f2,#fff 48%); }
 .analytics-room { background:linear-gradient(150deg,#ecfdf5a6,#fff 55%); }
 .analytics-notes { background:linear-gradient(150deg,#f8fafc,#fff 55%); }
@@ -125,7 +123,6 @@
 .analytics-section-icon { display:flex; align-items:center; justify-content:center; flex-shrink:0; width:36px; height:36px; border-radius:10px; background:#eff6ff; color:#1d4ed8; }
 .analytics-panel h2 { font-size:18px; font-weight:750; letter-spacing:-.02em; line-height:1.35; }
 .analytics-panel-heading p { margin-top:4px; color:#475569; font-size:13px; }
-.analytics-collection-health .analytics-section-icon { background:#ffedd5; color:#c2410c; }
 .analytics-risk-analysis .analytics-section-icon { background:#ffe4e6; color:#be123c; }
 .analytics-notes .analytics-section-icon { background:#f1f5f9; color:#475569; }
 .analytics-room .analytics-section-icon { background:#d1fae5; color:#047857; }
@@ -199,24 +196,6 @@
 .analytics-table-pagination button { min-height:36px; padding:6px 11px; border:1px solid #cbd5e1; border-radius:8px; background:#fff; color:#1e40af; font-weight:600; }
 .analytics-table-pagination button:hover:not(:disabled) { background:#eff6ff; }
 .analytics-table-pagination button:disabled { cursor:not-allowed; opacity:.45; }
-
-/* Collection health */
-.analytics-health-rates { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px; margin-top:18px; }
-.analytics-rate-card { display:flex; flex-direction:column; align-items:center; gap:6px; padding:14px 10px; border:1px solid #fed7aa; border-radius:12px; background:#fff; text-align:center; }
-.analytics-rate-ring { display:grid; place-items:center; width:82px; height:82px; padding:8px; border-radius:50%; }
-.analytics-rate-ring > span { display:grid; place-items:center; width:100%; height:100%; border-radius:50%; background:#fff; font-size:17px; font-weight:800; font-variant-numeric:tabular-nums; }
-.analytics-rate-card p { font-size:12px; font-weight:700; line-height:1.4; }
-.analytics-rate-card small { color:#475569; font-size:11px; line-height:1.45; }
-.analytics-subheading { margin-top:18px; color:#9a3412; font-size:11px; font-weight:700; letter-spacing:.1em; text-transform:uppercase; }
-.analytics-aging-bar { display:flex; gap:2px; height:12px; margin-top:8px; border-radius:99px; overflow:hidden; background:#f1f5f9; }
-.analytics-aging-bar span { min-width:0; }
-.analytics-aging-legend { display:grid; gap:7px; margin:12px 0 0; padding:0; list-style:none; }
-.analytics-aging-legend li { display:grid; grid-template-columns:9px minmax(0,1fr) auto; align-items:center; gap:8px; color:#475569; font-size:12px; }
-.analytics-aging-legend i { width:8px; height:8px; border-radius:2px; }
-.analytics-aging-legend strong { color:#334155; font-variant-numeric:tabular-nums; }
-.analytics-aging-legend small { grid-column:2/-1; color:#475569; font-size:11px; }
-.analytics-overdue-alert { display:flex; align-items:center; justify-content:space-between; gap:10px; margin-top:14px; padding:11px 12px; border:1px solid #fecaca; border-radius:10px; background:#fff1f2; color:#9f1239; font-size:12px; }
-.analytics-overdue-alert strong { font-size:15px; font-variant-numeric:tabular-nums; }
 
 /* Bill status */
 .analytics-status-bar { display:flex; gap:2px; height:12px; margin-top:18px; border-radius:99px; overflow:hidden; background:#f1f5f9; }
@@ -327,7 +306,6 @@
   .analytics-table-pagination { flex-direction:column; align-items:stretch; gap:10px; }
   .analytics-table-pagination > div { justify-content:space-between; }
   .analytics-table-pagination button { min-height:44px; }
-  .analytics-rate-ring { width:72px; height:72px; }
   .analytics-occupancy-visual { gap:16px; }
   .analytics-rows > div { gap:10px; }
   .analytics-disclosure summary,.analytics-actions button { min-height:44px; }
@@ -346,3 +324,93 @@
 @media(max-width:360px) {
   .analytics-bar-value,.analytics-bar-label { font-size:9px; }
 }
+
+/* Desktop overview: five panels, no page or chart scrolling. */
+@media (min-width:1280px) and (min-height:720px) {
+  .analytics-compact .analytics-main { display:flex; flex-direction:column; height:100dvh; min-height:100dvh; }
+  .analytics-compact .analytics-main > header { flex-shrink:0; }
+  .analytics-compact .analytics-page { display:flex; flex:1; min-height:0; flex-direction:column; width:100%; padding:12px 20px 16px; line-height:1.4; }
+  .analytics-compact .analytics-heading { margin:0 0 8px; padding-left:12px; }
+  .analytics-compact .analytics-heading .analytics-eyebrow { display:none; }
+  .analytics-compact .analytics-heading h1 { margin:0; font-size:24px; }
+  .analytics-compact .analytics-heading .analytics-muted { font-size:12px; line-height:18px; margin-top:2px; }
+  .analytics-compact .analytics-toolbar { flex-shrink:0; flex-wrap:nowrap; gap:8px; margin-bottom:10px; padding:8px; }
+  .analytics-compact .analytics-segments { padding:2px; }
+  .analytics-compact .analytics-segments button { min-height:38px; padding:6px 10px; font-size:12px; }
+  .analytics-compact .analytics-toolbar-right { flex-wrap:nowrap; gap:8px; }
+  .analytics-compact .analytics-controls { flex-wrap:nowrap; gap:8px; }
+  .analytics-compact .analytics-controls .analytics-refresh, .analytics-compact .analytics-controls .analytics-export { min-height:44px; font-size:12px; padding:8px 10px; }
+  .analytics-compact .analytics-updated { max-width:112px; white-space:normal; font-size:10px; }
+  .analytics-compact .report-month-trigger { min-height:44px; padding-block:5px; }
+  .analytics-compact .analytics-report-grid { flex:1; min-height:0; align-items:stretch; grid-template-columns:minmax(0,1.4fr) minmax(0,1fr) minmax(0,1fr); grid-template-rows:minmax(244px,1.08fr) minmax(224px,1fr); gap:10px; }
+  .analytics-compact .analytics-report-column { display:contents; }
+  .analytics-compact .analytics-panel { padding:12px; border-radius:14px; content-visibility:visible; contain-intrinsic-size:none; }
+  .analytics-compact .analytics-revenue { grid-column:1/3; grid-row:1; }
+  .analytics-compact .analytics-forecast { grid-column:3; grid-row:1; }
+  .analytics-compact .analytics-risk-summary { grid-column:1; grid-row:2; border-color:#fecdd3; background:linear-gradient(150deg,#fff1f2,#fff 48%); }
+  .analytics-compact .analytics-forecast-validation { grid-column:2; grid-row:2; }
+  .analytics-compact .analytics-room { grid-column:3; grid-row:2; }
+  .analytics-compact .analytics-panel-heading { align-items:center; gap:6px; }
+  .analytics-compact .analytics-heading-left { gap:7px; align-items:center; }
+  .analytics-compact .analytics-section-icon { width:28px; height:28px; border-radius:8px; }
+  .analytics-compact .analytics-panel h2 { font-size:14px; line-height:18px; }
+  .analytics-compact .analytics-panel-heading p { font-size:11px; margin-top:2px; line-height:15px; }
+  .analytics-compact .analytics-footnote { font-size:11px; line-height:15px; margin-top:4px; }
+  .analytics-compact .analytics-chart-scroll { overflow:visible; margin-top:12px; }
+  .analytics-compact .analytics-chart { min-width:0; gap:8px; padding-bottom:0; }
+  .analytics-compact .analytics-axis { width:58px; height:clamp(125px,calc(35dvh - 127px),220px); font-size:10px; }
+  .analytics-compact .analytics-plot { gap:6px; }
+  .analytics-compact .analytics-gridlines, .analytics-compact .analytics-bar-space { height:clamp(125px,calc(35dvh - 127px),220px); }
+  .analytics-compact .analytics-bar-value { margin-top:5px; font-size:10px; }
+  .analytics-compact .analytics-bar-label { margin-top:3px; font-size:10px; }
+  .analytics-compact .analytics-chart-amount-full { display:none; }
+  .analytics-compact .analytics-chart-amount-compact { display:inline; }
+  .analytics-compact .analytics-chart-legend { gap:8px; font-size:10px; }
+  .analytics-compact .analytics-forecast-value { margin-top:8px; padding:8px 10px; }
+  .analytics-compact .analytics-forecast-value .analytics-eyebrow, .analytics-compact .analytics-forecast-value .analytics-muted { display:none; }
+  .analytics-compact .analytics-forecast-number { font-size:25px; overflow-wrap:anywhere; }
+  .analytics-compact .analytics-forecast-number--muted { font-size:18px; }
+  .analytics-compact .analytics-forecast-months { gap:7px; margin-top:10px; }
+  .analytics-compact .forecast-exact-months .analytics-forecast-month { grid-template-columns:48px minmax(0,1fr) auto; gap:7px; font-size:11px; }
+  .analytics-compact .forecast-exact-months .analytics-forecast-track { grid-column:auto; grid-row:auto; height:5px; }
+  .analytics-compact .analytics-forecast-month strong { font-size:11px; }
+  .analytics-compact .forecast-summary h3 { margin:8px 0; font-size:12px; }
+  .analytics-compact .forecast-amount-row { margin-top:8px; }
+  .analytics-compact .forecast-amount-row > div:first-child { margin-bottom:4px; gap:2px 6px; }
+  .analytics-compact .forecast-amount-row span, .analytics-compact .forecast-amount-row strong { font-size:12px; line-height:16px; }
+  .analytics-compact .forecast-bar-track { height:6px; }
+  .analytics-compact .forecast-difference { margin-top:8px; padding:6px 8px; font-size:11px; line-height:15px; }
+  .analytics-compact .forecast-report-trigger { min-height:32px; margin-top:4px; padding:6px 8px; font-size:11px; }
+  .analytics-compact .analytics-vacancy-analysis { grid-template-columns:80px minmax(0,1fr); gap:10px; margin-top:12px; }
+  .analytics-compact .analytics-donut { width:80px; height:80px; padding:10px; }
+  .analytics-compact .analytics-donut > div { width:100%; height:100%; }
+  .analytics-compact .analytics-donut strong { font-size:17px; }
+  .analytics-compact .analytics-donut span { font-size:10px; }
+  .analytics-compact .analytics-vacancy-analysis > .analytics-vacancy-chart { gap:8px; }
+  .analytics-compact .analytics-vacancy-analysis > div:last-child { padding-left:0; border:0; }
+  .analytics-compact .analytics-vacancy-legend { gap:4px; font-size:9px; }
+  .analytics-compact .analytics-vacancy-amount { margin:4px 0; font-size:21px; overflow-wrap:anywhere; }
+  .analytics-compact .analytics-vacancy-analysis .analytics-muted { font-size:11px; line-height:15px; }
+  .analytics-compact .analytics-vacancy-analysis .analytics-eyebrow { font-size:9px; line-height:13px; letter-spacing:.06em; }
+  .analytics-compact .analytics-room .analytics-panel-heading p { display:none; }
+  .analytics-compact .analytics-live-status:empty { display:none; }
+  .analytics-compact .analytics-live-status p { margin:0 0 4px; font-size:11px; line-height:16px; }
+}
+.analytics-detail-button { display:flex; align-items:center; justify-content:center; min-height:32px; width:100%; margin-top:10px; padding:6px 10px; border:1px solid #dbeafe; border-radius:8px; background:#eff6ff; color:#1d4ed8; font-size:12px; font-weight:600; }
+.analytics-detail-link { flex-shrink:0; min-height:32px; padding:6px 8px; border-radius:8px; color:#1d4ed8; font-size:12px; font-weight:600; }
+.analytics-risk-preview { width:100%; margin-top:8px; border-collapse:collapse; table-layout:fixed; font-size:12px; }
+.analytics-risk-preview th { text-align:left; font-weight:500; }
+.analytics-risk-preview thead th { padding:5px 4px; color:#64748b; font-size:10px; }
+.analytics-risk-preview :is(th,td):not(:first-child) { text-align:right; }
+.analytics-risk-preview th:first-child { width:50%; }
+.analytics-risk-preview tbody :is(th,td) { padding:3px 4px; border-top:1px solid #f1f5f9; }
+.analytics-risk-preview tbody th span, .analytics-risk-preview small { display:block; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.analytics-risk-preview small { color:#64748b; font-size:10px; line-height:12px; margin-top:2px; }
+.analytics-risk-preview td:last-child { color:#be123c; font-weight:600; font-variant-numeric:tabular-nums; white-space:nowrap; }
+.analytics-risk-dialog .analytics-panel { padding:0; border:0; box-shadow:none; content-visibility:visible; }
+.analytics-risk-dialog .analytics-panel-heading { display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:12px; }
+.analytics-risk-dialog .analytics-table-scroll { overflow-x:auto; margin-top:16px; }
+.analytics-risk-dialog table { width:100%; min-width:650px; border-collapse:collapse; font-size:13px; }
+.analytics-risk-dialog :is(th,td) { padding:10px; text-align:left; border-bottom:1px solid #e2e8f0; }
+.analytics-risk-dialog td .analytics-muted { color:#64748b; font-size:12px; }
+.analytics-risk-dialog .analytics-mobile-list { display:none; }

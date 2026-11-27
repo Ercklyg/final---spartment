@@ -42,18 +42,18 @@ test('request review includes unresolved tenant requests and guest inquiries onl
   assert.equal(result.records[0].title,'Leaking tap');assert.equal(result.records[1].title,'Guest inquiry');
 });
 
-test('available-room review excludes test rooms and other room statuses',async()=>{
+test('available-room review includes formerly classified rooms and excludes occupied rooms',async()=>{
   const req=request('property:vacancy');
   const rows=[{id:'room',status:'available',room_number:'103',monthly_rate:2500,is_test:false,buildings:{name:'Building 2'}},
-    {id:'test',status:'available',is_test:true},{id:'occupied',status:'occupied',is_test:false}];
+    {id:'test',status:'available',room_number:'104',monthly_rate:3000,is_test:true},{id:'occupied',status:'occupied',is_test:false}];
   const filters=[];
   req.db.from=name=>{
     assert.equal(name,'rooms');
     return {select(){return this;},eq(field,value){filters.push([field,value]);return this;},order(){return this;},async range(offset){return {data:offset===0?rows:[]};}};
   };
   const result=await recommendationRecords(req);
-  assert.deepEqual(result.records.map(row=>row.id),['room']);assert.equal(result.records[0].amount,2500);
-  assert.ok(filters.some(([field,value])=>field==='is_test'&&value===false));
+  assert.deepEqual(result.records.map(row=>row.id),['room','test']);assert.equal(result.records[0].amount,2500);
+  assert.ok(filters.every(([field])=>field!=='is_test'));
 });
 
 test('changed situations return an empty review rather than stale records',async()=>{

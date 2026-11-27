@@ -1,7 +1,7 @@
 import { HttpError, serviceError } from '../middleware/errors.js';
 import * as validate from '../services/validation.js';
 
-export const roomColumns = 'id,room_number,floor,status,monthly_rate,description,size_sqm,capacity,is_test,buildings(name),tenant_assignments(full_name)';
+export const roomColumns = 'id,room_number,floor,status,monthly_rate,description,size_sqm,capacity,buildings(name),tenant_assignments(full_name)';
 
 function checked(result) {
   if (result.error?.code === '23505') throw new HttpError(409, 'That room number already exists in this building.');
@@ -11,7 +11,6 @@ function checked(result) {
 
 async function roomDetails(db, input) {
   const body = validate.object(input);
-  if (body.isTest !== undefined && typeof body.isTest !== 'boolean') throw new HttpError(400, 'Invalid test record flag.');
   const buildingName = validate.text(body.building, 'building name', 160);
   const capacity = String(body.capacity);
   if (!/^\d+(-\d+)?$/.test(capacity)) throw new HttpError(400, 'Enter a capacity using numbers or a range, such as 4 or 4-6.');
@@ -22,7 +21,6 @@ async function roomDetails(db, input) {
     monthly_rate: validate.amount(body.rate, 'monthly rate'),
     capacity: capacity + ' persons',
     description: validate.text(body.notes, 'description', 4000, true),
-    ...(body.isTest === undefined ? {} : { is_test: body.isTest }),
   };
   if (!/^\d{3}$/.test(room.room_number)) throw new HttpError(400, 'Room number must be exactly 3 digits.');
   let building = checked(await db.from('buildings').select('id').eq('name', buildingName).maybeSingle());
